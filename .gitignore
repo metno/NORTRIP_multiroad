@@ -1,3 +1,7 @@
+netcdf.inc
+netcdf/
+old\ netcdf/
+
 # Prerequisites
 *.d
 
