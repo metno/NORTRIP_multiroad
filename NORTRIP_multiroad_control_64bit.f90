@@ -14,7 +14,7 @@
 !Linker/general additional library paths C:\BEDRE_BYLUFT\NORTRIP_implementation\NORTRIP_multiroad_control\code\netcdf\include;C:\BEDRE_BYLUFT\NORTRIP_implementation\NORTRIP_multiroad_control\code\netcdf\bin;C:\BEDRE_BYLUFT\NORTRIP_implementation\NORTRIP_multiroad_control\code\netcdf\lib
     
     
-    program NORTRIP_multiroad_control_64bit
+    subroutine NORTRIP_multiroad_control_64bit
 
     use NORTRIP_multiroad_index_definitions
     
@@ -80,10 +80,12 @@
     call NORTRIP_multiroad_find_init_file
     
     !Save info file for running NORTRIP twice. One with and one without date. Because easier to call up non-dated name from NORTRIP
+    if (.not.NORTRIP_preprocessor_combined_flag) then
     filename_info=filename_NORTRIP_data
     call NORTRIP_multiroad_save_info_file
     filename_info=filename_NORTRIP_info
     call NORTRIP_multiroad_save_info_file
+    endif
     
     !Read in static road link data
     if (index(calculation_type,'road weather').gt.0.or.index(calculation_type,'uEMEP').gt.0) then
@@ -134,22 +136,38 @@
     !n_roadlinks=10
     
     !Save NORTRIP multiroad metadata twice. Once with and once without the date. Because these files actually don't change
-    filename_metadata_in=filename_NORTRIP_data
-    call NORTRIP_multiroad_save_metadata
-    filename_metadata_in=filename_NORTRIP_info
-    call NORTRIP_multiroad_save_metadata
- 
+    if (.not.NORTRIP_preprocessor_combined_flag) then
+        filename_metadata_in=filename_NORTRIP_data
+        call NORTRIP_multiroad_save_metadata
+        filename_metadata_in=filename_NORTRIP_info
+        call NORTRIP_multiroad_save_metadata
+    endif
+    
     !Save NORTRIP multiroad initial data
-    call NORTRIP_multiroad_save_initialdata
+    if (.not.NORTRIP_preprocessor_combined_flag) then
+        call NORTRIP_multiroad_save_initialdata
+    endif
+    
+    !Save NORTRIP multiroad date data
+    if (.not.NORTRIP_preprocessor_combined_flag) then
+        call NORTRIP_multiroad_save_datedata
+    endif
     
     !Save NORTRIP multiroad traffic data
-    call NORTRIP_multiroad_save_trafficdata
-
+    if (.not.NORTRIP_preprocessor_combined_flag) then
+        call NORTRIP_multiroad_save_trafficdata
+    endif
+    
     !Save NORTRIP multiroad airquality data
+    if (.not.NORTRIP_preprocessor_combined_flag) then
     call NORTRIP_multiroad_save_airqualitydata
-
+    endif
+    
     !Distribute and save NORTRIP multiroad meteorological data
-    call NORTRIP_multiroad_save_meteodata
+    call NORTRIP_multiroad_create_meteodata
+    if (.not.NORTRIP_preprocessor_combined_flag) then
+        call NORTRIP_multiroad_save_meteodata
+    endif
     
     !Read road maintenance data
     
@@ -172,5 +190,5 @@
     write(*,'(A)') ''
     write(*,'(A)') ''
 
-    end program NORTRIP_multiroad_control_64bit
+    end subroutine NORTRIP_multiroad_control_64bit
 

@@ -77,7 +77,7 @@
     write(unit_logfile,'(A,4I5)') ' End date: ', end_date_input(year_index),end_date_input(month_index),end_date_input(day_index),end_date_input(hour_index)
     
     !Calculate the number of hours between end and start dates
-    n_hours_input=int((date_to_number(end_date_input)-date_to_number(start_date_input))*24.+.5)
+    n_hours_input=int((date_to_number(end_date_input)-date_to_number(start_date_input))*24.+.5)+1
     if (n_hours_input.lt.1) then
         !n_hours_input=n_hours_default
         write(unit_logfile,'(A)') ' ERROR: Number of hours is 0 or less. Stopping'
@@ -89,9 +89,10 @@
     allocate (date_data(num_date_index,n_hours_input))
     date_data=0
     
+    !date_data(1,t)=start_date_input
     do t=1,n_hours_input
         a_temp=start_date_input
-        call incrtm(t,a_temp(1),a_temp(2),a_temp(3),a_temp(4))
+        call incrtm(t-1,a_temp(1),a_temp(2),a_temp(3),a_temp(4))
         date_data(:,t)=a_temp
         !write(*,*) date_data(:,t)
         !num_temp=date_to_number(a_temp)
@@ -99,6 +100,7 @@
         !write(*,*) a_temp
 
     enddo
+
     
     !Fill in any time templates. Not in the NORTRIP paths as this must be set later
     call date_to_datestr_bracket(start_date_input,pathname_nc,pathname_nc)
@@ -242,7 +244,8 @@
     inpath_region_EF=match_string_char('inpath_region_EF',unit_in,unit_logfile,'')
     infile_region_EF=match_string_char('infile_region_EF',unit_in,unit_logfile,'')
 
-    DIFUTC_H=match_string_val('Time difference',unit_in,unit_logfile,0.0)
+    DIFUTC_H=match_string_val('Time difference site',unit_in,unit_logfile,0.0)
+    DIFUTC_H_traffic=match_string_val('Time difference traffic',unit_in,unit_logfile,0.0)
     missing_data=match_string_val('Missing data value',unit_in,unit_logfile,-999.)
     hours_between_init=match_string_int('Hours between saving init files',unit_in,unit_logfile,24)
     calculation_type=match_string_char('Calculation type',unit_in,unit_logfile,'normal')                     	
@@ -307,7 +310,7 @@
     
     !Read in terrain DEM file info  if available. Use a longer string due to multiple files
     n_dem_files=match_string_int('n_dem_files',unit_in,unit_logfile,0)
-    terrain_utm_zone=match_string_int('terrain_utm_zone',unit_in,unit_logfile,utm_zone)
+    terrain_utm_zone=match_string_int('terrain_utm_zone',unit_in,unit_logfile,terrain_utm_zone)
     temp_str_2048=match_string_char_2048('filenames_terrain',unit_in,unit_logfile,'')
     if (n_dem_files.gt.0.and.temp_str_2048.ne.'') then
         allocate (filename_terrain_data(n_dem_files))
@@ -591,6 +594,14 @@
     integer i_link_distance_min
     real temp_val,temp_val2
     character(32) :: no_road_name=' - '
+    
+    logical :: use_uEMEP_receptor_file=.false.
+    integer n_receptor_max
+    parameter (n_receptor_max=1000)
+    character(32) name_receptor(n_receptor_max,2)
+    real lon_receptor(n_receptor_max),lat_receptor(n_receptor_max)
+    integer n_receptor,k,kk
+    logical unique_receptor(n_receptor_max)
 
 	write(unit_logfile,'(A)') '================================================================'
 	write(unit_logfile,'(A)') 'Reading receptor link data (NORTRIP_multiroad_read_receptor_data)'
@@ -680,7 +691,71 @@
             inputdata_int_rl(savedata_rl_index,save_links(1:n_save_links))=0
         endif
     
-    !Open the file for reading
+        
+        !If api is in the receptor file name then read in a different way.
+        !This is not the best method for specifying file type and should be done differently
+        if (index(filename_NORTRIP_receptors,'api').gt.0) use_uEMEP_receptor_file=.true.
+        
+        if (use_uEMEP_receptor_file) then
+            unit_in=20
+            open(unit_in,file=filename_NORTRIP_receptors,access='sequential',status='old',readonly)  
+            write(unit_logfile,'(a)') ' Opening receptor file '//trim(filename_NORTRIP_receptors)
+    
+            rewind(unit_in)
+            !call NXTDAT(unit_in,nxtdat_flag)
+            !read the header to find out how many links there are
+            read(unit_in,'(a)',ERR=19) temp_str
+            k=0
+            do while(.not.eof(unit_in))
+                k=k+1
+                read(unit_in,*,ERR=19) name_receptor(k,1),lon_receptor(k),lat_receptor(k)!,name_receptor(k,2)
+                !write(*,*) trim(name_receptor(k,1)),lon_receptor(k),lat_receptor(k),trim(name_receptor(k,2))
+            enddo
+    
+19          close(unit_in)
+            
+            n_receptor=k
+
+            !Tag identically named receptors as false
+            unique_receptor=.true.
+            do k=1,n_receptor
+                do kk=1,n_receptor
+                    if (trim(name_receptor(k,1)).eq.trim(name_receptor(kk,1)).and.unique_receptor(k).and.k.ne.kk) then
+                        unique_receptor(kk)=.false.
+                    endif
+                enddo
+            enddo
+            
+            
+            write(unit_logfile,'(a,i)') ' Number of receptor points = ', n_receptor
+            
+            n_save_road=n_receptor
+            allocate (save_road_index(n_save_road))
+            allocate (save_meteo_index(n_save_road))
+            allocate (save_road_id(n_save_road))
+            allocate (save_road_name(n_save_road))
+            allocate (save_road_x(n_save_road))
+            allocate (save_road_y(n_save_road))
+            allocate (save_road_ospm_pos(n_save_road))
+    
+            i=0
+            do k=1,n_save_road
+                if (unique_receptor(k)) then
+                i=i+1
+                save_road_index(i)=0
+                save_road_id(i)=0
+                save_road_name(i)=name_receptor(i,1)
+                call LL2UTM(1,utm_zone,lat_receptor(i),lon_receptor(i),save_road_y(i),save_road_x(i))
+                save_road_ospm_pos(i)=3
+                !write(unit_logfile,'(I12,I20,i20,A32,2f12.1,I32)') i,save_road_index(i),save_road_id(i),trim(save_road_name(i)),save_road_x(i),save_road_y(i),save_road_ospm_pos(i)
+                endif
+            enddo
+            n_save_road=i
+            write(unit_logfile,'(a,i)') ' Number of unique receptor points = ', n_save_road
+            
+        else
+            
+        !Open the file for reading
         unit_in=20
         open(unit_in,file=filename_NORTRIP_receptors,access='sequential',status='old',readonly)  
         write(unit_logfile,'(a)') ' Opening receptor link file '//trim(filename_NORTRIP_receptors)
@@ -715,6 +790,8 @@
         enddo
     
         close(unit_in,status='keep')
+        
+        endif
 
     endif
 
@@ -749,8 +826,10 @@
                 save_road_index(jj)=i_link_distance_min
                 save_meteo_index(jj)=j
                 !write(*,*) ':::',jj,i_link_distance_min,distance_to_link_min,inputdata_rl(x1_rl_index,i_link_distance_min),inputdata_rl(y1_rl_index,i_link_distance_min)
+                write(unit_logfile,'(a,i8,a24,f12.2,i12)') 'Special links (i,name,dist,index): ',jj,trim(inputdata_char_rl(roadname_rl_index,i_link_distance_min)),distance_to_link_min,save_road_index(jj)
             endif
         enddo
+        write(unit_logfile,'(a,i)') ' Number of roads found near (<100 m) of receptor points  = ', jj
 
         !Set the link indexes to be saved
         !When use_only_special_links_flag=1 then only the special links
@@ -758,21 +837,22 @@
         if (use_only_special_links_flag.eq.1) then
             n_save_links=jj
             save_links(1:n_save_links)=save_road_index(1:n_save_links)     
-            write(unit_logfile,'(a,<n_save_links>i12)') ' Saving only selected link index: ',save_links(1:n_save_links)
+            write(unit_logfile,'(a,<n_save_links>i12)') ' Calculating and saving only selected link index: ',save_links(1:n_save_links)
             !write(unit_logfile,'(a,<n_save_links>i12)') ' Saving only selected roadlink index: ',inputdata_int_rl(roadindex_rl_index,save_links(1:n_save_road))
             write(unit_logfile,'(a,<n_save_links>i12)') ' Saving only selected link ID: ',inputdata_int_rl(id_rl_index,save_links(1:n_save_links)) 
             write(unit_logfile,'(a,<n_save_links>a24)') ' Saving only selected link name: ',inputdata_char_rl(roadname_rl_index,save_links(1:n_save_links))
         elseif (use_only_special_links_flag.eq.2) then
             !Save all the road links
-            write(unit_logfile,'(a,i)') ' Saving all road links and specifying special road links to be saved: ',n_save_links
+            write(unit_logfile,'(a,i)') ' Calculating all road links and specifying special road links to be saved: ',n_save_links
+            write(unit_logfile,'(a,i)') ' Number of special road links to be saved: ',sum(inputdata_int_rl(savedata_rl_index,:))
             do i=1,n_roadlinks
                 save_links(i)=i
             enddo      
             n_save_links=n_roadlinks
             inputdata_int_rl(roadindex_rl_index,save_links(1:n_save_links))=save_links(1:n_save_links)
         else
-            !Save all the road links
-            write(unit_logfile,'(a,i)') ' Not saving any road links: ',n_save_links
+            !Calculate all the road links
+            write(unit_logfile,'(a,i)') ' Calculating all road links but not saving any special road links: ',n_save_links
             do i=1,n_roadlinks
                 save_links(i)=i
             enddo      

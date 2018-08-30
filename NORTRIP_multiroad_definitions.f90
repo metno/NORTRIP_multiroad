@@ -4,6 +4,9 @@
     module NORTRIP_multiroad_index_definitions
 
     implicit none
+    !private
+    
+    logical :: NORTRIP_preprocessor_combined_flag=.false.
     
     real missing_data
     
@@ -151,7 +154,8 @@
     parameter(he=1,li=2,num_veh=2)
     
     !Other metadata information
-    real :: DIFUTC_H=-1.
+    real :: DIFUTC_H=-1.    !(Norwegian winter time, not 0 if local time is required in NORTRIP)
+    real :: DIFUTC_H_traffic=+1. !(Norwegian winter time, +2 for Norwegian summer time)
     integer :: hours_between_init=24
     real :: exhaust_EF(num_veh)
     real :: nox_EF(num_veh)
@@ -355,7 +359,7 @@
     
     !Studded tyre season and EF regional data
     integer n_region_max,n_region
-    parameter (n_region_max=100)
+    parameter (n_region_max=1000)
     integer :: region_id(n_region_max)=0
     integer :: max_stud_fraction_region(n_region_max,num_veh)=0.
     integer :: start_stud_season_region(n_region_max,num_date_index)=0
@@ -420,6 +424,8 @@
     real, allocatable :: meteo_obs_data_final(:,:)
     integer, allocatable :: meteo_obs_date(:,:)
     integer, allocatable :: meteo_obs_ID_data(:,:)
+    real, allocatable :: meteo_output(:,:,:)
+    integer, allocatable :: meteo_obs_ID_output(:)
     
     integer n_meteo_obs_stations
     integer, allocatable ::  meteo_obs_ID(:)

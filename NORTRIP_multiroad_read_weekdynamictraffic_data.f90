@@ -19,9 +19,12 @@
     real factor_temp
     integer n_roadlinks_read
     real N_normalise,HDV_normalise,V_normalise
+    integer date_data_temp(num_date_index)
+    real DIFUTC_H_traffic_temp
 
     !Functions
     integer day_of_week
+    logical summer_time_europe
     double precision date_to_number
     
 	write(unit_logfile,'(A)') '================================================================'
@@ -108,11 +111,27 @@
     write(*,*) num_traffic_index,n_hours_input,n_roadlinks
     allocate (traffic_data(num_traffic_index,n_hours_input,n_roadlinks))
     
-    write(unit_logfile,'(a)') ' Restistributing weekly traffic in model dates: '
+    write(unit_logfile,'(a)') ' Restistributing weekly traffic in model dates (UTC): '
+    date_data_temp=date_data(:,1)
+    if (summer_time_europe(date_data_temp)) then
+        write(unit_logfile,'(a)') ' Emission profiles set to summer time: '
+    else
+        write(unit_logfile,'(a)') ' Emission profiles set to winter time: '
+    endif
+        
     do t=1,n_hours_input
-        week_day_temp=day_of_week(date_data(:,t))
+        !Adjust the model time stamp to match UTC to either local or local summer time hour of week based on the given DIFUTC_H_traffic
+        date_data_temp=date_data(:,t)
+        if (summer_time_europe(date_data_temp)) then
+            DIFUTC_H_traffic_temp=DIFUTC_H_traffic+1.
+        else
+            DIFUTC_H_traffic_temp=DIFUTC_H_traffic
+        endif
+        call incrtm(int(DIFUTC_H_traffic_temp),date_data_temp(1),date_data_temp(2),date_data_temp(3),date_data_temp(4))
+
+        week_day_temp=day_of_week(date_data_temp(:))
         !hour_temp=date_data(hour_index,t)+1
-        hour_temp=date_data(hour_index,t)
+        hour_temp=date_data_temp(hour_index)
         if (hour_temp.eq.0) hour_temp=24
         
         do i=1,n_roadlinks

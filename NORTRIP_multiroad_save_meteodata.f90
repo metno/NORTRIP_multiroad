@@ -1,6 +1,6 @@
 !NORTRIP_multiroad_save_meteodata.f90
     
-    subroutine NORTRIP_multiroad_save_meteodata
+    subroutine NORTRIP_multiroad_create_meteodata
     
     use NORTRIP_multiroad_index_definitions
     
@@ -47,6 +47,8 @@
 	write(unit_logfile,'(A)') 'Saving multiroad meteorology file (NORTRIP_multiroad_save_meteodata)'
 	write(unit_logfile,'(A)') '================================================================'
     
+    allocate (meteo_output(num_var_meteo,n_hours_input,n_save_links))
+    allocate (meteo_obs_ID_output(n_save_links))
     
     !pathname_meteo='C:\BEDRE BYLUFT\NORTRIP implementation\test_output\';
     !filename_meteo='NORTRIP_test'//'_meteorology.txt'
@@ -227,11 +229,13 @@
     !Meteo data in UTC. Adjust the time stamp to local time
     !DIFUTC_H is UTC relative to local, so negative if local time is ahead
     local_date_nc=date_nc
+    !Do not convert meteorology to local data
     do t=start_dim_nc(time_index),end_dim_nc(time_index)
-        call incrtm(int(-DIFUTC_H),local_date_nc(1,t),local_date_nc(2,t),local_date_nc(3,t),local_date_nc(4,t))
-        !write(*,*) int(DIFUTC_H),local_date_nc(:,t)
+        !call incrtm(int(-DIFUTC_H),local_date_nc(1,t),local_date_nc(2,t),local_date_nc(3,t),local_date_nc(4,t))
+        !write(*,*) local_date_nc(:,t)
     enddo
  
+    
     write(unit_logfile,'(a32,6i6)') ' Start date meteo netcdf = ',date_nc(:,start_dim_nc(time_index))
     write(unit_logfile,'(a32,6i6)') ' End date meteo netcdf = ',date_nc(:,end_dim_nc(time_index))
     write(unit_logfile,'(a32,6i6)') ' Start date meteo local = ',local_date_nc(:,start_dim_nc(time_index))
@@ -275,15 +279,7 @@
     
     not_shown_once=.true.
     
-    !Open the file for writing
-    unit_in=30
-    open(unit_in,file=pathfilename_meteo,access='sequential',status='unknown')  
-    
-    write(unit_logfile,'(a)') ' Saving meteodata for NORTRIP '//trim(pathfilename_meteo)
-
-    !Write header
-    write(unit_in,'(27a)') 'Road_number',achar(9),'Station_number',achar(9),'Time',achar(9),'T2m',achar(9),'FF',achar(9),'DD',achar(9),'RH',achar(9), &
-        'Rain',achar(9),'Snow',achar(9),'Global radiation',achar(9),'Longwave radiation',achar(9),'Cloud cover',achar(9),'Pressure',achar(9),'Road surface temperature'
+    write(unit_logfile,'(a)') ' Creating meteodata for NORTRIP '//trim(pathfilename_meteo)
     
     if (meteo_obs_data_available) then
         write(unit_logfile,'(a)') 'Replacing model values with observations (model,obs)'
@@ -445,38 +441,21 @@
 
 
             if (meteo_obs_data_available) then
-            write(unit_in,'(i6,a,i6,a,i6,a,f6.2,a,f6.2,a,f6.1,a,f6.1,a,f6.2,a,f6.2,a,f6.1,a,f6.1,a,f6.2,a,f6.1,a,f6.2)') &
-                ,i &
-                ,achar(9),meteo_obs_ID(ii) &
-                ,achar(9),t &
-                ,achar(9),meteo_temp(temperature_index) &
-                ,achar(9),meteo_temp(speed_wind_index) &
-                ,achar(9),meteo_temp(dir_wind_index) &
-                ,achar(9),meteo_temp(relhumidity_index) &
-                ,achar(9),meteo_temp(rain_index) &
-                ,achar(9),meteo_temp(snow_index) &
-                ,achar(9),meteo_temp(shortwaveradiation_index) &
-                ,achar(9),meteo_temp(longwaveradiation_index) &
-                ,achar(9),meteo_temp(cloudfraction_index) &
-                ,achar(9),meteo_temp(pressure_index) &
-                ,achar(9),meteo_temp(road_temperature_index)
+                meteo_obs_ID_output(i)=meteo_obs_ID(ii)
             else
-            write(unit_in,'(i6,a,i6,a,i6,a,f6.2,a,f6.2,a,f6.1,a,f6.1,a,f6.2,a,f6.2,a,f6.1,a,f6.1,a,f6.2,a,f6.1,a,f6.2)') &
-                ,i &
-                ,achar(9),0 &
-                ,achar(9),t &
-                ,achar(9),meteo_temp(temperature_index) &
-                ,achar(9),meteo_temp(speed_wind_index) &
-                ,achar(9),meteo_temp(dir_wind_index) &
-                ,achar(9),meteo_temp(relhumidity_index) &
-                ,achar(9),meteo_temp(rain_index) &
-                ,achar(9),meteo_temp(snow_index) &
-                ,achar(9),meteo_temp(shortwaveradiation_index) &
-                ,achar(9),meteo_temp(longwaveradiation_index) &
-                ,achar(9),meteo_temp(cloudfraction_index) &
-                ,achar(9),meteo_temp(pressure_index) &
-                ,achar(9),meteo_temp(road_temperature_index)
+                meteo_obs_ID_output(i)=0
             endif
+            meteo_output(temperature_index,t,i)=meteo_temp(temperature_index)
+            meteo_output(speed_wind_index,t,i)=meteo_temp(speed_wind_index)
+            meteo_output(dir_wind_index,t,i)=meteo_temp(dir_wind_index)
+            meteo_output(relhumidity_index,t,i)=meteo_temp(relhumidity_index)
+            meteo_output(rain_index,t,i)=meteo_temp(rain_index)
+            meteo_output(snow_index,t,i)=meteo_temp(snow_index)
+            meteo_output(shortwaveradiation_index,t,i)=meteo_temp(shortwaveradiation_index)
+            meteo_output(longwaveradiation_index,t,i)=meteo_temp(longwaveradiation_index)
+            meteo_output(cloudfraction_index,t,i)=meteo_temp(cloudfraction_index)
+            meteo_output(pressure_index,t,i)=meteo_temp(pressure_index)
+            meteo_output(road_temperature_index,t,i)=meteo_temp(road_temperature_index)
                             
             enddo
             not_shown_once=.false.
@@ -485,12 +464,67 @@
     enddo
     
     
-    close(unit_in)
-    
     deallocate (grid_index_rl)
     deallocate (dist_array_nc)
     deallocate (dist_array_nc2)
     
+    
+    end subroutine NORTRIP_multiroad_create_meteodata
+    
+    subroutine NORTRIP_multiroad_save_meteodata
+
+    use NORTRIP_multiroad_index_definitions
+    
+    implicit none
+    
+    integer i,t,jj
+    integer unit_in
+    logical exists
+    
+    !Open the file for writing
+    unit_in=30
+    open(unit_in,file=pathfilename_meteo,access='sequential',status='unknown')  
+    
+    write(unit_logfile,'(a)') ' Saving meteodata for NORTRIP '//trim(pathfilename_meteo)
+
+    !Write header
+    write(unit_in,'(27a)') 'Road_number',achar(9),'Station_number',achar(9),'Time',achar(9),'T2m',achar(9),'FF',achar(9),'DD',achar(9),'RH',achar(9), &
+        'Rain',achar(9),'Snow',achar(9),'Global radiation',achar(9),'Longwave radiation',achar(9),'Cloud cover',achar(9),'Pressure',achar(9),'Road surface temperature'
+    
+        
+!Distribute meteo data to roadlinks. Saves all links or specified links.
+    do jj=1,n_save_links
+        i=save_links(jj)
+               
+        if ((inputdata_int_rl(savedata_rl_index,i).eq.1.and.use_only_special_links_flag.ge.1) &
+            .or.(use_only_special_links_flag.eq.0).or.(use_only_special_links_flag.eq.2)) then
+        
+            do t=1,n_hours_input
+
+                write(unit_in,'(i6,a,i6,a,i6,a,f6.2,a,f6.2,a,f6.1,a,f6.1,a,f6.2,a,f6.2,a,f6.1,a,f6.1,a,f6.2,a,f6.1,a,f6.2)') &
+                ,i &
+                ,achar(9),meteo_obs_ID_output(i) &
+                ,achar(9),t &
+                ,achar(9),meteo_output(temperature_index,t,i) &
+                ,achar(9),meteo_output(speed_wind_index,t,i) &
+                ,achar(9),meteo_output(dir_wind_index,t,i) &
+                ,achar(9),meteo_output(relhumidity_index,t,i) &
+                ,achar(9),meteo_output(rain_index,t,i) &
+                ,achar(9),meteo_output(snow_index,t,i) &
+                ,achar(9),meteo_output(shortwaveradiation_index,t,i) &
+                ,achar(9),meteo_output(longwaveradiation_index,t,i) &
+                ,achar(9),meteo_output(cloudfraction_index,t,i) &
+                ,achar(9),meteo_output(pressure_index,t,i) &
+                ,achar(9),meteo_output(road_temperature_index,t,i)
+                            
+            enddo
+
+        endif
+    enddo
+    
+    
+    close(unit_in)
+
     !C:\Users\brucerd\Downloads\7za a -tzip test.zip NORTRIP_ALLROADS_metadata.txt (-sdel to delete the files)
     !Command line
     !CALL EXECUTE_COMMAND_LINE (command [,wait,exitstat,cmdstat,cmdmsg]). Set wait=T, 
@@ -509,4 +543,6 @@
         CALL EXECUTE_COMMAND_LINE (trim(command_line_zip),wait=.true.)
     endif
     
+    if (allocated(meteo_output)) deallocate (meteo_output)
+ 
     end subroutine NORTRIP_multiroad_save_meteodata

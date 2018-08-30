@@ -172,7 +172,7 @@
     
     !If only special roads to be saved then also save the names. Limitted to 24 characters
     if (n_save_road.gt.0.and.use_only_special_links_flag.eq.1) then
-        write(unit_in,'(a40,a,<n_save_links>a24)') 'Save road name (24 char)',achar(9),inputdata_char_rl(roadname_rl_index,save_links(1:n_save_links))
+        write(unit_in,'(a40,a,<n_save_links>a12)') 'Save road name (12 char)',achar(9),(inputdata_char_rl(roadname_rl_index,save_links(1:n_save_links)))
     endif
     
     !Save the skyview data

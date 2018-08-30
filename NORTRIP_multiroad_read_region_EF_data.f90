@@ -23,7 +23,7 @@
     !Functions
     integer day_of_week
     double precision date_to_number
-    
+        
 	write(unit_logfile,'(A)') '================================================================'
 	write(unit_logfile,'(A)') 'Reading regional traffic EF and stud share data (NORTRIP_multiroad_read_region_EF_data)'
 	write(unit_logfile,'(A)') '================================================================'
@@ -66,8 +66,8 @@
                 start_stud_season_region(k,month_index:day_index),start_full_stud_season_region(k,month_index:day_index), &
                 end_full_stud_season_region(k,month_index:day_index),end_stud_season_region(k,month_index:day_index), &
                 exhaust_EF_region(k,li),exhaust_EF_region(k,he), &
-                nox_EF_region(k,li),nox_EF_region(k,li)
-            !write(*,*) k,max_stud_fraction_region(k,li)
+                nox_EF_region(k,li),nox_EF_region(k,he)
+            !write(*,*) region_id(k),max_stud_fraction_region(k,li),max_stud_fraction_region(k,he),start_stud_season_region(k,month_index:day_index)
              
         enddo
          
@@ -84,7 +84,9 @@
         !Find the corresponding region_id and attribute the studded tyre and emission factor data to it
         !ID's in roadlink data are kommune, first two numbers are fylke
         do k=1,n_region
-            if (int(inputdata_int_rl(region_id_rl_index,i)/100).eq.region_id(k)) then
+            !if (int(inputdata_int_rl(region_id_rl_index,i)/100).eq.region_id(k)) then
+            !write(*,*) inputdata_int_rl(region_id_rl_index,i),region_id(k)
+            if (inputdata_int_rl(region_id_rl_index,i).eq.region_id(k)) then
                 start_stud_season=start_stud_season_region(k,:)
                 start_full_stud_season=start_full_stud_season_region(k,:)
                 end_stud_season=end_stud_season_region(k,:)
@@ -92,11 +94,14 @@
                 max_stud_fraction=max_stud_fraction_region(k,:)
                 exhaust_EF=exhaust_EF_region(k,:)
                 nox_EF=nox_EF_region(k,:)
+                !write(*,*) region_id(k)
             else
             endif
         enddo
             
-    do t=1,n_hours_input
+    !do t=1,n_hours_input
+        !Base on the starting date, valid for one day but not necessarily for many more
+        t=1
         !Set years for studded tyre season comparison. Assumes the end of season is the following year
         start_stud_season(year_index)=date_data(year_index,t)
         if (date_to_number(date_data(:,t)).gt.date_to_number(start_stud_season)) then
@@ -137,21 +142,23 @@
         !do i=1,n_roadlinks
             do v=1,num_veh
                 do ty=1,num_tyre
-                    traffic_data(N_t_v_index(ty,v),t,i)=traffic_data(N_v_index(v),t,i)*tyre_fraction(v,ty)
+                    traffic_data(N_t_v_index(ty,v),1:n_hours_input,i)=traffic_data(N_v_index(v),1:n_hours_input,i)*tyre_fraction(v,ty)
                 enddo
             enddo
         !enddo
         
         !Set exhaust emissions
         do v=1,num_veh
-            airquality_data(EP_emis_index,t,i)=airquality_data(EP_emis_index,t,i)+traffic_data(N_v_index(v),t,i)*exhaust_EF(v)
-            airquality_data(NOX_emis_index,t,i)=airquality_data(NOX_emis_index,t,i)+traffic_data(N_v_index(v),t,i)*nox_EF(v)
+            airquality_data(EP_emis_index,1:n_hours_input,i)=airquality_data(EP_emis_index,1:n_hours_input,i)+traffic_data(N_v_index(v),1:n_hours_input,i)*exhaust_EF(v)
+            airquality_data(NOX_emis_index,1:n_hours_input,i)=airquality_data(NOX_emis_index,1:n_hours_input,i)+traffic_data(N_v_index(v),1:n_hours_input,i)*nox_EF(v)
         enddo     
 
         !write(*,*) tyre_fraction(li,:),max_stud_fraction
         
+    !enddo
     enddo
-    enddo
+        
+    write(unit_logfile,'(a)') ' Finished distributing studded tyres and emission factors to roads: '
      
     return
 10  write(unit_logfile,'(A)') 'ERROR reading EF traffic file'

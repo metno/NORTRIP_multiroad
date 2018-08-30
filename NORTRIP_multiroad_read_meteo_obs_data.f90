@@ -499,8 +499,9 @@
     
     !Obs are in UTC, convert to NMT
     !DIFUTC_H is UTC relative to local, so negative if local time is ahead
+    !Do not convert to NMT. Rather change traffic times to UTC
      do t=start_dim_meteo_obs,end_dim_meteo_obs
-        call incrtm(int(-DIFUTC_H),meteo_obs_date(1,t),meteo_obs_date(2,t),meteo_obs_date(3,t),meteo_obs_date(4,t))
+        !call incrtm(int(-DIFUTC_H),meteo_obs_date(1,t),meteo_obs_date(2,t),meteo_obs_date(3,t),meteo_obs_date(4,t))
      enddo
     
     
