@@ -26,6 +26,8 @@
     real dlat_nc
     integer exists
     integer ii,jj,tt
+    integer new_start_date_input(num_date_index)
+    logical found_file
     
     double precision, allocatable :: var1d_nc_dp(:)
     double precision, allocatable :: var2d_nc_dp(:,:)
@@ -45,10 +47,37 @@
     !Test existence of the filename. If does not exist then use default
     inquire(file=trim(pathfilename_nc),exist=exists)
     if (.not.exists) then
-        write(unit_logfile,'(A,A)') ' ERROR: Meteo netcdf file does not exist: ', trim(pathfilename_nc)
-        write(unit_logfile,'(A)') ' STOPPING'
+        write(unit_logfile,'(A,A)') ' WARNING: Meteo netcdf file does not exist: ', trim(pathfilename_nc)
+        write(unit_logfile,'(A)') ' Will try 24 hours before.'
         !write(*,'(A,A)') ' ERROR: Meteo netcdf file does not exist. Stopping: ', trim(pathfilename_nc)
-        stop
+        
+        !Start search back 24 hours
+        new_start_date_input=start_date_input
+        found_file=.false.
+        do i=1,1
+            call incrtm(-24,new_start_date_input(1),new_start_date_input(2),new_start_date_input(3),new_start_date_input(4))
+            !write(*,*) i,new_start_date_input(1:4)
+            call date_to_datestr_bracket(new_start_date_input,filename_nc_template,filename_nc)
+            pathfilename_nc=trim(pathname_nc)//trim(filename_nc)
+            write(unit_logfile,'(A,A)') ' Trying: ', trim(pathfilename_nc)
+            inquire(file=trim(pathfilename_nc),exist=exists)
+            if (exists) then
+                found_file=.true.
+                exit
+            else 
+                found_file=.false.
+            endif
+        enddo
+        
+        if (.not.found_file) then
+            write(unit_logfile,'(A,A)') ' ERROR: Meteo netcdf file still does not exist: ', trim(pathfilename_nc)
+            write(unit_logfile,'(A)') ' STOPPING'
+            !write(*,'(A,A)') ' ERROR: Meteo netcdf file does not exist. Stopping: ', trim(pathfilename_nc)
+            stop
+        else
+            write(unit_logfile,'(A,A)') ' Found ealier meteo netcdf file: ', trim(pathfilename_nc)
+        endif
+        
     endif
 
     !Open the netcdf file for reading

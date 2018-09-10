@@ -122,7 +122,8 @@
     call date_to_datestr_bracket(start_date_input,filename_nc_template,filename_nc)
     call date_to_datestr_bracket(start_date_input,inpath_meteo_obs_data,inpath_meteo_obs_data)
     call date_to_datestr_bracket(start_date_input,infile_meteo_obs_data,infile_meteo_obs_data)
- 
+    call date_to_datestr_bracket(start_date_input,path_outputdata,path_outputdata)    
+    
     !Replace the city strinng in the files. This is done after time is replaced
     !Can be a problem if there is a 'mm' in the path name
     call replace_NORTRIP_citystr
@@ -498,6 +499,8 @@
         pathname_traffic=replace_string_char(city_str(i),trim(temp_str),pathname_traffic)
         pathname_dynamic_emission=replace_string_char(city_str(i),trim(temp_str),pathname_dynamic_emission)
         pathname_terrain=replace_string_char(city_str(i),trim(temp_str),pathname_terrain)
+        pathname_forest=replace_string_char(city_str(i),trim(temp_str),pathname_forest)
+        pathname_urban=replace_string_char(city_str(i),trim(temp_str),pathname_urban)
         filename_nc=replace_string_char(city_str(i),trim(temp_str),filename_nc)
         filename_nc2=replace_string_char(city_str(i),trim(temp_str),filename_nc2)
         filename_rl(1)=replace_string_char(city_str(i),trim(temp_str),filename_rl(1))

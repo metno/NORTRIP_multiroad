@@ -44,33 +44,12 @@
     
 
 	write(unit_logfile,'(A)') '================================================================'
-	write(unit_logfile,'(A)') 'Saving multiroad meteorology file (NORTRIP_multiroad_save_meteodata)'
+	write(unit_logfile,'(A)') 'Creating multiroad meteorology file (NORTRIP_multiroad_create_meteodata)'
 	write(unit_logfile,'(A)') '================================================================'
     
     allocate (meteo_output(num_var_meteo,n_hours_input,n_save_links))
     allocate (meteo_obs_ID_output(n_save_links))
-    
-    !pathname_meteo='C:\BEDRE BYLUFT\NORTRIP implementation\test_output\';
-    !filename_meteo='NORTRIP_test'//'_meteorology.txt'
-    pathname_meteo=path_inputdata_for_NORTRIP
-    filename_meteo=trim(filename_NORTRIP_data)//'_meteorology.txt'
-
-    if (save_timeseriesdata_in_zip_format) then
-        filename_zip=trim(filename_NORTRIP_data)//'_meteorology.zip'
-        pathname_zip=pathname_meteo
-        pathfilename_zip=trim(pathname_zip)//trim(filename_zip)
-    endif
-    
-    
-    pathfilename_meteo=trim(pathname_meteo)//trim(filename_meteo)
-
-    !Test existence of the pathname. If does not exist then use default
-    inquire(directory=trim(pathname_meteo),exist=exists)
-    if (.not.exists) then
-        write(unit_logfile,'(A,A)') ' ERROR: Path for saving meteo data does not exist: ', trim(pathname_meteo)
-        stop
-    endif
-
+        
     !Attribute a grid index to each road link
     allocate (grid_index_rl(2,n_roadlinks))
     allocate (grid_index_rl2(2,n_roadlinks))
@@ -481,6 +460,31 @@
     integer unit_in
     logical exists
     
+    
+	write(unit_logfile,'(A)') '================================================================'
+	write(unit_logfile,'(A)') 'Saving multiroad meteorology file (NORTRIP_multiroad_save_meteodata)'
+	write(unit_logfile,'(A)') '================================================================'
+    
+    !pathname_meteo='C:\BEDRE BYLUFT\NORTRIP implementation\test_output\';
+    !filename_meteo='NORTRIP_test'//'_meteorology.txt'
+    pathname_meteo=path_inputdata_for_NORTRIP
+    filename_meteo=trim(filename_NORTRIP_data)//'_meteorology.txt'
+
+    if (save_timeseriesdata_in_zip_format) then
+        filename_zip=trim(filename_NORTRIP_data)//'_meteorology.zip'
+        pathname_zip=pathname_meteo
+        pathfilename_zip=trim(pathname_zip)//trim(filename_zip)
+    endif 
+    
+    pathfilename_meteo=trim(pathname_meteo)//trim(filename_meteo)
+
+    !Test existence of the pathname. If does not exist then use default
+    inquire(directory=trim(pathname_meteo),exist=exists)
+    if (.not.exists) then
+        write(unit_logfile,'(A,A)') ' ERROR: Path for saving meteo data does not exist: ', trim(pathname_meteo)
+        stop
+    endif
+
     !Open the file for writing
     unit_in=30
     open(unit_in,file=pathfilename_meteo,access='sequential',status='unknown')  
