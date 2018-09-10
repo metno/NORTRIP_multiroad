@@ -28,6 +28,7 @@
     integer ii,jj,tt
     integer new_start_date_input(num_date_index)
     logical found_file
+    character(256) pathname_nc_in,filename_nc_in
     
     double precision, allocatable :: var1d_nc_dp(:)
     double precision, allocatable :: var2d_nc_dp(:,:)
@@ -42,6 +43,11 @@
 
     !pathname_nc='C:\BEDRE BYLUFT\NORTRIP implementation\test\';
     !filename_nc='AROME_1KM_OSLO_20141028_EPI.nc'
+    pathname_nc_in=pathname_nc
+    filename_nc_in=filename_nc_template
+    call date_to_datestr_bracket(start_date_input,filename_nc_in,filename_nc)
+    call date_to_datestr_bracket(start_date_input,pathname_nc_in,pathname_nc)
+    
     pathfilename_nc=trim(pathname_nc)//trim(filename_nc)
      
     !Test existence of the filename. If does not exist then use default
@@ -57,7 +63,8 @@
         do i=1,1
             call incrtm(-24,new_start_date_input(1),new_start_date_input(2),new_start_date_input(3),new_start_date_input(4))
             !write(*,*) i,new_start_date_input(1:4)
-            call date_to_datestr_bracket(new_start_date_input,filename_nc_template,filename_nc)
+            call date_to_datestr_bracket(new_start_date_input,filename_nc_in,filename_nc)
+            call date_to_datestr_bracket(new_start_date_input,pathname_nc_in,pathname_nc)
             pathfilename_nc=trim(pathname_nc)//trim(filename_nc)
             write(unit_logfile,'(A,A)') ' Trying: ', trim(pathfilename_nc)
             inquire(file=trim(pathfilename_nc),exist=exists)

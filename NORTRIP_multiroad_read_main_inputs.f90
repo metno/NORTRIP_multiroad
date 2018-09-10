@@ -103,8 +103,9 @@
 
     
     !Fill in any time templates. Not in the NORTRIP paths as this must be set later
-    call date_to_datestr_bracket(start_date_input,pathname_nc,pathname_nc)
-    call date_to_datestr_bracket(start_date_input,pathname_nc2,pathname_nc2)
+    !These meteo path names insert dates when reading the data, in case the paths need to be changed
+    !call date_to_datestr_bracket(start_date_input,pathname_nc,pathname_nc)
+    !call date_to_datestr_bracket(start_date_input,pathname_nc2,pathname_nc2)
     call date_to_datestr_bracket(start_date_input,pathname_rl(1),pathname_rl(1))
     call date_to_datestr_bracket(start_date_input,pathname_rl(2),pathname_rl(2))
     call date_to_datestr_bracket(start_date_input,pathname_traffic,pathname_traffic)
