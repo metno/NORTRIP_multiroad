@@ -27,7 +27,7 @@
     inquire(file=trim(pathfilename_rl(1)),exist=exists)
     if (.not.exists) then
         write(unit_logfile,'(A,A)') ' ERROR: Static road link file 1 does not exist: ', trim(pathfilename_rl(1))
-        stop
+        stop 11
     endif
 
     !Open the file for reading
@@ -86,7 +86,7 @@
     inquire(file=trim(pathfilename_rl(2)),exist=exists)
     if (.not.exists) then
         write(unit_logfile,'(A,A)') ' ERROR: Static road link file 2 does not exist: ', trim(pathfilename_rl(2))
-        stop
+        stop 12
     endif
 
     !Open the file for reading
@@ -178,26 +178,26 @@
     enddo
     
         
-    write(unit_logfile,'(a14,13a10)') ' LINK ','ID','X1','X2','Y1','Y2','WIDTH','LENGTH','ADT','ANGLE','LON','LAT','N_LANES','TYPE'
+    write(unit_logfile,'(a14,14a10)') ' LINK ','ID','X1','X2','Y1','Y2','WIDTH','LENGTH','ADT','HDV%','ANGLE','LON','LAT','N_LANES','TYPE'
     i=1
-    write(unit_logfile,'(a14,i10,8f10.1,2f10.4,2i10)') ' First link = ',inputdata_int_rl(id_rl_index,i),inputdata_rl(x1_rl_index,i),inputdata_rl(x2_rl_index,i) &
+    write(unit_logfile,'(a14,i10,9f10.1,2f10.4,2i10)') ' First link = ',inputdata_int_rl(id_rl_index,i),inputdata_rl(x1_rl_index,i),inputdata_rl(x2_rl_index,i) &
         ,inputdata_rl(y1_rl_index,i),inputdata_rl(y2_rl_index,i),inputdata_rl(width_rl_index,i) &
-        ,inputdata_rl(length_rl_index,i),inputdata_rl(adt_rl_index,i),inputdata_rl(angle_rl_index,i) &
+        ,inputdata_rl(length_rl_index,i),inputdata_rl(adt_rl_index,i),inputdata_rl(hdv_rl_index,i),inputdata_rl(angle_rl_index,i) &
         ,inputdata_rl(lon0_rl_index,i),inputdata_rl(lat0_rl_index,i) &
         ,inputdata_int_rl(nlanes_rl_index,i),inputdata_int_rl(roadactivitytype_rl_index,i)
     i=n_roadlinks
-    write(unit_logfile,'(a14,i10,8f10.1,2f10.4,2i10)') ' Last link = ',inputdata_int_rl(id_rl_index,i),inputdata_rl(x1_rl_index,i),inputdata_rl(x2_rl_index,i) &
+    write(unit_logfile,'(a14,i10,9f10.1,2f10.4,2i10)') ' Last link = ',inputdata_int_rl(id_rl_index,i),inputdata_rl(x1_rl_index,i),inputdata_rl(x2_rl_index,i) &
         ,inputdata_rl(y1_rl_index,i),inputdata_rl(y2_rl_index,i),inputdata_rl(width_rl_index,i) &
-        ,inputdata_rl(length_rl_index,i),inputdata_rl(adt_rl_index,i),inputdata_rl(angle_rl_index,i) &
+        ,inputdata_rl(length_rl_index,i),inputdata_rl(adt_rl_index,i),inputdata_rl(hdv_rl_index,i),inputdata_rl(angle_rl_index,i) &
         ,inputdata_rl(lon0_rl_index,i),inputdata_rl(lat0_rl_index,i) &
         ,inputdata_int_rl(nlanes_rl_index,i),inputdata_int_rl(roadactivitytype_rl_index,i)
     
     return
 10  write(unit_logfile,'(2A)') 'ERROR reading road link file: ',trim(pathfilename_rl(1))
-    stop
+    stop 13
     return
 20  write(unit_logfile,'(2A)') 'ERROR reading road link file: ',trim(pathfilename_rl(2))
-    stop
+    stop 13
     
     !NOTE: Some links are very short (1 m) so question of whether to include these or not
     !NOTE: Question of whether to aggregate for common traffic ID?
@@ -311,7 +311,7 @@
         !This trap is not possible with the exit command
         if (save_as_link_counter.gt.n_roadlinks_epi) then
             write(unit_logfile,'(a,2i12)') ' ERROR: Too many links found in traffic file (NORTRIP_multiroad_save_metadata): ',save_as_link_counter,n_roadlinks_epi
-            stop
+            stop 14
         endif
         !This trap is necessary because all the epi links should be found in the traffic data
         if (not_found_link_counter.gt.0) then
@@ -356,7 +356,7 @@
         write(unit_logfile,'(a,i12)') ' Number of all links saved: ',n_roadlinks
         if (save_as_link_counter+save_as_grid_counter.ne.n_roadlinks) then
             write(unit_logfile,'(a,2i12)') ' ERROR: Number of marked links not the same as existing links (NORTRIP_multiroad_save_metadata): ',save_as_grid_counter+save_as_link_counter,n_roadlinks
-            stop
+            stop 15
         endif
 
     elseif (grid_road_data_flag) then
@@ -467,7 +467,7 @@
     inquire(file=trim(pathfilename_rl(1)),exist=exists)
     if (.not.exists) then
         write(unit_logfile,'(A,A)') ' ERROR: Static road link file ascii does not exist: ', trim(pathfilename_rl(1))
-        stop
+        stop 16
     endif
 
     !Open the file for reading
@@ -636,26 +636,26 @@
     !write(*,*) 'Max x and y: ',maxval(inputdata_rl(x0_rl_index,:)),maxval(inputdata_rl(y0_rl_index,:))
     !write(*,*) 'Min x and y: ',minval(inputdata_rl(x0_rl_index,:)),minval(inputdata_rl(y0_rl_index,:))     
 
-    write(unit_logfile,'(a14,17a10)') ' LINK ','ID','X1','X2','Y1','Y2','WIDTH','LENGTH','ADT','ANGLE','LON','LAT','N_LANES','ACT_TYPE','CAT_TYPE','REG_ID','STR_TYPE','SURF_ID'
+    write(unit_logfile,'(a14,18a10)') ' LINK ','ID','X1','X2','Y1','Y2','WIDTH','LENGTH','ADT','HDV%','ANGLE','LON','LAT','N_LANES','ACT_TYPE','CAT_TYPE','REG_ID','STR_TYPE','SURF_ID'
     i=1
-    write(unit_logfile,'(a14,i10,8f10.1,2f10.4,6i10)') ' First link = ',inputdata_int_rl(id_rl_index,i),inputdata_rl(x1_rl_index,i),inputdata_rl(x2_rl_index,i) &
+    write(unit_logfile,'(a14,i10,9f10.1,2f10.4,6i10)') ' First link = ',inputdata_int_rl(id_rl_index,i),inputdata_rl(x1_rl_index,i),inputdata_rl(x2_rl_index,i) &
         ,inputdata_rl(y1_rl_index,i),inputdata_rl(y2_rl_index,i),inputdata_rl(width_rl_index,i) &
-        ,inputdata_rl(length_rl_index,i),inputdata_rl(adt_rl_index,i),inputdata_rl(angle_rl_index,i) &
+        ,inputdata_rl(length_rl_index,i),inputdata_rl(adt_rl_index,i),inputdata_rl(hdv_rl_index,i),inputdata_rl(angle_rl_index,i) &
         ,inputdata_rl(lon0_rl_index,i),inputdata_rl(lat0_rl_index,i) &
         ,inputdata_int_rl(nlanes_rl_index,i),inputdata_int_rl(roadactivitytype_rl_index,i) &
         ,inputdata_int_rl(roadcategory_rl_index,i),inputdata_int_rl(region_id_rl_index,i),inputdata_int_rl(roadstructuretype_rl_index,i),inputdata_int_rl(roadsurface_id_rl_index,i)
 
     i=n_roadlinks
-    write(unit_logfile,'(a14,i10,8f10.1,2f10.4,6i10)') ' Last link = ',inputdata_int_rl(id_rl_index,i),inputdata_rl(x1_rl_index,i),inputdata_rl(x2_rl_index,i) &
+    write(unit_logfile,'(a14,i10,9f10.1,2f10.4,6i10)') ' Last link = ',inputdata_int_rl(id_rl_index,i),inputdata_rl(x1_rl_index,i),inputdata_rl(x2_rl_index,i) &
         ,inputdata_rl(y1_rl_index,i),inputdata_rl(y2_rl_index,i),inputdata_rl(width_rl_index,i) &
-        ,inputdata_rl(length_rl_index,i),inputdata_rl(adt_rl_index,i),inputdata_rl(angle_rl_index,i) &
+        ,inputdata_rl(length_rl_index,i),inputdata_rl(adt_rl_index,i),inputdata_rl(hdv_rl_index,i),inputdata_rl(angle_rl_index,i) &
         ,inputdata_rl(lon0_rl_index,i),inputdata_rl(lat0_rl_index,i) &
         ,inputdata_int_rl(nlanes_rl_index,i),inputdata_int_rl(roadactivitytype_rl_index,i) &
         ,inputdata_int_rl(roadcategory_rl_index,i),inputdata_int_rl(region_id_rl_index,i),inputdata_int_rl(roadstructuretype_rl_index,i),inputdata_int_rl(roadsurface_id_rl_index,i)
    
     return
 20  write(unit_logfile,'(2A)') 'ERROR reading road link file: ',trim(pathfilename_rl(1))
-    stop
+    stop 17
     
     
     end subroutine NORTRIP_multiroad_read_staticroadlink_data_ascii

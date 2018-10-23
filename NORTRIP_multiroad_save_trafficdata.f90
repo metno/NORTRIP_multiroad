@@ -31,7 +31,7 @@
     inquire(directory=trim(pathname_traffic),exist=exists)
     if (.not.exists) then
         write(unit_logfile,'(A,A)') ' ERROR: Path does not exist: ', trim(pathname_traffic)
-        stop
+        stop 27
     endif
 
     
@@ -115,7 +115,7 @@
     inquire(directory=trim(pathname_traffic),exist=exists)
     if (.not.exists) then
         write(unit_logfile,'(A,A)') ' ERROR: Path does not exist: ', trim(pathname_traffic)
-        stop
+        stop 28
     endif
 
     

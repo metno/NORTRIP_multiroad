@@ -72,9 +72,9 @@
             write(unit_logfile,'(A,A)') ' ERROR: Meteo netcdf file still does not exist: ', trim(pathfilename_nc)
             write(unit_logfile,'(A)') ' STOPPING'
             !write(*,'(A,A)') ' ERROR: Meteo netcdf file does not exist. Stopping: ', trim(pathfilename_nc)
-            stop
+            stop 9
         else
-            write(unit_logfile,'(A,A)') ' Found ealier meteo netcdf file: ', trim(pathfilename_nc)
+            write(unit_logfile,'(A,A)') ' Found earlier meteo netcdf file: ', trim(pathfilename_nc)
         endif
         
     endif

@@ -90,6 +90,6 @@
         
     return
 10  write(unit_logfile,'(2A)') 'ERROR reading main Epiode file: ',trim(pathfilename_temp)
-    stop
+    stop 29
     
     end subroutine NORTRIP_read_main_EPISODE_file

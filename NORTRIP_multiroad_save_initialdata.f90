@@ -41,14 +41,15 @@
     !RH_offset=0.00!        	(%)         
     !T_a_offset=0.00!        	(C)         
     
-    !Calculate road dust according to the monthly distribution for each road. Assumes the speed is the same throughout    
+    !Calculate road dust according to the monthly distribution for each road. Assumes the speed is the same throughout
+    !Have taken this out now as it can be a problem.
     do jj=1,n_save_links
         i=save_links(jj)
         speed_factor=max(1.+(50.-traffic_data(V_li_index,1,i))/50.,0.2)
         adt_factor=min(inputdata_rl(adt_rl_index,i)/inputdata_int_rl(nlanes_rl_index,i)/20000.*4.,5.)
-        M2_dust_road(i)=200.*month_scale(date_data(month_index,1))*max_stud_fraction(li)/100.*adt_factor*speed_factor
+        !M2_dust_road(i)=100.*month_scale(date_data(month_index,1))*max_stud_fraction(li)/100.*adt_factor*speed_factor
         if (inputdata_int_rl(roadactivitytype_rl_index,i).eq.tunnel_roadtype) then
-            M2_dust_road(i)=0.
+            !M2_dust_road(i)=0.
         endif
     enddo
     
@@ -66,7 +67,7 @@
     inquire(directory=trim(pathname_initial),exist=exists)
     if (.not.exists) then
         write(unit_logfile,'(A,A)') ' ERROR: Initialdata path does not exist: ', trim(pathname_initial)
-        stop
+        stop 22
     endif
 
     

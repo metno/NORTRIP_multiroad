@@ -81,7 +81,7 @@
     if (n_hours_input.lt.1) then
         !n_hours_input=n_hours_default
         write(unit_logfile,'(A)') ' ERROR: Number of hours is 0 or less. Stopping'
-        STOP
+        STOP 5
     endif
     write(unit_logfile,'(A,4I5)') ' Number of hours: ', n_hours_input
     
@@ -125,7 +125,7 @@
     call date_to_datestr_bracket(start_date_input,infile_meteo_obs_data,infile_meteo_obs_data)
     call date_to_datestr_bracket(start_date_input,path_outputdata,path_outputdata)    
     
-    !Replace the city strinng in the files. This is done after time is replaced
+    !Replace the city string in the files. This is done after time is replaced
     !Can be a problem if there is a 'mm' in the path name
     call replace_NORTRIP_citystr
 
@@ -182,7 +182,7 @@
     inquire(file=trim(pathfilename_mainfile),exist=exists)
     if (.not.exists) then
         write(*,'(A)') ' ERROR: "pathfilename_mainfile" does not exist. Stopping'
-        STOP
+        STOP 6
     endif
 
     temp_name=pathfilename_mainfile    
@@ -882,7 +882,7 @@
 
     return
 10  write(unit_logfile,'(2A)') 'ERROR reading road receptor link file: ',trim(filename_NORTRIP_receptors)
-    stop
+    stop 7
     
     !NOTE: Some links are very short (1 m) so question of whether to include these or not
     !NOTE: Question of whether to aggregate for common traffic ID?

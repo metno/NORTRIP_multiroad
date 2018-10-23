@@ -18,7 +18,7 @@
     inquire(directory=trim(pathname_info),exist=exists)
     if (.not.exists) then
         write(unit_logfile,'(A,A)') ' ERROR: Info path does not exist: ', trim(pathname_info)
-        stop
+        stop 21
     endif
 
     !Set some paths and names

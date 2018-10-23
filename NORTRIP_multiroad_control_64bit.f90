@@ -7,12 +7,9 @@
 !
 !  PROGRAM: NORTRIP_multiroad_control
 !
-!  PURPOSE:  Entry point for the console application.
-!
 !****************************************************************************
 !Linker/input/ Additional dependencies netcdf.lib
-!Linker/general additional library paths C:\BEDRE_BYLUFT\NORTRIP_implementation\NORTRIP_multiroad_control\code\netcdf\include;C:\BEDRE_BYLUFT\NORTRIP_implementation\NORTRIP_multiroad_control\code\netcdf\bin;C:\BEDRE_BYLUFT\NORTRIP_implementation\NORTRIP_multiroad_control\code\netcdf\lib
-    
+!Linker/general additional library paths C:\BEDRE_BYLUFT\NORTRIP_implementation\NORTRIP_multiroad_control\code\netcdf\include;C:\BEDRE_BYLUFT\NORTRIP_implementation\NORTRIP_multiroad_control\code\netcdf\bin;C:\BEDRE_BYLUFT\NORTRIP_implementation\NORTRIP_multiroad_control\code\netcdf\lib    
     
     subroutine NORTRIP_multiroad_control_64bit
 
@@ -81,13 +78,13 @@
     
     !Save info file for running NORTRIP twice. One with and one without date. Because easier to call up non-dated name from NORTRIP
     if (.not.NORTRIP_preprocessor_combined_flag) then
-    filename_info=filename_NORTRIP_data
-    call NORTRIP_multiroad_save_info_file
-    filename_info=filename_NORTRIP_info
-    call NORTRIP_multiroad_save_info_file
+        filename_info=filename_NORTRIP_data
+        call NORTRIP_multiroad_save_info_file
+        filename_info=filename_NORTRIP_info
+        call NORTRIP_multiroad_save_info_file
     endif
     
-    !Read in static road link data
+    !Read in static road link data.
     if (index(calculation_type,'road weather').gt.0.or.index(calculation_type,'uEMEP').gt.0) then
         call NORTRIP_multiroad_read_staticroadlink_data_ascii
     else

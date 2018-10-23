@@ -39,7 +39,7 @@
     inquire(file=trim(pathfilename_traffic),exist=exists)
     if (.not.exists) then
         write(*,'(A,A)') ' ERROR: Dynamic traffic data file does not exist: ', trim(pathfilename_traffic)
-        stop
+        stop 19
     endif
 
     !write(*,*) num_week_traffic,days_in_week,hours_in_day,n_roadlinks
@@ -80,14 +80,16 @@
     close(unit_in,status='keep')
     
     if (index(calculation_type,'road weather').gt.0.or.index(calculation_type,'uEMEP').gt.0) then
-        N_normalise=sum(inputdata_week_traffic(N_week_index,:,:,1))/7.
-        HDV_normalise=sum(inputdata_week_traffic(HDV_week_index,:,:,1))/size(inputdata_week_traffic(HDV_week_index,:,:,1))
-        V_normalise=sum(inputdata_week_traffic(V_week_index,:,:,1))/size(inputdata_week_traffic(V_week_index,:,:,1))
+        N_normalise=sum(inputdata_week_traffic(N_week_index,:,:,n_roadlinks_read))/7.
+        HDV_normalise=sum(inputdata_week_traffic(HDV_week_index,:,:,n_roadlinks_read))/size(inputdata_week_traffic(HDV_week_index,:,:,n_roadlinks_read))
+        V_normalise=sum(inputdata_week_traffic(V_week_index,:,:,n_roadlinks_read))/size(inputdata_week_traffic(V_week_index,:,:,n_roadlinks_read))
         !write(*,*) N_normalise,HDV_normalise,V_normalise
-        do i=2,n_roadlinks
-            inputdata_week_traffic(N_week_index,:,:,i)=inputdata_week_traffic(N_week_index,:,:,1)/N_normalise*inputdata_rl(adt_rl_index,i)
-            inputdata_week_traffic(HDV_week_index,:,:,i)=inputdata_week_traffic(HDV_week_index,:,:,1)/HDV_normalise*inputdata_rl(hdv_rl_index,i)
-            inputdata_week_traffic(V_week_index,:,:,i)=inputdata_week_traffic(V_week_index,:,:,1)/V_normalise*inputdata_rl(speed_rl_index,i)
+        !Loop downwards so that the first value (n_roadlinks_read) is updated last
+        do i=n_roadlinks,1,-1
+            inputdata_week_traffic(N_week_index,:,:,i)=inputdata_week_traffic(N_week_index,:,:,n_roadlinks_read)/N_normalise*inputdata_rl(adt_rl_index,i)
+            inputdata_week_traffic(HDV_week_index,:,:,i)=inputdata_week_traffic(HDV_week_index,:,:,n_roadlinks_read)/HDV_normalise*inputdata_rl(hdv_rl_index,i)
+            inputdata_week_traffic(V_week_index,:,:,i)=inputdata_week_traffic(V_week_index,:,:,n_roadlinks_read)/V_normalise*inputdata_rl(speed_rl_index,i)
+            hour_week_traffic(:,:,i)=hour_week_traffic(:,:,n_roadlinks_read)
         enddo
         
         
@@ -98,14 +100,21 @@
     !Write example to log file    
     write(unit_logfile,'(a12,5a12)') ' LINK ','HOUR','ID','N','ADT(%)','SPEED'
     i=1;d=1;h=1
-    write(unit_logfile,'(a12,2i12,3f12.1)') ' First link = ',hour_week_traffic(d,h,i),inputdata_int_rl(id_rl_index,i) &
-        ,inputdata_week_traffic(N_week_index,d,h,i),inputdata_week_traffic(HDV_week_index,d,h,i) &
-        ,inputdata_week_traffic(V_week_index,d,h,i)
+    do d=1,days_in_week
+    do h=1,hours_in_day
+    !write(unit_logfile,'(a12,2i12,3f12.2)') ' First link = ',hour_week_traffic(d,h,i),inputdata_int_rl(id_rl_index,i) &
+    !    ,inputdata_week_traffic(N_week_index,d,h,i),inputdata_week_traffic(HDV_week_index,d,h,i) &
+    !    ,inputdata_week_traffic(V_week_index,d,h,i)
+    enddo
+    enddo
     i=n_roadlinks;d=days_in_week;h=hours_in_day
-    write(unit_logfile,'(a12,2i12,3f12.1)') ' Last  link = ',hour_week_traffic(d,h,i),inputdata_int_rl(id_rl_index,i) &
-        ,inputdata_week_traffic(N_week_index,d,h,i),inputdata_week_traffic(HDV_week_index,d,h,i) &
-        ,inputdata_week_traffic(V_week_index,d,h,i)
-
+    do d=1,days_in_week
+    do h=1,hours_in_day
+    !write(unit_logfile,'(a12,2i12,3f12.2)') ' Last  link = ',hour_week_traffic(d,h,i),inputdata_int_rl(id_rl_index,i) &
+    !    ,inputdata_week_traffic(N_week_index,d,h,i),inputdata_week_traffic(HDV_week_index,d,h,i) &
+    !    ,inputdata_week_traffic(V_week_index,d,h,i)
+    enddo
+    enddo
     
     !Put input data traffic into output traffic data file
     write(*,*) num_traffic_index,n_hours_input,n_roadlinks
@@ -124,12 +133,16 @@
         date_data_temp=date_data(:,t)
         if (summer_time_europe(date_data_temp)) then
             DIFUTC_H_traffic_temp=DIFUTC_H_traffic+1.
+            !write(*,*) 'Summer time ',DIFUTC_H_traffic_temp
         else
             DIFUTC_H_traffic_temp=DIFUTC_H_traffic
+            !write(*,*) 'Winter time ',DIFUTC_H_traffic_temp
         endif
-        call incrtm(int(DIFUTC_H_traffic_temp),date_data_temp(1),date_data_temp(2),date_data_temp(3),date_data_temp(4))
+        !call incrtm(int(DIFUTC_H_traffic_temp),date_data_temp(1),date_data_temp(2),date_data_temp(3),date_data_temp(4))
 
         week_day_temp=day_of_week(date_data_temp(:))
+        !write(*,'(a,8i6,f)') 'IN:  ',t,week_day_temp,date_data(:,t),DIFUTC_H_traffic_temp
+        !write(*,'(a,8i6,i)') 'OUT: ',t,week_day_temp,date_data_temp,int(DIFUTC_H_traffic_temp)
         !hour_temp=date_data(hour_index,t)+1
         hour_temp=date_data_temp(hour_index)
         if (hour_temp.eq.0) hour_temp=24
@@ -219,7 +232,7 @@
  
     return
 10  write(unit_logfile,'(A)') 'ERROR reading road week dynamic traffic file'
-    stop
+    stop 19
 
     
     end subroutine NORTRIP_multiroad_read_weekdynamictraffic_data

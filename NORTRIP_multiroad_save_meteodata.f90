@@ -169,7 +169,7 @@
            endif
         else
             write(unit_logfile,'(a,a)') ' ERROR: meteo_data_type not properly defined = ',trim(meteo_data_type)
-            stop
+            stop 24
         endif   
         
         !write(*,*) k
@@ -253,7 +253,7 @@
         write(*,'(A)') ' ERROR: Input time start or stop date not found in meteo data. Stopping'
         write(unit_logfile,'(a32,6i6)') ' Start date input = ',start_date_input
         write(unit_logfile,'(a32,6i6)') ' End date input = ',end_date_input
-        stop
+        stop 25
     endif
     
     not_shown_once=.true.
@@ -482,7 +482,7 @@
     inquire(directory=trim(pathname_meteo),exist=exists)
     if (.not.exists) then
         write(unit_logfile,'(A,A)') ' ERROR: Path for saving meteo data does not exist: ', trim(pathname_meteo)
-        stop
+        stop 26
     endif
 
     !Open the file for writing

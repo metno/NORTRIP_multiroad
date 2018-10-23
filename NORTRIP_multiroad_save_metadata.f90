@@ -35,7 +35,7 @@
     inquire(directory=trim(pathname_metadata),exist=exists)
     if (.not.exists) then
         write(unit_logfile,'(A,A)') ' ERROR: Path to metadata file does not exist: ', trim(pathname_metadata)
-        stop
+        stop 23
     endif
 
     !Set some of the parameters that are not read in yet

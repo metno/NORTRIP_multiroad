@@ -120,6 +120,6 @@
     
     return
 10  write(unit_logfile,'(A)') 'ERROR reading emission week dynamic file'
-    stop
+    stop 4
    
     end subroutine NORTRIP_multiroad_read_emission

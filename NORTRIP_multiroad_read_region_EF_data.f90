@@ -162,7 +162,7 @@
      
     return
 10  write(unit_logfile,'(A)') 'ERROR reading EF traffic file'
-    stop
+    stop 10
 
     
     end subroutine NORTRIP_multiroad_read_region_EF_data

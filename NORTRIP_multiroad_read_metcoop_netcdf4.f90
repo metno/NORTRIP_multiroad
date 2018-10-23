@@ -36,6 +36,8 @@
     double precision, allocatable :: var4d_nc_dp(:,:,:,:)
     real, allocatable :: var4d_nc(:,:,:,:)
 
+    double precision temp_date
+    double precision date_to_number
     
 	write(unit_logfile,'(A)') '================================================================'
 	write(unit_logfile,'(A)') 'Reading meteorological data (NORTRIP_read_metcoop_netcdf4)'
@@ -61,7 +63,9 @@
         new_start_date_input=start_date_input
         found_file=.false.
         do i=1,1
-            call incrtm(-24,new_start_date_input(1),new_start_date_input(2),new_start_date_input(3),new_start_date_input(4))
+            !call incrtm(-24,new_start_date_input(1),new_start_date_input(2),new_start_date_input(3),new_start_date_input(4))
+            temp_date=date_to_number(new_start_date_input)
+            call number_to_date(temp_date-1.,new_start_date_input)
             !write(*,*) i,new_start_date_input(1:4)
             call date_to_datestr_bracket(new_start_date_input,filename_nc_in,filename_nc)
             call date_to_datestr_bracket(new_start_date_input,pathname_nc_in,pathname_nc)
@@ -80,9 +84,9 @@
             write(unit_logfile,'(A,A)') ' ERROR: Meteo netcdf file still does not exist: ', trim(pathfilename_nc)
             write(unit_logfile,'(A)') ' STOPPING'
             !write(*,'(A,A)') ' ERROR: Meteo netcdf file does not exist. Stopping: ', trim(pathfilename_nc)
-            stop
+            stop 8
         else
-            write(unit_logfile,'(A,A)') ' Found ealier meteo netcdf file: ', trim(pathfilename_nc)
+            write(unit_logfile,'(A,A)') ' Found earlier meteo netcdf file: ', trim(pathfilename_nc)
         endif
         
     endif
