@@ -162,6 +162,11 @@
     enddo
     
     !NOTE: round off errors in precipitation. Need to include a 0 minimum.
+    do i=1,num_var_nc
+        if (i.eq.precip_index.or.i.eq.precip_snow_index) then
+            where (var3d_nc(i,:,:,:).lt.precip_cutoff) var3d_nc(i,:,:,:)=0.
+        endif
+    enddo
     
     status_nc = NF90_CLOSE (id_nc)
     

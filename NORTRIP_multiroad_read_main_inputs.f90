@@ -602,8 +602,8 @@
     logical :: use_uEMEP_receptor_file=.false.
     integer n_receptor_max
     parameter (n_receptor_max=1000)
-    character(32) name_receptor(n_receptor_max,2)
-    real lon_receptor(n_receptor_max),lat_receptor(n_receptor_max)
+    character(256) name_receptor(n_receptor_max,2)
+    real lon_receptor(n_receptor_max),lat_receptor(n_receptor_max),h_receptor(n_receptor_max)
     integer n_receptor,k,kk
     logical unique_receptor(n_receptor_max)
 
@@ -712,7 +712,7 @@
             k=0
             do while(.not.eof(unit_in))
                 k=k+1
-                read(unit_in,*,ERR=19) name_receptor(k,1),lon_receptor(k),lat_receptor(k)!,name_receptor(k,2)
+                read(unit_in,*,ERR=19) name_receptor(k,1),lon_receptor(k),lat_receptor(k)!,h_receptor(k),name_receptor(k,2)
                 !write(*,*) trim(name_receptor(k,1)),lon_receptor(k),lat_receptor(k),trim(name_receptor(k,2))
             enddo
     
@@ -830,7 +830,8 @@
                 save_road_index(jj)=i_link_distance_min
                 save_meteo_index(jj)=j
                 !write(*,*) ':::',jj,i_link_distance_min,distance_to_link_min,inputdata_rl(x1_rl_index,i_link_distance_min),inputdata_rl(y1_rl_index,i_link_distance_min)
-                write(unit_logfile,'(a,i8,a24,f12.2,i12)') 'Special links (i,name,dist,index): ',jj,trim(inputdata_char_rl(roadname_rl_index,i_link_distance_min)),distance_to_link_min,save_road_index(jj)
+                write(unit_logfile,'(a,i8,a24,f12.2,i12,i12,f12.0)') 'Special links (i,name,dist,index,ID): ',jj,trim(inputdata_char_rl(roadname_rl_index,i_link_distance_min)) &
+                    ,distance_to_link_min,save_road_index(jj),inputdata_int_rl(id_rl_index,save_road_index(jj)),inputdata_rl(adt_rl_index,save_road_index(jj))
             endif
         enddo
         write(unit_logfile,'(a,i)') ' Number of roads found near (<100 m) of receptor points  = ', jj

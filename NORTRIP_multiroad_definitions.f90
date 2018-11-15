@@ -8,10 +8,13 @@
     !private
     
     logical :: NORTRIP_preprocessor_combined_flag=.false.
+    
+    logical :: interpolate_meteo_data=.false.
 
     real missing_data
     
     real lapse_rate
+    real precip_cutoff !Must be more than this to give precipitation
     
     !Indexes for arrays
     integer ii,jj
@@ -456,6 +459,13 @@
     
     integer :: number_of_time_steps=0
     
+    double precision meteo_nc_projection_attributes(10)
+    double precision meteo_nc2_projection_attributes(10)
+    integer UTM_projection_index,RDM_projection_index,LCC_projection_index,LL_projection_index
+    parameter (UTM_projection_index=1,RDM_projection_index=2,LCC_projection_index=3,LL_projection_index=4)
+    integer :: meteo_nc_projection_type=LCC_projection_index
+    integer :: meteo_nc2_projection_type=LCC_projection_index
+    
     end module NORTRIP_multiroad_index_definitions
     
 !==========================================================================
@@ -503,6 +513,7 @@
     missing_data=-99.0
     n_roadlinks=1
     lapse_rate=-0.005 !(K/m)
+    precip_cutoff=0.05 !Must be more than this to give precipitation
  
     !Stnr Year Month Day Time(NMT) UU PO TA RR_1 FF DD QSI NN TV
     var_name_meteo_obs(:)=''

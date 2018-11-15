@@ -6,7 +6,7 @@
     
     implicit none
     
-    integer i,t,jj,ii,j_obs,j_mod
+    integer i,j,t,jj,ii,j_obs,j_mod
     integer unit_in
     integer, allocatable :: grid_index_rl(:,:)
     integer, allocatable :: grid_index_rl2(:,:)
@@ -27,6 +27,17 @@
     real, allocatable :: dist_array_nc(:,:)
     real, allocatable :: dist_array_nc2(:,:)
     real dgrid_lat,dgrid_lon
+    real x_temp,y_temp
+    real y_utm_temp,x_utm_temp
+    
+    integer x_index_temp,y_index_temp
+    
+    real weighting_nc,sum_weighting_nc
+    real xpos_min,xpos_max,ypos_min,ypos_max
+    real xpos_area_min,xpos_area_max,ypos_area_min,ypos_area_max
+    integer i_nc,j_nc
+    real xpos_limit,ypos_limit
+
     
     !Functions
     real DIRECTION
@@ -137,12 +148,32 @@
             dgrid_lon=(var2d_nc(lon_index,dim_length_nc(x_index),grid_index_rl(y_index,i))-var2d_nc(lon_index,start_dim_nc(x_index),grid_index_rl(y_index,i)))/(dim_length_nc(x_index)-1)
 
             !Recalculate position at that point
-            grid_index_rl(x_index,i)=min(dim_length_nc(x_index),max(1,1+floor((inputdata_rl(lon0_rl_index,i)-var2d_nc(lon_index,start_dim_nc(x_index),grid_index_rl(y_index,i)))/dgrid_lon+0.5)))
-            grid_index_rl(y_index,i)=min(dim_length_nc(y_index),max(1,1+floor((inputdata_rl(lat0_rl_index,i)-var2d_nc(lat_index,grid_index_rl(x_index,i),start_dim_nc(y_index)))/dgrid_lat+0.5)))
+            x_index_temp=min(dim_length_nc(x_index),max(1,1+floor((inputdata_rl(lon0_rl_index,i)-var2d_nc(lon_index,start_dim_nc(x_index),grid_index_rl(y_index,i)))/dgrid_lon+0.5)))
+            y_index_temp=min(dim_length_nc(y_index),max(1,1+floor((inputdata_rl(lat0_rl_index,i)-var2d_nc(lat_index,grid_index_rl(x_index,i),start_dim_nc(y_index)))/dgrid_lat+0.5)))
 
             !write(*,*) i,grid_index_rl(x_index,i),grid_index_rl(y_index,i),dgrid_lon,dgrid_lat
             !grid_index_rl(x_index:y_index,i)=minloc((var2d_nc(lat_index,:,:)-inputdata_rl(lat0_rl_index,i))**2+(var2d_nc(lon_index,:,:)/cos(var2d_nc(lat_index,:,:)/180.*3.14159)-inputdata_rl(lon0_rl_index,i)/cos(inputdata_rl(lat0_rl_index,i)/180.*3.14159))**2)
-            !write(*,*) i,grid_index_rl(x_index,i),grid_index_rl(y_index,i)
+            !write(*,*) 'OLD: ',i,grid_index_rl(x_index,i),grid_index_rl(y_index,i)
+            
+            call lb2lambert2_uEMEP(x_temp,y_temp,inputdata_rl(lon0_rl_index,i),inputdata_rl(lat0_rl_index,i),meteo_nc_projection_attributes)
+
+            grid_index_rl(x_index,i)=1+floor((x_temp-var1d_nc(x_index,1))/dgrid_nc(x_index)+0.5)
+            grid_index_rl(y_index,i)=1+floor((y_temp-var1d_nc(y_index,1))/dgrid_nc(y_index)+0.5)
+            
+            call LL2UTM(1,utm_zone,var2d_nc(lat_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i)),var2d_nc(lon_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i)),y_utm_temp,x_utm_temp)
+            
+            !if (abs(grid_index_rl(y_index,i)-y_index_temp).ge.2.or.abs(grid_index_rl(x_index,i)-x_index_temp).ge.2) then
+            !write(*,*) i,grid_index_rl(x_index,i)-x_index_temp,grid_index_rl(y_index,i)-y_index_temp,inputdata_rl(lon0_rl_index,i),inputdata_rl(lat0_rl_index,i)
+            !write(*,*) x_utm_temp,y_utm_temp
+            !write(*,*) var1d_nc(x_index,grid_index_rl(x_index,i)),var1d_nc(y_index,grid_index_rl(y_index,i)),var1d_nc(x_index,grid_index_rl(x_index,i))-599524.,var1d_nc(y_index,grid_index_rl(y_index,i))-7593704.
+            !endif
+            !if (abs(x_utm_temp-599524.).le.dgrid_nc(x_index)*.5.and.abs(y_utm_temp-7593704.).le.dgrid_nc(y_index)*.5) then
+            !write(*,*) i,grid_index_rl(x_index,i)-x_index_temp,grid_index_rl(y_index,i)-y_index_temp,inputdata_rl(lon0_rl_index,i),inputdata_rl(lat0_rl_index,i)
+            !write(*,*) 'FOUND: ',x_utm_temp-599524.,y_utm_temp-7593704.
+            !stop
+            !endif
+            
+            
             
             if (replace_meteo_with_yr.eq.1) then
                 !i_dist_min=0
@@ -270,8 +301,8 @@
     endif
         
 !Distribute meteo data to roadlinks. Saves all links or specified links.
-    do jj=1,n_save_links
-        i=save_links(jj)
+    do j=1,n_save_links
+        i=save_links(j)
         
         
         if ((inputdata_int_rl(savedata_rl_index,i).eq.1.and.use_only_special_links_flag.ge.1) &
@@ -290,8 +321,8 @@
             meteo_temp(dir_wind_index)=DIRECTION(var3d_nc(x_wind_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i),j_mod) &
                 ,var3d_nc(y_wind_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i),j_mod))
             meteo_temp(relhumidity_index)=var3d_nc(relhumidity_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i),j_mod)*100.
-            meteo_temp(precip_index)=max(0.,var3d_nc(precip_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i),j_mod))
             if (.not.var_available_nc(precip_snow_index)) then
+                meteo_temp(precip_index)=max(0.,var3d_nc(precip_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i),j_mod))
                 if (meteo_temp(temperature_index).gt.0) then
                     meteo_temp(rain_index)=meteo_temp(precip_index)
                     meteo_temp(snow_index)=0
@@ -309,7 +340,93 @@
             meteo_temp(pressure_index)=var3d_nc(pressure_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i),j_mod)/100.
             meteo_temp(road_temperature_index)=var3d_nc(surface_temperature_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i),j_mod)-273.15
             !meteo_temp(road_temperature_index)=missing_data
- 
+            
+           
+            !Bilineal interpolation, which is the same as an area weighted interpolation
+            if (interpolate_meteo_data) then
+                
+            !Size of grid
+            xpos_limit=dgrid_nc(x_index)/2.
+            ypos_limit=dgrid_nc(y_index)/2.
+            
+            !Index of nearest neighbour meteo grid
+            i_nc=grid_index_rl(x_index,i)
+            j_nc=grid_index_rl(y_index,i)
+
+            !Position of centre of road link
+            call lb2lambert2_uEMEP(x_temp,y_temp,inputdata_rl(lon0_rl_index,i),inputdata_rl(lat0_rl_index,i),meteo_nc_projection_attributes)
+
+            xpos_area_max=x_temp+xpos_limit
+            xpos_area_min=x_temp-xpos_limit
+            ypos_area_max=y_temp+ypos_limit
+            ypos_area_min=y_temp-ypos_limit
+
+            sum_weighting_nc=0
+            !write(*,'(2i,f12.4,5f12.4)') i,j_mod,sum_weighting_nc,meteo_temp(temperature_index),meteo_temp(speed_wind_index),meteo_temp(dir_wind_index),meteo_temp(shortwaveradiation_index),meteo_temp(rain_index)
+            meteo_temp=0.
+            
+            !Loop over the nearest grids to finding area weighting
+            do jj=j_nc-1,j_nc+1
+            do ii=i_nc-1,i_nc+1             
+            
+                xpos_min=max(xpos_area_min,var1d_nc(x_index,ii)-xpos_limit)
+                xpos_max=min(xpos_area_max,var1d_nc(x_index,ii)+xpos_limit)
+                ypos_min=max(ypos_area_min,var1d_nc(y_index,jj)-ypos_limit)
+                ypos_max=min(ypos_area_max,var1d_nc(y_index,jj)+ypos_limit)
+               
+                !write(*,*) ii,jj
+                !write(*,*) 'MIN1 : ',xpos_min,xpos_max,ypos_min,ypos_max
+                !write(*,*) 'MIN2:',var1d_nc(x_index,ii)-xpos_limit,var1d_nc(x_index,ii)+xpos_limit,var1d_nc(y_index,jj)-ypos_limit,var1d_nc(y_index,jj)+ypos_limit
+                !write(*,*) 'AREA: ',xpos_area_min,xpos_area_max,ypos_area_min,ypos_area_max
+                
+                !Determine the area intersection of the meteo grid and a meteo grid size centred on the road link
+                if (xpos_max.gt.xpos_min.and.ypos_max.gt.ypos_min) then
+                    weighting_nc=(ypos_max-ypos_min)*(xpos_max-xpos_min)/dgrid_nc(x_index)/dgrid_nc(y_index)
+                else
+                    weighting_nc=0.
+                endif                
+                sum_weighting_nc=sum_weighting_nc+weighting_nc
+                
+                !write(*,*) ii-i_nc,jj-j_nc,weighting_nc
+                
+                meteo_temp(temperature_index)=meteo_temp(temperature_index)+(var3d_nc(temperature_index,ii,jj,j_mod)-273.15)*weighting_nc
+                meteo_temp(x_wind_index)=meteo_temp(x_wind_index)+var3d_nc(x_wind_index,ii,jj,j_mod)*weighting_nc
+                meteo_temp(y_wind_index)=meteo_temp(y_wind_index)+var3d_nc(y_wind_index,ii,jj,j_mod)*weighting_nc
+                meteo_temp(relhumidity_index)=meteo_temp(relhumidity_index)+var3d_nc(relhumidity_index,ii,jj,j_mod)*100.*weighting_nc
+
+                if (.not.var_available_nc(precip_snow_index)) then
+                    meteo_temp(precip_index)=meteo_temp(precip_index)+max(0.,var3d_nc(precip_index,ii,jj,j_mod))*weighting_nc
+                else
+                    meteo_temp(rain_index)=meteo_temp(rain_index) &
+                        +(max(0.,var3d_nc(precip_index,ii,jj,j_mod)) &
+                        -max(0.,var3d_nc(precip_snow_index,ii,jj,j_mod)))*weighting_nc
+                    meteo_temp(snow_index)=meteo_temp(snow_index)+max(0.,var3d_nc(precip_snow_index,ii,jj,j_mod))*weighting_nc
+                endif
+
+                meteo_temp(shortwaveradiation_index)=meteo_temp(shortwaveradiation_index)+var3d_nc(shortwaveradiation_index,ii,jj,j_mod)*weighting_nc
+                meteo_temp(longwaveradiation_index)=meteo_temp(longwaveradiation_index)+var3d_nc(longwaveradiation_index,ii,jj,j_mod)*weighting_nc
+                meteo_temp(cloudfraction_index)=meteo_temp(cloudfraction_index)+var3d_nc(cloudfraction_index,ii,jj,j_mod)*weighting_nc
+                meteo_temp(pressure_index)=meteo_temp(pressure_index)+var3d_nc(pressure_index,ii,jj,j_mod)/100.*weighting_nc
+                meteo_temp(road_temperature_index)=meteo_temp(road_temperature_index)+(var3d_nc(surface_temperature_index,ii,jj,j_mod)-273.15)*weighting_nc
+                
+            enddo
+            enddo
+
+            meteo_temp(speed_wind_index)=sqrt(meteo_temp(x_wind_index)**2+meteo_temp(y_wind_index)**2)
+            meteo_temp(dir_wind_index)=DIRECTION(meteo_temp(x_wind_index),meteo_temp(y_wind_index))
+            if (.not.var_available_nc(precip_snow_index)) then
+                if (meteo_temp(temperature_index).gt.0) then
+                    meteo_temp(rain_index)=meteo_temp(precip_index)
+                    meteo_temp(snow_index)=0
+                else
+                    meteo_temp(rain_index)=0
+                    meteo_temp(snow_index)=meteo_temp(precip_index)
+                endif
+            endif
+            
+            !write(*,'(2i,f12.4,5f12.4)') i,j_mod,sum_weighting_nc,meteo_temp(temperature_index),meteo_temp(speed_wind_index),meteo_temp(dir_wind_index),meteo_temp(shortwaveradiation_index),meteo_temp(rain_index)
+            endif !interpolate_meteo_data
+            
             if (replace_meteo_with_yr.eq.1) then
                 if (not_shown_once) then 
                     write(unit_logfile,'(18f10.1,f10.3)') meteo_temp(temperature_index),var3d_nc2(temperature_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),j_mod)-273.15+adjust_lapse

@@ -39,6 +39,8 @@
     double precision temp_date
     double precision date_to_number
     
+    integer var_id_nc_projection
+    
 	write(unit_logfile,'(A)') '================================================================'
 	write(unit_logfile,'(A)') 'Reading meteorological data (NORTRIP_read_metcoop_netcdf4)'
 	write(unit_logfile,'(A)') '================================================================'
@@ -94,8 +96,31 @@
     !Open the netcdf file for reading
     write(unit_logfile,'(2A)') ' Opening netcdf meteo file: ',trim(pathfilename_nc)
     status_nc = NF90_OPEN (pathfilename_nc, NF90_NOWRITE, id_nc)
-    if (status_nc .NE. NF90_NOERR) write(unit_logfile,'(A,I)') 'ERROR opening netcdf file: ',status_nc
+    if (status_nc .NE. NF90_NOERR) then
+        write(unit_logfile,'(A,I)') 'ERROR opening netcdf file: ',status_nc
+        stop 38
+    endif
+    
 
+    !Find the projection. If no projection then in lat lon coordinates
+    status_nc = NF90_INQ_VARID (id_nc,'projection_lambert',var_id_nc_projection)
+        
+        if (status_nc.eq.NF90_NOERR) then
+            !If there is a projection then read in the attributes. All these are doubles
+            !status_nc = nf90_inquire_variable(id_nc, var_id_nc_projection, natts = numAtts_projection)
+                status_nc = nf90_get_att(id_nc, var_id_nc_projection, 'standard_parallel', meteo_nc_projection_attributes(1:2))
+                status_nc = nf90_get_att(id_nc, var_id_nc_projection, 'longitude_of_central_meridian', meteo_nc_projection_attributes(3))
+                status_nc = nf90_get_att(id_nc, var_id_nc_projection, 'latitude_of_projection_origin', meteo_nc_projection_attributes(4))
+                status_nc = nf90_get_att(id_nc, var_id_nc_projection, 'earth_radius', meteo_nc_projection_attributes(5))
+                meteo_nc_projection_type=LCC_projection_index
+                        
+            write(unit_logfile,'(A,5f12.2)') 'Reading lambert_conformal_conic projection. ',meteo_nc_projection_attributes(1:5)
+        else
+            meteo_nc_projection_type=LL_projection_index             
+        endif
+
+
+    
     !Find out the x,y and time dimmensions of the file by looking at pressure variable
     status_nc = NF90_INQ_DIMID (id_nc,dim_name_nc(x_index),dim_id_nc(x_index))
     status_nc = NF90_INQUIRE_DIMENSION (id_nc,dim_id_nc(x_index),dimname_temp,dim_length_nc(x_index))
@@ -178,6 +203,8 @@
                     !write(*,*) dim_length_nc(y_index),tt
                     var3d_nc(i,:,:,tt)=var3d_nc(i,:,:,tt)-var3d_nc(i,:,:,tt-1)
                 enddo
+                !Don't allow precip below the cutoff value
+                where (var3d_nc(i,:,:,:).lt.precip_cutoff) var3d_nc(i,:,:,:)=0.
             endif
             if (i.eq.shortwaveradiation_index) then
                 do tt=dim_length_nc(time_index),2,-1
@@ -218,7 +245,12 @@
     dlat_nc=var2d_nc(lat_index,i_grid_mid,j_grid_mid)-var2d_nc(lat_index,i_grid_mid,j_grid_mid-1)
     
     !If the coordinates are in km instead of metres then change to metres (assuming the difference is not going to be > 100 km
-    if (dgrid_nc(x_index).lt.100) dgrid_nc=dgrid_nc*1000.    
+    if (dgrid_nc(x_index).lt.100) then
+        dgrid_nc=dgrid_nc*1000.
+        var1d_nc(x_index,:)=var1d_nc(x_index,:)*1000.
+        var1d_nc(y_index,:)=var1d_nc(y_index,:)*1000.
+    endif
+    
     angle_nc=180./3.14159*acos(dlat_nc*3.14159/180.*6.37e6/dgrid_nc(x_index))
     write(unit_logfile,'(A,2f12.1)') ' Grid spacing X and Y (m): ', dgrid_nc(x_index),dgrid_nc(y_index)
     write(unit_logfile,'(A,2i,f12.4)') ' Angle difference between grid and geo North (i,j,deg): ', i_grid_mid,j_grid_mid,angle_nc
