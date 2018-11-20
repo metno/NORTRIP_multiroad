@@ -205,6 +205,7 @@
                 enddo
                 !Don't allow precip below the cutoff value
                 where (var3d_nc(i,:,:,:).lt.precip_cutoff) var3d_nc(i,:,:,:)=0.
+                
             endif
             if (i.eq.shortwaveradiation_index) then
                 do tt=dim_length_nc(time_index),2,-1

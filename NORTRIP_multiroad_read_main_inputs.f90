@@ -606,6 +606,10 @@
     real lon_receptor(n_receptor_max),lat_receptor(n_receptor_max),h_receptor(n_receptor_max)
     integer n_receptor,k,kk
     logical unique_receptor(n_receptor_max)
+    
+    real adt_of_link_max,adt_of_link
+    integer i_link_adt_max
+
 
 	write(unit_logfile,'(A)') '================================================================'
 	write(unit_logfile,'(A)') 'Reading receptor link data (NORTRIP_multiroad_read_receptor_data)'
@@ -800,11 +804,14 @@
     endif
 
    !Find the correct link based on minimum distance for the link receptor
+    !Now updated to find the road with the maximum ADT within
     if (n_save_road.gt.0) then
         jj=0
         do j=1,n_save_road
             distance_to_link_min=1.0e36
             i_link_distance_min=0
+            adt_of_link_max=0
+            i_link_adt_max=0
             do i=1,n_roadlinks
                 !Only look in the correct ID
                 distance_to_link2=sqrt((inputdata_rl(x0_rl_index,i)-save_road_x(j))**2+(inputdata_rl(y0_rl_index,i)-save_road_y(j))**2)
@@ -812,7 +819,14 @@
                 !if (save_road_id(j).eq.inputdata_int_rl(id_rl_index,i)) then
                     call distrl(save_road_x(j),save_road_y(j),inputdata_rl(x1_rl_index,i),inputdata_rl(y1_rl_index,i),inputdata_rl(x2_rl_index,i),inputdata_rl(y2_rl_index,i),temp_val,temp_val2,distance_to_link)!(X0,Y0,X1,Y1,X2,Y2,XM,YM,DM)
                     !write(*,'(i8,i8,f12.0,f12.0,f12.0,f12.0,f12.0,f12.0,f12.0,f12.0,f12.0)') j,i,save_road_x(j),save_road_y(j),inputdata_rl(x1_rl_index,i),inputdata_rl(y1_rl_index,i),temp_val,temp_val2,distance_to_link,distance_to_link2,distance_to_link_min
-                    if (distance_to_link.lt.distance_to_link_min) then
+                    !if (distance_to_link.lt.distance_to_link_min) then
+                    !    distance_to_link_min=distance_to_link
+                    !    i_link_distance_min=i
+                    !endif
+                    adt_of_link=inputdata_rl(adt_rl_index,i)
+                    if (adt_of_link.gt.adt_of_link_max.and.distance_to_link.lt.50.) then
+                        adt_of_link_max=adt_of_link
+                        i_link_adt_max=i
                         distance_to_link_min=distance_to_link
                         i_link_distance_min=i
                     endif
@@ -821,8 +835,10 @@
                 !write(*,*) j,i,distance_to_link_min !save_road_x(j),save_road_y(j),inputdata_int_rl(id_rl_index,i),inputdata_rl(x1_rl_index,i),inputdata_rl(y2_rl_index,i)
             enddo
                 !write(*,*) j,i_link_distance_min,distance_to_link_min
-            if (i_link_distance_min.gt.0.and.distance_to_link_min.lt.100.) then
+            !if (i_link_distance_min.gt.0.and.distance_to_link_min.lt.100.) then
+            if (i_link_distance_min.gt.0.and.i_link_adt_max.gt.0.and.distance_to_link_min.lt.50.) then
                 jj=jj+1
+                i_link_distance_min=i_link_adt_max
                 inputdata_int_rl(savedata_rl_index,i_link_distance_min)=1
                 inputdata_char_rl(roadname_rl_index,i_link_distance_min)=adjustl(save_road_name(j))
                 inputdata_int_rl(ospm_pos_rl_index,i_link_distance_min)=save_road_ospm_pos(j)
