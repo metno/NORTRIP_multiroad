@@ -289,7 +289,7 @@
     
     not_shown_once=.true.
     
-    write(unit_logfile,'(a)') ' Creating meteodata for NORTRIP '//trim(pathfilename_meteo)
+    !write(unit_logfile,'(a)') ' Creating meteodata for NORTRIP '//trim(pathfilename_meteo)
     
     if (meteo_obs_data_available) then
         write(unit_logfile,'(a)') 'Replacing model values with observations (model,obs)'
