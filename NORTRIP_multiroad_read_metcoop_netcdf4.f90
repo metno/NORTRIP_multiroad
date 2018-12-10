@@ -17,8 +17,8 @@
     integer xtype_nc(num_var_nc)
     integer natts_nc(num_var_nc)
     integer var_id_nc(num_var_nc)
-    integer dim_length_metcoop_nc(num_dims_nc+1)
-    integer dim_start_metcoop_nc(num_dims_nc+1)
+    integer, allocatable :: dim_length_metcoop_nc(:)
+    integer, allocatable :: dim_start_metcoop_nc(:)
      
     character(256) dimname_temp
     integer i
@@ -29,6 +29,10 @@
     integer new_start_date_input(num_date_index)
     logical found_file
     character(256) pathname_nc_in,filename_nc_in
+    
+    integer dim_id_nc_ensemble
+    logical ensemble_dim_flag
+    integer nDims
     
     double precision, allocatable :: var1d_nc_dp(:)
     double precision, allocatable :: var2d_nc_dp(:,:)
@@ -128,6 +132,7 @@
     status_nc = NF90_INQUIRE_DIMENSION (id_nc,dim_id_nc(y_index),dimname_temp,dim_length_nc(y_index))
     status_nc = NF90_INQ_DIMID (id_nc,dim_name_nc(time_index),dim_id_nc(time_index))
     status_nc = NF90_INQUIRE_DIMENSION (id_nc,dim_id_nc(time_index),dimname_temp,dim_length_nc(time_index))
+    write(unit_logfile,'(A,3I)') ' Pos of dimensions (x,y,t): ',dim_id_nc
     write(unit_logfile,'(A,3I)') ' Size of dimensions (x,y,t): ',dim_length_nc
 
     if (number_of_time_steps.ne.0) then
@@ -168,14 +173,43 @@
         endif
         
     enddo
-        
-    !MetCoOp data has 4 dimensions. z is 1 so must adjust this.
-    dim_length_metcoop_nc(1:2)=dim_length_nc(1:2)
-    dim_length_metcoop_nc(3)=1
-    dim_length_metcoop_nc(4)=dim_length_nc(time_index)
-    dim_start_metcoop_nc(1:2)=dim_start_nc(1:2)
-    dim_start_metcoop_nc(3)=1
-    dim_start_metcoop_nc(4)=dim_start_nc(time_index)
+    
+    !Test for an ensemble dimension
+    !status_nc = nf90_inquire(id_nc, nDimensions = nDims)
+    !write(*,*) status_nc,nDims
+    status_nc = NF90_INQ_DIMID (id_nc,'ensemble_member',dim_id_nc_ensemble)
+    !write(*,*) status_nc,dim_id_nc_ensemble
+    if (status_nc.ge.0) then
+        ensemble_dim_flag=.true.
+    else
+        ensemble_dim_flag=.false.
+    endif
+    
+    
+    if (ensemble_dim_flag) then
+        allocate (dim_length_metcoop_nc(5))
+        allocate (dim_start_metcoop_nc(5))
+        dim_length_metcoop_nc(1:2)=dim_length_nc(1:2)
+        dim_length_metcoop_nc(3)=1
+        dim_length_metcoop_nc(4)=1
+        dim_length_metcoop_nc(5)=dim_length_nc(time_index)
+        dim_start_metcoop_nc(1:2)=dim_start_nc(1:2)
+        dim_start_metcoop_nc(3)=1
+        dim_start_metcoop_nc(4)=1
+        dim_start_metcoop_nc(5)=dim_start_nc(time_index)
+        write(unit_logfile,'(a,i)') 'Ensemble member 0 used with dim index ',dim_id_nc_ensemble
+    else
+        !MetCoOp data has 4 dimensions. z is 1 so must adjust this.
+        allocate (dim_length_metcoop_nc(4))
+        allocate (dim_start_metcoop_nc(4))
+        dim_length_metcoop_nc(1:2)=dim_length_nc(1:2)
+        dim_length_metcoop_nc(3)=1
+        dim_length_metcoop_nc(4)=dim_length_nc(time_index)
+        dim_start_metcoop_nc(1:2)=dim_start_nc(1:2)
+        dim_start_metcoop_nc(3)=1
+        dim_start_metcoop_nc(4)=dim_start_nc(time_index)
+    endif
+    
    
     !Read through the variables in a loop
     do i=1,num_var_nc
