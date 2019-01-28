@@ -1,4 +1,5 @@
     subroutine NORTRIP_read_meteo_netcdf4
+    !Reads in meteo from special files made for Episode. Old and not used any more
     
     use NORTRIP_multiroad_index_definitions
     !Update to netcdf 4 and 64 bit in this version 2 of NORTRIP_read_meteo_netcdf

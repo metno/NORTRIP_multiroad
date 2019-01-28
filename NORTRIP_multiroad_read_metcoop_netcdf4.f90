@@ -1,5 +1,5 @@
     subroutine NORTRIP_read_metcoop_netcdf4
-    !Reads METcoop 66 hour forecast data
+    !Reads MEPS -  METcoop 66 hour forecast data
     
     use NORTRIP_multiroad_index_definitions
     !Update to netcdf 4 and 64 bit in this version 2 of NORTRIP_read_meteo_netcdf
@@ -107,7 +107,7 @@
     
 
     !Find the projection. If no projection then in lat lon coordinates
-    status_nc = NF90_INQ_VARID (id_nc,'projection_lambert',var_id_nc_projection)
+    status_nc = NF90_INQ_VARID (id_nc,trim(projection_name_nc),var_id_nc_projection)
         
         if (status_nc.eq.NF90_NOERR) then
             !If there is a projection then read in the attributes. All these are doubles
@@ -134,7 +134,7 @@
     status_nc = NF90_INQUIRE_DIMENSION (id_nc,dim_id_nc(time_index),dimname_temp,dim_length_nc(time_index))
     write(unit_logfile,'(A,3I)') ' Pos of dimensions (x,y,t): ',dim_id_nc
     write(unit_logfile,'(A,3I)') ' Size of dimensions (x,y,t): ',dim_length_nc
-
+    
     if (number_of_time_steps.ne.0) then
         dim_length_nc(time_index)=number_of_time_steps
         write(unit_logfile,'(A,3I)') ' WARNING: Reducing dimensions of (t) to save space: ',dim_length_nc(time_index)

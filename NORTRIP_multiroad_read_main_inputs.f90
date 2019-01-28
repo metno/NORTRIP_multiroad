@@ -442,14 +442,21 @@
     dim_name_nc(x_index)=match_string_char('meteo_x_index',unit_in,unit_logfile,dim_name_nc(x_index))
     dim_name_nc(y_index)=match_string_char('meteo_y_index',unit_in,unit_logfile,dim_name_nc(y_index))
     dim_name_nc(time_index)=match_string_char('meteo_time_index',unit_in,unit_logfile,dim_name_nc(time_index))
+    projection_name_nc=match_string_char('projection_name_nc',unit_in,unit_logfile,projection_name_nc)
 
     dim_name_nc2(x_index2)=match_string_char('meteo2_x_index',unit_in,unit_logfile,dim_name_nc2(x_index2))
     dim_name_nc2(y_index2)=match_string_char('meteo2_y_index',unit_in,unit_logfile,dim_name_nc2(y_index2))
+    dim_name_nc2(time_index)=match_string_char('meteo2_time_index',unit_in,unit_logfile,dim_name_nc2(time_index))
+    projection_name_nc2=match_string_char('projection_name_nc2',unit_in,unit_logfile,projection_name_nc2)
     var_name_nc2(lat_index2)=match_string_char('meteo2_lat_index',unit_in,unit_logfile,var_name_nc2(lat_index2))
     var_name_nc2(lon_index2)=match_string_char('meteo2_lon_index',unit_in,unit_logfile,var_name_nc2(lon_index2))
     var_name_nc2(temperature_index2)=match_string_char('meteo2_temperature_index',unit_in,unit_logfile,var_name_nc2(temperature_index2))
     var_name_nc2(elevation_index2)=match_string_char('meteo2_elevation_index',unit_in,unit_logfile,var_name_nc2(elevation_index2))
-
+    var_name_nc2(relhumidity_index2)=match_string_char('meteo2_relhumidity_index',unit_in,unit_logfile,var_name_nc2(relhumidity_index2))
+    var_name_nc2(cloudfraction_index2)=match_string_char('meteo2_cloudfraction_index',unit_in,unit_logfile,var_name_nc2(cloudfraction_index2))
+    var_name_nc2(precip_index2)=match_string_char('meteo2_precip_index',unit_in,unit_logfile,var_name_nc2(precip_index2))
+    var_name_nc2(x_wind_index2)=match_string_char('meteo2_x_wind_index',unit_in,unit_logfile,var_name_nc2(x_wind_index2))
+    var_name_nc2(y_wind_index2)=match_string_char('meteo2_y_wind_index',unit_in,unit_logfile,var_name_nc2(y_wind_index2))
 
     !Additional controls for zipping and further
     temp_int=match_string_int('save_metadata_in_zip_format',unit_in,unit_logfile,0)

@@ -9,7 +9,7 @@
     
     logical :: NORTRIP_preprocessor_combined_flag=.false.
     
-    logical :: interpolate_meteo_data=.false.
+    logical :: interpolate_meteo_data=.true.
 
     real missing_data
     
@@ -65,15 +65,15 @@
     integer end_dim_nc2(num_dims_nc2)
     integer start_dim_nc2(num_dims_nc2)
 
+    !3d data. Reorganised for memory reduction
+    integer temperature_index2,relhumidity_index2,cloudfraction_index2,precip_index2,x_wind_index2,y_wind_index2
+    parameter (temperature_index2=1,relhumidity_index2=2,cloudfraction_index2=3,precip_index2=4,x_wind_index2=5,y_wind_index2=6)
     !2d data
     integer lat_index2,lon_index2,elevation_index2 
-    parameter (lat_index2=2,lon_index2=3,elevation_index2=4)
-    !3d data. Reorganised for memory reduction
-    integer temperature_index2
-    parameter (temperature_index2=1)
+    parameter (lat_index2=7,lon_index2=8,elevation_index2=9)
     
     integer num_var_nc2
-    parameter (num_var_nc2=4)                  ! number of variables
+    parameter (num_var_nc2=9)                ! number of variables
 
     character(256) var_name_nc2(num_var_nc2)
     character(256) dim_name_nc2(num_dims_nc2)
@@ -465,6 +465,9 @@
     parameter (UTM_projection_index=1,RDM_projection_index=2,LCC_projection_index=3,LL_projection_index=4)
     integer :: meteo_nc_projection_type=LCC_projection_index
     integer :: meteo_nc2_projection_type=LCC_projection_index
+    logical, allocatable :: meteo_nc2_available(:)
+    
+    character(256) projection_name_nc,projection_name_nc2
     
     end module NORTRIP_multiroad_index_definitions
     
@@ -497,14 +500,22 @@
     var_name_nc2(lon_index2)='lon'
     var_name_nc2(elevation_index2)='altitude'
     var_name_nc2(temperature_index2)='air_temperature_2m'
+    
+    var_name_nc2(relhumidity_index2)='relative_humidity_2m'
+    var_name_nc2(cloudfraction_index2)='cloud_area_fraction'
+    var_name_nc2(precip_index2)='precipitation_amount'
+    var_name_nc2(x_wind_index2)='x_wind_10m'
+    var_name_nc2(y_wind_index2)='y_wind_10m'
 
     dim_name_nc(x_index)='x'
     dim_name_nc(y_index)='y'
     dim_name_nc(time_index)='time'
+    projection_name_nc='projection_lambert'
 
-    dim_name_nc2(x_index2)='rlon'
-    dim_name_nc2(y_index2)='rlat'
+    dim_name_nc2(x_index2)='x'
+    dim_name_nc2(y_index2)='y'
     dim_name_nc2(time_index2)='time'
+    projection_name_nc2='projection_lcc'
 
     dim_name_terrain_nc(x_index)='x'
     dim_name_terrain_nc(y_index)='y'

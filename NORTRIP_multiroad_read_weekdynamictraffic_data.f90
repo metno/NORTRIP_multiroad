@@ -138,14 +138,37 @@
             DIFUTC_H_traffic_temp=DIFUTC_H_traffic
             !write(*,*) 'Winter time ',DIFUTC_H_traffic_temp
         endif
+
+        hour_temp=date_data_temp(hour_index)
+        !Cannot trust this routine. Do as in uEMEP
         !call incrtm(int(DIFUTC_H_traffic_temp),date_data_temp(1),date_data_temp(2),date_data_temp(3),date_data_temp(4))
 
+        !This could be right now. Test with an end of week date
         week_day_temp=day_of_week(date_data_temp(:))
-        !write(*,'(a,8i6,f)') 'IN:  ',t,week_day_temp,date_data(:,t),DIFUTC_H_traffic_temp
-        !write(*,'(a,8i6,i)') 'OUT: ',t,week_day_temp,date_data_temp,int(DIFUTC_H_traffic_temp)
-        !hour_temp=date_data(hour_index,t)+1
-        hour_temp=date_data_temp(hour_index)
-        if (hour_temp.eq.0) hour_temp=24
+        !write(*,'(a,3i6,i)') 'IN:  ',t,week_day_temp,hour_temp,0
+
+        hour_temp=date_data_temp(hour_index)+DIFUTC_H_traffic_temp
+        if (hour_temp.le.0) then
+            hour_temp=24+hour_temp
+            week_day_temp=week_day_temp-1
+        endif
+        if (hour_temp.gt.24) then
+            hour_temp=hour_temp-24
+            week_day_temp=week_day_temp+1
+        endif
+        if (week_day_temp.eq.8) then
+            week_day_temp=1
+        endif
+        if (week_day_temp.eq.0) then
+            week_day_temp=7
+        endif
+        !write(*,'(a,3i6,i)') 'OUT: ',t,week_day_temp,hour_temp,int(DIFUTC_H_traffic_temp)
+        
+
+        !hour_temp=(week_day_temp-1)*24+date_data_temp(4)+DIFUTC_H_traffic_temp
+        !if (hour_temp.gt.hours_in_week) hour_temp=hour_temp-hours_in_week
+        !if (hour_temp.lt.1) hour_temp=hour_temp+hours_in_week
+
         
         do i=1,n_roadlinks
             traffic_data(N_total_index,t,i)=inputdata_week_traffic(N_week_index,week_day_temp,hour_temp,i)

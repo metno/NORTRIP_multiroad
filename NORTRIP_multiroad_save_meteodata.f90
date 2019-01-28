@@ -37,7 +37,8 @@
     real xpos_area_min,xpos_area_max,ypos_area_min,ypos_area_max
     integer i_nc,j_nc
     real xpos_limit,ypos_limit
-
+    logical :: show_analysis=.false.
+    logical some_meteo_nc2_available
     
     !Functions
     real DIRECTION
@@ -68,6 +69,15 @@
     allocate (dist_array_nc2(dim_length_nc2(x_index2),dim_length_nc2(y_index2)))
     
     out_of_range_count=0
+    
+    !Check to see if any alternative meteo data is available
+    some_meteo_nc2_available=.false.
+    if (replace_meteo_with_yr.eq.1) then
+        do t=1,n_hours_input
+            if (meteo_nc2_available(t)) some_meteo_nc2_available=.true.
+        enddo
+    endif
+    
     
     write(unit_logfile,'(a)') ' Matching meteo grids to road links '
 
@@ -160,7 +170,7 @@
             grid_index_rl(x_index,i)=1+floor((x_temp-var1d_nc(x_index,1))/dgrid_nc(x_index)+0.5)
             grid_index_rl(y_index,i)=1+floor((y_temp-var1d_nc(y_index,1))/dgrid_nc(y_index)+0.5)
             
-            call LL2UTM(1,utm_zone,var2d_nc(lat_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i)),var2d_nc(lon_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i)),y_utm_temp,x_utm_temp)
+            !call LL2UTM(1,utm_zone,var2d_nc(lat_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i)),var2d_nc(lon_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i)),y_utm_temp,x_utm_temp)
             
             !if (abs(grid_index_rl(y_index,i)-y_index_temp).ge.2.or.abs(grid_index_rl(x_index,i)-x_index_temp).ge.2) then
             !write(*,*) i,grid_index_rl(x_index,i)-x_index_temp,grid_index_rl(y_index,i)-y_index_temp,inputdata_rl(lon0_rl_index,i),inputdata_rl(lat0_rl_index,i)
@@ -175,7 +185,7 @@
             
             
             
-            if (replace_meteo_with_yr.eq.1) then
+            if (replace_meteo_with_yr.eq.1.and.some_meteo_nc2_available) then
                 !i_dist_min=0
                 !j_dist_min=0
                 !dist_min=1.e32
@@ -195,9 +205,16 @@
                 
                 
                 !Alternative
-                grid_index_rl2(x_index2:y_index2,i)=minloc((var2d_nc2(lat_index2,:,:)-inputdata_rl(lat0_rl_index,i))**2+(var2d_nc2(lon_index2,:,:)/cos(var2d_nc2(lat_index2,:,:)/180.*3.14159)-inputdata_rl(lon0_rl_index,i)/cos(inputdata_rl(lat0_rl_index,i)/180.*3.14159))**2)
+                !grid_index_rl2(x_index2:y_index2,i)=minloc((var2d_nc2(lat_index2,:,:)-inputdata_rl(lat0_rl_index,i))**2+(var2d_nc2(lon_index2,:,:)/cos(var2d_nc2(lat_index2,:,:)/180.*3.14159)-inputdata_rl(lon0_rl_index,i)/cos(inputdata_rl(lat0_rl_index,i)/180.*3.14159))**2)
                 !write(*,*) k,i,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),110*minval(sqrt((var2d_nc2(lat_index2,:,:)-inputdata_rl(lat0_rl_index,i))**2+(var2d_nc2(lon_index2,:,:)/cos(var2d_nc2(lat_index2,:,:)/180.*3.14159)-inputdata_rl(lon0_rl_index,i)/cos(inputdata_rl(lat0_rl_index,i)/180.*3.14159))**2))          
-           endif
+           
+                call lb2lambert2_uEMEP(x_temp,y_temp,inputdata_rl(lon0_rl_index,i),inputdata_rl(lat0_rl_index,i),meteo_nc2_projection_attributes)
+
+                grid_index_rl2(x_index2,i)=1+floor((x_temp-var1d_nc2(x_index2,1))/dgrid_nc2(x_index2)+0.5)
+                grid_index_rl2(y_index2,i)=1+floor((y_temp-var1d_nc2(y_index2,1))/dgrid_nc2(y_index2)+0.5)
+            
+
+            endif
         else
             write(unit_logfile,'(a,a)') ' ERROR: meteo_data_type not properly defined = ',trim(meteo_data_type)
             stop 24
@@ -295,10 +312,13 @@
         write(unit_logfile,'(a)') 'Replacing model values with observations (model,obs)'
         write(unit_logfile,'(10a20)') 'Temperature','Wind speed','Wind direction','Humidity','Precipitation','Shortwave','Longwave','Pressure','Surface_temperature','T_adjust_lapse'
     endif
-    if (replace_meteo_with_yr.eq.1) then
-        write(unit_logfile,'(a)') 'Replacing model temperatures with yr temperatures (model,yr)'
-        write(unit_logfile,'(a20)') 'Temperature'
+    if (replace_meteo_with_yr.eq.1.and.some_meteo_nc2_available) then
+        write(unit_logfile,'(a)') 'Replacing model temperatures with analysis temperatures (model,analysis)'
     endif
+    if (replace_meteo_with_yr.eq.1.and..not.some_meteo_nc2_available) then
+        write(unit_logfile,'(a)') 'No analysis meteo data available at all. Will not replace'
+    endif
+    
         
 !Distribute meteo data to roadlinks. Saves all links or specified links.
     do j=1,n_save_links
@@ -331,6 +351,7 @@
                     meteo_temp(snow_index)=meteo_temp(precip_index)
                 endif
             else
+                meteo_temp(precip_index)=max(0.,var3d_nc(precip_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i),j_mod)) !Not used but calculated
                 meteo_temp(rain_index)=max(0.,var3d_nc(precip_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i),j_mod))-max(0.,var3d_nc(precip_snow_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i),j_mod))
                 meteo_temp(snow_index)=max(0.,var3d_nc(precip_snow_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i),j_mod))
             endif
@@ -397,6 +418,7 @@
                 if (.not.var_available_nc(precip_snow_index)) then
                     meteo_temp(precip_index)=meteo_temp(precip_index)+max(0.,var3d_nc(precip_index,ii,jj,j_mod))*weighting_nc
                 else
+                    meteo_temp(precip_index)=meteo_temp(precip_index)+max(0.,var3d_nc(precip_index,ii,jj,j_mod))*weighting_nc !Not used but calculated
                     meteo_temp(rain_index)=meteo_temp(rain_index) &
                         +(max(0.,var3d_nc(precip_index,ii,jj,j_mod)) &
                         -max(0.,var3d_nc(precip_snow_index,ii,jj,j_mod)))*weighting_nc
@@ -427,12 +449,34 @@
             !write(*,'(2i,f12.4,5f12.4)') i,j_mod,sum_weighting_nc,meteo_temp(temperature_index),meteo_temp(speed_wind_index),meteo_temp(dir_wind_index),meteo_temp(shortwaveradiation_index),meteo_temp(rain_index)
             endif !interpolate_meteo_data
             
-            if (replace_meteo_with_yr.eq.1) then
-                if (not_shown_once) then 
-                    write(unit_logfile,'(18f10.1,f10.3)') meteo_temp(temperature_index),var3d_nc2(temperature_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),j_mod)-273.15+adjust_lapse
+            !Should I use t or j_mod here? Use t since the correct hour is placed in t
+            if (replace_meteo_with_yr.eq.1.and.meteo_nc2_available(t)) then
+                if (not_shown_once.and.show_analysis) then 
+                    write(unit_logfile,'(a,i,f10.3,f10.3)') 'Temperature:  ',t,meteo_temp(temperature_index),var3d_nc2(temperature_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t)-273.15
+                    write(unit_logfile,'(a,i,f10.3,f10.3)') 'Rel humidity: ',t,meteo_temp(relhumidity_index),var3d_nc2(relhumidity_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t)*100.
+                    write(unit_logfile,'(a,i,f10.3,f10.3)') 'Wind speed:   ',t,meteo_temp(speed_wind_index),sqrt(var3d_nc2(x_wind_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t)**2 &
+                        + var3d_nc2(y_wind_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t)**2)
+                    write(unit_logfile,'(a,i,f10.3,f10.3)') 'Wind direct  :',t,meteo_temp(dir_wind_index),DIRECTION(var3d_nc2(x_wind_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t) &
+                        ,var3d_nc2(y_wind_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t))
+                    write(unit_logfile,'(a,i,f10.3,f10.3)') 'Precipitation:',t,meteo_temp(precip_index),max(0.,var3d_nc2(precip_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t))
                 endif
-                meteo_temp(temperature_index)=var3d_nc2(temperature_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),j_mod)-273.15
-                
+                meteo_temp(temperature_index)=var3d_nc2(temperature_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t)-273.15
+ 
+                meteo_temp(speed_wind_index)=sqrt(var3d_nc2(x_wind_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t)**2 &
+                + var3d_nc2(y_wind_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t)**2) 
+                meteo_temp(dir_wind_index)=DIRECTION(var3d_nc2(x_wind_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t) &
+                ,var3d_nc2(y_wind_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t))
+                meteo_temp(relhumidity_index)=var3d_nc2(relhumidity_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t)*100.
+                meteo_temp(precip_index)=max(0.,var3d_nc2(precip_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t))
+                if (meteo_temp(temperature_index).gt.0) then
+                    meteo_temp(rain_index)=meteo_temp(precip_index)
+                    meteo_temp(snow_index)=0
+                else
+                    meteo_temp(rain_index)=0
+                    meteo_temp(snow_index)=meteo_temp(precip_index)
+                endif
+                meteo_temp(cloudfraction_index)=var3d_nc2(cloudfraction_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t)
+               
             endif       
 
             !Replace the data with observed meteo data. The same for all roads except for temperature lapse rate
@@ -563,6 +607,13 @@
     deallocate (grid_index_rl)
     deallocate (dist_array_nc)
     deallocate (dist_array_nc2)
+    
+    if (allocated(var1d_nc)) deallocate (var1d_nc)
+    if (allocated(var2d_nc)) deallocate (var2d_nc)
+    if (allocated(var3d_nc)) deallocate (var3d_nc)
+    if (allocated(var1d_nc2)) deallocate (var1d_nc2)
+    if (allocated(var2d_nc2)) deallocate (var2d_nc2)
+    if (allocated(var3d_nc2)) deallocate (var3d_nc2)
     
     
     end subroutine NORTRIP_multiroad_create_meteodata
