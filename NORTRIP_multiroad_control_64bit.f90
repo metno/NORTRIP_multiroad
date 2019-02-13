@@ -121,9 +121,13 @@
             !call NORTRIP_read_t2m500yr_netcdf4
             call NORTRIP_read_analysismeteo_netcdf4
         endif
-    else
+    elseif (index(meteo_data_type,'nbv').gt.0) then
         !Reads in meteo from special files made for Episode. Old and not used any more
-        call NORTRIP_read_meteo_netcdf4  
+        call NORTRIP_read_meteo_NBV_netcdf4  
+    else
+         write(unit_logfile,'(2A)') 'No valid meteo_data_type provided: ',trim(meteo_data_type)
+         write(unit_logfile,'(A)') 'Stopping '
+         stop    
     endif
     
     !Read and replace meteo model data with meteo obs data

@@ -108,7 +108,7 @@
             endif
         
         !This actually means we do not have an x,y coodinate system and we 'approximate' the lat lon assuming the x,y grid is roughly in a N-S direction
-        elseif (index(meteo_data_type,'arome').gt.0.or.index(meteo_data_type,'metcoop').gt.0) then
+        elseif (index(meteo_data_type,'nbv').gt.0.or.index(meteo_data_type,'metcoop').gt.0) then
             !loop through all grids to find the nearest in lat lon
             !This method is very inneffective for large numbers of links. Another way must be found
             !i_dist_min=0
@@ -313,7 +313,7 @@
         write(unit_logfile,'(10a20)') 'Temperature','Wind speed','Wind direction','Humidity','Precipitation','Shortwave','Longwave','Pressure','Surface_temperature','T_adjust_lapse'
     endif
     if (replace_meteo_with_yr.eq.1.and.some_meteo_nc2_available) then
-        write(unit_logfile,'(a)') 'Replacing model temperatures with analysis temperatures (model,analysis)'
+        write(unit_logfile,'(a)') 'Replacing model meteorology with analysis meteorology (model,analysis)'
     endif
     if (replace_meteo_with_yr.eq.1.and..not.some_meteo_nc2_available) then
         write(unit_logfile,'(a)') 'No analysis meteo data available at all. Will not replace'

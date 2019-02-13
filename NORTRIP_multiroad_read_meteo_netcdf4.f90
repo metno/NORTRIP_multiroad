@@ -1,5 +1,6 @@
-    subroutine NORTRIP_read_meteo_netcdf4
-    !Reads in meteo from special files made for Episode. Old and not used any more
+    subroutine NORTRIP_read_meteo_NBV_netcdf4
+    !Reads in meteo from special files made in the NBV project.
+    !Does not include the disaggregation of precip and fluxes
     
     use NORTRIP_multiroad_index_definitions
     !Update to netcdf 4 and 64 bit in this version 2 of NORTRIP_read_meteo_netcdf
@@ -32,6 +33,10 @@
     real, allocatable :: var2d_nc_re(:,:)
     real, allocatable :: var3d_nc_re(:,:,:)
 
+    double precision temp_date
+    double precision date_to_number
+    
+    integer var_id_nc_projection
     
 	write(unit_logfile,'(A)') '================================================================'
 	write(unit_logfile,'(A)') 'Reading meteorological data (NORTRIP_read_meteo_netcdf v2)'
@@ -43,6 +48,8 @@
     filename_nc_in=filename_nc_template
     call date_to_datestr_bracket(start_date_input,filename_nc_in,filename_nc)
     call date_to_datestr_bracket(start_date_input,pathname_nc_in,pathname_nc)
+    
+    pathfilename_nc=trim(pathname_nc)//trim(filename_nc)
      
     !Test existence of the filename. If does not exist then use default
     inquire(file=trim(pathfilename_nc),exist=exists)
@@ -55,7 +62,10 @@
         new_start_date_input=start_date_input
         found_file=.false.
         do i=1,1
-            call incrtm(-24,new_start_date_input(1),new_start_date_input(2),new_start_date_input(3),new_start_date_input(4))
+            !call incrtm(-24,new_start_date_input(1),new_start_date_input(2),new_start_date_input(3),new_start_date_input(4))
+            temp_date=date_to_number(new_start_date_input)
+            call number_to_date(temp_date-1.,new_start_date_input)
+            !write(*,*) i,new_start_date_input(1:4)
             call date_to_datestr_bracket(new_start_date_input,filename_nc_in,filename_nc)
             call date_to_datestr_bracket(new_start_date_input,pathname_nc_in,pathname_nc)
             pathfilename_nc=trim(pathname_nc)//trim(filename_nc)
@@ -73,19 +83,35 @@
             write(unit_logfile,'(A,A)') ' ERROR: Meteo netcdf file still does not exist: ', trim(pathfilename_nc)
             write(unit_logfile,'(A)') ' STOPPING'
             !write(*,'(A,A)') ' ERROR: Meteo netcdf file does not exist. Stopping: ', trim(pathfilename_nc)
-            stop 9
+            stop 8
         else
             write(unit_logfile,'(A,A)') ' Found earlier meteo netcdf file: ', trim(pathfilename_nc)
         endif
         
     endif
-
     !Open the netcdf file for reading
     write(unit_logfile,'(2A)') ' Opening netcdf meteo file: ',trim(pathfilename_nc)
     !status_nc = NF_OPEN (pathfilename_nc, NF_NOWRITE, id_nc)
     status_nc = NF90_OPEN (pathfilename_nc, nf90_nowrite, id_nc)
     !if (status_nc .NE. NF_NOERR) write(unit_logfile,'(A,I)') 'ERROR opening netcdf file: ',status_nc
     if (status_nc .NE. NF90_NOERR) write(unit_logfile,'(A,I)') 'ERROR opening netcdf file: ',status_nc
+
+    !Find the projection. If no projection then in lat lon coordinates
+    status_nc = NF90_INQ_VARID (id_nc,trim(projection_name_nc),var_id_nc_projection)
+        
+        if (status_nc.eq.NF90_NOERR) then
+            !If there is a projection then read in the attributes. All these are doubles
+            !status_nc = nf90_inquire_variable(id_nc, var_id_nc_projection, natts = numAtts_projection)
+                status_nc = nf90_get_att(id_nc, var_id_nc_projection, 'standard_parallel', meteo_nc_projection_attributes(1:2))
+                status_nc = nf90_get_att(id_nc, var_id_nc_projection, 'longitude_of_central_meridian', meteo_nc_projection_attributes(3))
+                status_nc = nf90_get_att(id_nc, var_id_nc_projection, 'latitude_of_projection_origin', meteo_nc_projection_attributes(4))
+                status_nc = nf90_get_att(id_nc, var_id_nc_projection, 'earth_radius', meteo_nc_projection_attributes(5))
+                meteo_nc_projection_type=LCC_projection_index
+                        
+            write(unit_logfile,'(A,5f12.2)') 'Reading lambert_conformal_conic projection. ',meteo_nc_projection_attributes(1:5)
+        else
+            meteo_nc_projection_type=LL_projection_index             
+        endif
 
     !Find out the x,y and time dimmensions of the file by looking at pressure variable
     status_nc = NF90_INQ_DIMID (id_nc,dim_name_nc(x_index),dim_id_nc(x_index))
@@ -136,7 +162,6 @@
             status_type_nc = nf90_inquire_variable(id_nc, var_id_nc(i), xtype=xtype_nc(i))
             if (i.eq.lat_index.or.i.eq.lon_index) then              
                 !write(*,*) trim(var_name_nc(i)),xtype_nc(i), trim(meteo_data_type)
-                !if (index(meteo_data_type,'arome').gt.0) then
                 if (xtype_nc(i).eq.NF90_DOUBLE) then
                     status_nc = NF90_GET_VAR (id_nc, var_id_nc(i), var2d_nc_dp, start=(/dim_start_nc(1:2)/), count=(/dim_length_nc(1:2)/));var2d_nc(i,:,:)=real(var2d_nc_dp)
                 else
@@ -145,7 +170,6 @@
                 write(unit_logfile,'(3A,2f16.4)') ' ',trim(var_name_nc(i)),' (min, max): ',minval(var2d_nc(i,:,:)),maxval(var2d_nc(i,:,:)) 
             else
                 !write(*,*) trim(var_name_nc(i)),xtype_nc(i), trim(meteo_data_type)
-                !if (index(meteo_data_type,'arome').gt.0) then
                 if (xtype_nc(i).eq.NF90_DOUBLE) then
                     status_nc = NF90_GET_VAR (id_nc, var_id_nc(i), var3d_nc_dp, start=(/dim_start_nc/), count=(/dim_length_nc/));var3d_nc(i,:,:,:)=real(var3d_nc_dp)
                 else
@@ -172,6 +196,7 @@
     status_nc = NF90_CLOSE (id_nc)
     
     !Calculate angle difference between North and the Model Y direction based on the middle grids
+    !Not correct
     i_grid_mid=int(dim_length_nc(x_index)/2)
     j_grid_mid=int(dim_length_nc(y_index)/2)
     dgrid_nc(x_index)=var1d_nc(x_index,i_grid_mid)-var1d_nc(x_index,i_grid_mid-1)
@@ -179,7 +204,12 @@
     dlat_nc=var2d_nc(lat_index,i_grid_mid,j_grid_mid)-var2d_nc(lat_index,i_grid_mid,j_grid_mid-1)
     
     !If the coordinates are in km instead of metres then change to metres (assuming the difference is not going to be > 100 km
-    if (dgrid_nc(x_index).lt.100) dgrid_nc=dgrid_nc*1000.    
+    if (dgrid_nc(x_index).lt.100) then
+        dgrid_nc=dgrid_nc*1000.
+        var1d_nc(x_index,:)=var1d_nc(x_index,:)*1000.
+        var1d_nc(y_index,:)=var1d_nc(y_index,:)*1000.
+    endif
+
     angle_nc=180./3.14159*acos(dlat_nc*3.14159/180.*6.37e6/dgrid_nc(x_index))
     write(unit_logfile,'(A,2f12.1)') ' Grid spacing X and Y (m): ', dgrid_nc(x_index),dgrid_nc(y_index)
     write(unit_logfile,'(A,2i,f12.4)') ' Angle difference between grid and geo North (i,j,deg): ', i_grid_mid,j_grid_mid,angle_nc
@@ -195,5 +225,5 @@
     deallocate (var1d_nc_dp)
 
 
-    end subroutine NORTRIP_read_meteo_netcdf4
+    end subroutine NORTRIP_read_meteo_NBV_netcdf4
     
