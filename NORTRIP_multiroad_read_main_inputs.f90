@@ -246,6 +246,9 @@
     inpath_region_EF=match_string_char('inpath_region_EF',unit_in,unit_logfile,'')
     infile_region_EF=match_string_char('infile_region_EF',unit_in,unit_logfile,'')
 
+    inpath_region_activity=match_string_char('inpath_region_activity',unit_in,unit_logfile,'')
+    infile_region_activity=match_string_char('infile_region_activity',unit_in,unit_logfile,'')
+
     DIFUTC_H=match_string_val('Time difference site',unit_in,unit_logfile,0.0)
     DIFUTC_H_traffic=match_string_val('Time difference traffic',unit_in,unit_logfile,0.0)
     missing_data=match_string_val('Missing data value',unit_in,unit_logfile,-999.)
@@ -423,6 +426,16 @@
         enddo         
     endif
 
+    !Read in the min and max ADT that determine which pavement type is to be used
+    n_road_pave_ADT_index=match_string_int('n_road_pave_ADT_index',unit_in,unit_logfile,0)
+    
+    if (n_road_pave_ADT_index.gt.0) then
+        road_type_pave_flag_input=0
+        call match_string_multi_int('road_pave_ADT_flag_index',unit_in,unit_logfile,road_type_pave_flag_input(road_pave_ADT_flag_index,1:n_road_pave_ADT_index),n_road_pave_ADT_index)
+        call match_string_multi_int('road_pave_min_ADT_val',unit_in,unit_logfile,road_type_pave_flag_input(road_pave_min_ADT_index,1:n_road_pave_ADT_index),n_road_pave_ADT_index)
+        call match_string_multi_int('road_pave_max_ADT_val',unit_in,unit_logfile,road_type_pave_flag_input(road_pave_max_ADT_index,1:n_road_pave_ADT_index),n_road_pave_ADT_index)
+    endif
+
     !Meteo file netcdf identifiers. Already defined but can be changed here
     meteo_data_type=match_string_char('meteo_data_type',unit_in,unit_logfile,meteo_data_type)
     var_name_nc(lat_index)=match_string_char('meteo_lat_index',unit_in,unit_logfile,var_name_nc(lat_index))
@@ -577,6 +590,9 @@
         inpath_region_EF=replace_string_char(city_str(i),trim(temp_str),inpath_region_EF)
         infile_region_EF=replace_string_char(city_str(i),trim(temp_str),infile_region_EF)
  
+        !Activity files
+        inpath_region_activity=replace_string_char(city_str(i),trim(temp_str),inpath_region_activity)
+        infile_region_activity=replace_string_char(city_str(i),trim(temp_str),infile_region_activity)
         
     enddo
     enddo
@@ -637,8 +653,12 @@
             save_links(i)=i
         enddo      
         n_save_links=n_roadlinks
-        inputdata_int_rl(roadindex_rl_index,save_links(1:n_save_links))=save_links(1:n_save_links)
-        inputdata_int_rl(savedata_rl_index,save_links(1:n_save_links))=0
+            do i=1,n_save_links
+                inputdata_int_rl(roadindex_rl_index,save_links(i))=save_links(i)
+                inputdata_int_rl(savedata_rl_index,save_links(i))=0
+            enddo
+        !inputdata_int_rl(roadindex_rl_index,save_links(1:n_save_links))=save_links(1:n_save_links)
+        !inputdata_int_rl(savedata_rl_index,save_links(1:n_save_links))=0
         return
     endif
 
@@ -649,8 +669,12 @@
             save_links(i)=i
         enddo      
         n_save_links=n_roadlinks
-        inputdata_int_rl(roadindex_rl_index,save_links(1:n_save_links))=save_links(1:n_save_links)
-        inputdata_int_rl(savedata_rl_index,save_links(1:n_save_links))=1
+            do i=1,n_save_links
+                inputdata_int_rl(roadindex_rl_index,save_links(i))=save_links(i)
+                inputdata_int_rl(savedata_rl_index,save_links(i))=1
+            enddo
+        !inputdata_int_rl(roadindex_rl_index,save_links(1:n_save_links))=save_links(1:n_save_links)
+        !inputdata_int_rl(savedata_rl_index,save_links(1:n_save_links))=1
         return
     endif
 
@@ -689,8 +713,12 @@
                 save_links(i)=i
             enddo      
             n_save_links=n_roadlinks
-            inputdata_int_rl(roadindex_rl_index,save_links(1:n_save_links))=save_links(1:n_save_links)
-            inputdata_int_rl(savedata_rl_index,save_links(1:n_save_links))=0
+            !inputdata_int_rl(roadindex_rl_index,save_links(1:n_save_links))=save_links(1:n_save_links)
+            !inputdata_int_rl(savedata_rl_index,save_links(1:n_save_links))=0
+            do i=1,n_save_links
+                inputdata_int_rl(roadindex_rl_index,save_links(i))=save_links(i)
+                inputdata_int_rl(savedata_rl_index,save_links(i))=0
+            enddo
             return
         endif
 
@@ -698,15 +726,30 @@
         if (use_only_special_links_flag.eq.2) then
             write(unit_logfile,'(a,i)') ' Using all road links in calculation. Saving only special links: ',n_save_links
             !Set the saving of links to all roads
+            !write(*,*) 'Here 1'
             do i=1,n_roadlinks
                 save_links(i)=i
             enddo      
+            !write(*,*) 'Here 2'
+            !write(*,*) shape(inputdata_int_rl),n_roadlinks,roadindex_rl_index
             n_save_links=n_roadlinks
-            inputdata_int_rl(roadindex_rl_index,save_links(1:n_save_links))=save_links(1:n_save_links)
-            inputdata_int_rl(savedata_rl_index,save_links(1:n_save_links))=0
+            !write(*,*) shape(save_links),n_save_links,savedata_rl_index
+            
+            !write(*,*) maxval(save_links),minval(save_links)
+            !write(*,*) 'Here min: ',inputdata_int_rl(roadindex_rl_index,minval(save_links))
+            !write(*,*) 'Here max: ',inputdata_int_rl(roadindex_rl_index,maxval(save_links))
+            !write(*,*) 'Here :',save_links(1),save_links(n_save_links)
+            !write(*,*) inputdata_int_rl(roadindex_rl_index,:)
+            do i=1,n_save_links
+                inputdata_int_rl(roadindex_rl_index,save_links(i))=save_links(i)
+                inputdata_int_rl(savedata_rl_index,save_links(i))=0
+                !write(*,*) i,inputdata_int_rl(roadindex_rl_index,i)
+            enddo
+            
         endif
     
-        
+               !write(*,*) 'Here 3'
+     
         !If api is in the receptor file name then read in a different way.
         !This is not the best method for specifying file type and should be done differently
         if (index(filename_NORTRIP_receptors,'api').gt.0) use_uEMEP_receptor_file=.true.
@@ -877,7 +920,10 @@
                 save_links(i)=i
             enddo      
             n_save_links=n_roadlinks
-            inputdata_int_rl(roadindex_rl_index,save_links(1:n_save_links))=save_links(1:n_save_links)
+            do i=1,n_save_links
+                inputdata_int_rl(roadindex_rl_index,save_links(i))=save_links(i)
+            enddo
+            !inputdata_int_rl(roadindex_rl_index,save_links(1:n_save_links))=save_links(1:n_save_links)
         else
             !Calculate all the road links
             write(unit_logfile,'(a,i)') ' Calculating all road links but not saving any special road links: ',n_save_links
@@ -885,7 +931,10 @@
                 save_links(i)=i
             enddo      
             n_save_links=n_roadlinks
-            inputdata_int_rl(roadindex_rl_index,save_links(1:n_save_links))=save_links(1:n_save_links)
+            do i=1,n_save_links
+                inputdata_int_rl(roadindex_rl_index,save_links(i))=save_links(i)
+            enddo
+            !inputdata_int_rl(roadindex_rl_index,save_links(1:n_save_links))=save_links(1:n_save_links)
             
         endif
 

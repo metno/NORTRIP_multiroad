@@ -1,6 +1,7 @@
 !NORTRIP_multiroad_read_staticroadlink_data.f90
     
     subroutine NORTRIP_multiroad_read_staticroadlink_data
+    !Old routine for reading BB data
     
     use NORTRIP_multiroad_index_definitions
     
@@ -142,10 +143,10 @@
  
     !Set the road type, normal or tunnel (tunnel or jet). When a tunnel then there is no retention, always dry
     do i=1,n_roadlinks        
-        if (inputdata_int_rl(roadactivitytype_rl_index,i).eq.5.or.inputdata_int_rl(roadactivitytype_rl_index,i).eq.6) then           
-            inputdata_int_rl(roadactivitytype_rl_index,i)=tunnel_roadtype
+        if (inputdata_int_rl(roadstructuretype_rl_index,i).eq.5.or.inputdata_int_rl(roadactivitytype_rl_index,i).eq.6) then           
+            inputdata_int_rl(roadstructuretype_rl_index,i)=tunnel_roadtype
         else
-            inputdata_int_rl(roadactivitytype_rl_index,i)=normal_roadtype
+            inputdata_int_rl(roadstructuretype_rl_index,i)=normal_roadtype
         endif
     enddo
 
@@ -438,6 +439,7 @@
     
     
     subroutine NORTRIP_multiroad_read_staticroadlink_data_ascii
+    !New routine for reading static data
     
     use NORTRIP_multiroad_index_definitions
     
@@ -518,7 +520,7 @@
             inputdata_int_rl(id_rl_index,counter)=temp_id
             inputdata_rl(adt_rl_index,counter)=temp_adt
             inputdata_rl(hdv_rl_index,counter)=temp_hdv
-            inputdata_int_rl(roadactivitytype_rl_index,counter)=temp_road_activity_type
+            inputdata_int_rl(roadactivitytype_rl_index,counter)=temp_road_category !Couple activity to road type rather than 'drift' temp_road_activity_type
             inputdata_rl(speed_rl_index,counter)=temp_speed
             inputdata_rl(width_rl_index,counter)=temp_width
             inputdata_rl(x1_rl_index,counter)=sub_nodes_x(1)
@@ -535,6 +537,7 @@
             inputdata_int_rl(region_id_rl_index,counter)=temp_region_id
             inputdata_int_rl(roadstructuretype_rl_index,counter)=temp_road_structure_type
             inputdata_int_rl(roadsurface_id_rl_index,counter)=temp_surface_id
+            !inputdata_int_rl(tunnel_length_rl_index,counter)=temp_tunnel_length
             
         else
             
@@ -543,7 +546,7 @@
             inputdata_int_rl(id_rl_index,counter)=temp_id
             inputdata_rl(adt_rl_index,counter)=temp_adt
             inputdata_rl(hdv_rl_index,counter)=temp_hdv
-            inputdata_int_rl(roadactivitytype_rl_index,counter)=temp_road_activity_type
+            inputdata_int_rl(roadactivitytype_rl_index,counter)=temp_road_category !temp_road_activity_type
             inputdata_rl(speed_rl_index,counter)=temp_speed
             inputdata_rl(width_rl_index,counter)=temp_width
             inputdata_rl(x1_rl_index,counter)=sub_nodes_x(j)
@@ -553,10 +556,11 @@
             inputdata_rl(y2_rl_index,counter)=sub_nodes_y(j+1)
             inputdata_rl(length_rl_index,counter)=sqrt((inputdata_rl(x1_rl_index,counter)-inputdata_rl(x2_rl_index,counter))**2+(inputdata_rl(y1_rl_index,counter)-inputdata_rl(y2_rl_index,counter))**2)
             !write(*,*) inputdata_int_rl(id_rl_index,counter),inputdata_rl(x1_rl_index,counter),inputdata_rl(y2_rl_index,counter)
-            inputdata_int_rl(roadcategory_rl_index,counter)=temp_road_category
+            inputdata_int_rl(roadcategory_rl_index,counter)=temp_road_category !Not used in NORTRIP, see roadactivitytype_rl_index
             inputdata_int_rl(region_id_rl_index,counter)=temp_region_id
             inputdata_int_rl(roadstructuretype_rl_index,counter)=temp_road_structure_type
             inputdata_int_rl(roadsurface_id_rl_index,counter)=temp_surface_id
+            !inputdata_int_rl(tunnel_length_rl_index,counter)=temp_tunnel_length
         enddo
         
         endif
@@ -659,3 +663,4 @@
     
     
     end subroutine NORTRIP_multiroad_read_staticroadlink_data_ascii
+

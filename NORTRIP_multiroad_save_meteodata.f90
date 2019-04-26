@@ -450,7 +450,8 @@
             endif !interpolate_meteo_data
             
             !Should I use t or j_mod here? Use t since the correct hour is placed in t
-            if (replace_meteo_with_yr.eq.1.and.meteo_nc2_available(t)) then
+            if (replace_meteo_with_yr.eq.1) then
+            if (meteo_nc2_available(t)) then
                 if (not_shown_once.and.show_analysis) then 
                     write(unit_logfile,'(a,i,f10.3,f10.3)') 'Temperature:  ',t,meteo_temp(temperature_index),var3d_nc2(temperature_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t)-273.15
                     write(unit_logfile,'(a,i,f10.3,f10.3)') 'Rel humidity: ',t,meteo_temp(relhumidity_index),var3d_nc2(relhumidity_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t)*100.
@@ -477,6 +478,7 @@
                 endif
                 meteo_temp(cloudfraction_index)=var3d_nc2(cloudfraction_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t)
                
+            endif
             endif       
 
             !Replace the data with observed meteo data. The same for all roads except for temperature lapse rate

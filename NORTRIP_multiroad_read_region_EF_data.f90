@@ -1,4 +1,4 @@
-!NORTRIP_multiroad_read_weekdynamictraffic_data.f90
+!NORTRIP_multiroad_read_regional_EF_data.f90
     
     subroutine NORTRIP_multiroad_read_region_EF_data
     
@@ -33,8 +33,8 @@
     !Test existence of the filename. If does not exist then use default
     inquire(file=trim(pathfilename_region_EF),exist=exists)
     if (.not.exists) then
-        write(*,'(A,A)') ' WARNING: Regional traffic data file does not exist: ', trim(pathfilename_region_EF)
-        write(*,'(A)') ' WARNING: Configuration file values will be used: '
+        write(unit_logfile,'(A,A)') ' WARNING: Regional traffic data file does not exist: ', trim(pathfilename_region_EF)
+        write(unit_logfile,'(A)') ' WARNING: Configuration file values will be used: '
         return
     endif
         
@@ -63,8 +63,10 @@
             read(unit_in,*,ERR=10) &
                 k_index,region_id(k), &
                 max_stud_fraction_region(k,li),max_stud_fraction_region(k,he), &
-                start_stud_season_region(k,month_index:day_index),start_full_stud_season_region(k,month_index:day_index), &
-                end_full_stud_season_region(k,month_index:day_index),end_stud_season_region(k,month_index:day_index), &
+                start_stud_season_region(k,month_index),start_stud_season_region(k,day_index), &
+                start_full_stud_season_region(k,month_index),start_full_stud_season_region(k,day_index), &
+                end_full_stud_season_region(k,month_index),end_full_stud_season_region(k,day_index), &
+                end_stud_season_region(k,month_index),end_stud_season_region(k,day_index), &
                 exhaust_EF_region(k,li),exhaust_EF_region(k,he), &
                 nox_EF_region(k,li),nox_EF_region(k,he)
             !write(*,*) region_id(k),max_stud_fraction_region(k,li),max_stud_fraction_region(k,he),start_stud_season_region(k,month_index:day_index)
@@ -166,3 +168,269 @@
 
     
     end subroutine NORTRIP_multiroad_read_region_EF_data
+    
+    
+    
+    subroutine NORTRIP_multiroad_read_region_activity_data
+    
+    use NORTRIP_multiroad_index_definitions
+    
+    implicit none
+    
+    character(256) search_str,temp_str
+    real temp
+    integer unit_in
+    integer i
+    integer k,k_index
+    integer exists
+    logical nxtdat_flag
+ 
+    real salt_gm2(n_region_max,num_max_road_types)
+    real salt_ADT(n_region_max,num_max_road_types)
+    real salt_delay(n_region_max)
+    real salt_type_distribution_region(n_region_max)
+    real sand_gm2(n_region_max,num_max_road_types)
+    real sand_ADT(n_region_max,num_max_road_types)
+    real sand_delay(n_region_max)
+    integer sand_start_mm(n_region_max)
+    integer sand_end_mm(n_region_max)
+    real clean_eff(n_region_max,num_max_road_types)
+    real clean_ADT(n_region_max,num_max_road_types)
+    real clean_delay(n_region_max)
+    integer clean_start_mm(n_region_max)
+    integer clean_end_mm(n_region_max)
+    real binding_gm2(n_region_max,num_max_road_types)
+    real binding_ADT(n_region_max,num_max_road_types)
+    real binding_delay(n_region_max)
+    integer binding_start_mm(n_region_max)
+    integer binding_end_mm(n_region_max)
+    real multi_sand_ADT_temp,multi_clean_ADT_temp,multi_binding_ADT_temp
+
+    !Functions
+    !integer day_of_week
+    !double precision date_to_number
+        
+	write(unit_logfile,'(A)') '================================================================'
+	write(unit_logfile,'(A)') 'Reading regional auto activity data (NORTRIP_multiroad_read_region_activity_data)'
+	write(unit_logfile,'(A)') '================================================================'
+
+    allocate (multi_salting_hour(2,0:n_roadlinks))
+    allocate (multi_delay_salting_day(0:n_roadlinks))
+    allocate (multi_check_salting_day(0:n_roadlinks))
+    allocate (multi_min_temp_salt(0:n_roadlinks))
+    allocate (multi_max_temp_salt(0:n_roadlinks))
+    allocate (multi_precip_rule_salt(0:n_roadlinks))
+    allocate (multi_RH_rule_salt(0:n_roadlinks)) 
+    allocate (multi_g_salting_rule(0:n_roadlinks))
+    allocate (multi_salt_mass(0:n_roadlinks)) 
+    allocate (multi_salt_dilution(0:n_roadlinks)) 
+    allocate (multi_salt_type_distribution(0:n_roadlinks)) 
+    
+    allocate (multi_sanding_hour(2,0:n_roadlinks))
+    allocate (multi_delay_sanding_day(0:n_roadlinks)) 
+    allocate (multi_check_sanding_day(0:n_roadlinks))
+    allocate (multi_min_temp_sand(0:n_roadlinks)) 
+    allocate (multi_max_temp_sand(0:n_roadlinks))
+    allocate (multi_precip_rule_sand(0:n_roadlinks))
+    allocate (multi_RH_rule_sand(0:n_roadlinks)) 
+    allocate (multi_g_sanding_rule(0:n_roadlinks)) 
+    allocate (multi_sand_mass(0:n_roadlinks)) 
+    allocate (multi_sand_dilution(0:n_roadlinks))
+    
+    allocate (multi_delay_ploughing_hour(0:n_roadlinks))
+    allocate (multi_ploughing_thresh_2(0:n_roadlinks)) 
+
+    allocate (multi_cleaning_hour(2,0:n_roadlinks))
+    allocate (multi_delay_cleaning_day(0:n_roadlinks))
+    allocate (multi_min_temp_cleaning(0:n_roadlinks))
+    allocate (multi_clean_with_salting(0:n_roadlinks))
+    allocate (multi_start_month_cleaning(0:n_roadlinks))
+    allocate (multi_end_month_cleaning(0:n_roadlinks))
+    allocate (multi_wetting_with_cleaning(0:n_roadlinks))
+    allocate (multi_efficiency_of_cleaning(0:n_roadlinks))
+
+    allocate (multi_binding_hour(2,0:n_roadlinks))
+    allocate (multi_delay_binding_day(0:n_roadlinks))
+    allocate (multi_check_binding_day(0:n_roadlinks))
+    allocate (multi_min_temp_binding(0:n_roadlinks))
+    allocate (multi_max_temp_binding(0:n_roadlinks))
+    allocate (multi_precip_rule_binding(0:n_roadlinks))
+    allocate (multi_RH_rule_binding(0:n_roadlinks))
+    allocate (multi_g_binding_rule(0:n_roadlinks))
+    allocate (multi_binding_mass(0:n_roadlinks))
+    allocate (multi_binding_dilution(0:n_roadlinks))
+    allocate (multi_start_month_binding(0:n_roadlinks))
+    allocate (multi_end_month_binding(0:n_roadlinks))
+    
+
+    multi_salting_hour=nodata_activity
+    multi_delay_salting_day=nodata_activity
+    multi_check_salting_day=nodata_activity
+    multi_min_temp_salt=nodata_activity
+    multi_max_temp_salt=nodata_activity
+    multi_precip_rule_salt=nodata_activity
+    multi_RH_rule_salt=nodata_activity
+    multi_g_salting_rule=nodata_activity
+    multi_salt_mass=nodata_activity 
+    multi_salt_dilution=nodata_activity 
+    multi_salt_type_distribution=nodata_activity 
+    
+    multi_sanding_hour=nodata_activity
+    multi_delay_sanding_day=nodata_activity 
+    multi_check_sanding_day=nodata_activity
+    multi_min_temp_sand=nodata_activity 
+    multi_max_temp_sand=nodata_activity
+    multi_precip_rule_sand=nodata_activity
+    multi_RH_rule_sand=nodata_activity 
+    multi_g_sanding_rule=nodata_activity 
+    multi_sand_mass=nodata_activity 
+    multi_sand_dilution=nodata_activity
+    
+    multi_delay_ploughing_hour=nodata_activity
+    multi_ploughing_thresh_2=nodata_activity 
+
+    multi_cleaning_hour=nodata_activity
+    multi_delay_cleaning_day=nodata_activity
+    multi_min_temp_cleaning=nodata_activity
+    multi_clean_with_salting=nodata_activity
+    multi_start_month_cleaning=nodata_activity
+    multi_end_month_cleaning=nodata_activity
+    multi_wetting_with_cleaning=nodata_activity
+    multi_efficiency_of_cleaning=nodata_activity
+
+    multi_binding_hour=nodata_activity
+    multi_delay_binding_day=nodata_activity
+    multi_check_binding_day=nodata_activity
+    multi_min_temp_binding=nodata_activity
+    multi_max_temp_binding=nodata_activity
+    multi_precip_rule_binding=nodata_activity
+    multi_RH_rule_binding=nodata_activity
+    multi_g_binding_rule=nodata_activity
+    multi_binding_mass=nodata_activity
+    multi_binding_dilution=nodata_activity
+    multi_start_month_binding=nodata_activity
+    multi_end_month_binding=nodata_activity
+
+    pathfilename_region_activity=trim(inpath_region_activity)//trim(infile_region_activity)
+
+    !Test existence of the filename. If does not exist then use default
+    inquire(file=trim(pathfilename_region_activity),exist=exists)
+    if (.not.exists) then
+        write(unit_logfile,'(A,A)') ' WARNING: Regional activity file does not exist: ', trim(pathfilename_region_activity)
+        write(unit_logfile,'(A)') ' WARNING: Configuration file values will be used: '
+        return
+    endif
+        
+    !Initialise seasonal data
+
+    
+    !Open the file for reading
+    unit_in=20
+    open(unit_in,file=pathfilename_region_activity,access='sequential',status='old',readonly)  
+        write(unit_logfile,'(a)') ' Opening regional activity file: '//trim(pathfilename_region_activity)
+    
+        !Skip over header lines starting with *
+        rewind(unit_in)
+        call NXTDAT(unit_in,nxtdat_flag)
+       
+        !Read the data
+        !* Index	Kommunenummer	Sand_gm2(1)	Sand_gm2(2)	Sand_gm2(3)	Sand_gm2(4)	Sand_ADT(1)	Sand_ADT(2)	Sand_ADT(3)	Sand_ADT(4)	sand_delay(days)	start_mm	end_mm	Clean_eff(1)	Clean_eff(2)	Clean_eff(3)	Clean_eff(4)	Clean_ADT(1)	Clean_ADT(2)	Clean_ADT(3)	Clean_ADT(4)	clean_delay(days)	start_mm	end_mm	Binding_gm2(1)	Binding_gm2(2)	Binding_gm2(3)	Binding_gm2(4)	Binding_ADT(1)	Binding_ADT(2)	Binding_ADT(3)	Binding_ADT(4)	Binding_delay(days)	start_mm	end_mm	salt_type_distribution
+!Navn	* Index	Kommunenummer	Salt_gm2(1)	Salt_gm2(2)	Salt_gm2(3)	Salt_gm2(4)	Salt_ADT_min(1)	Salt_ADT_min(2)	Salt_ADT_min(3)	Salt_ADT_min(4)	salt_delay(days)	salt_type_distribution	Sand_gm2(1)	Sand_gm2(2)	Sand_gm2(3)	Sand_gm2(4)	Sand_ADT_max(1)	Sand_ADT_max(2)	Sand_ADT_max(3)	Sand_ADT_max(4)	sand_delay(days)	Clean_eff(1)	Clean_eff(2)	Clean_eff(3)	Clean_eff(4)	Clean_ADT_min(1)	Clean_ADT_min(2)	Clean_ADT_min(3)	Clean_ADT_min(4)	clean_delay(days)	clean_start_mm	clean_end_mm	Binding_gm2(1)	Binding_gm2(2)	Binding_gm2(3)	Binding_gm2(4)	Binding_ADT(1)	Binding_ADT(2)	Binding_ADT(3)	Binding_ADT(4)	Binding_delay(days)	binding_start_mm	binding_end_mm
+
+        read(unit_in,*,ERR=10) n_region
+        write(unit_logfile,'(a,i)') ' Number of regions read: ',n_region
+        do k=1,n_region          
+            read(unit_in,*,ERR=10) &
+                k_index,region_id(k), &
+                salt_gm2(k,1:n_road_type_flag_index), &
+                salt_ADT(k,1:n_road_type_flag_index), &
+                salt_delay(k), &
+                salt_type_distribution_region(k), &
+                sand_gm2(k,1:n_road_type_flag_index), &
+                sand_ADT(k,1:n_road_type_flag_index), &
+                sand_delay(k), &
+                clean_eff(k,1:n_road_type_flag_index), &
+                clean_ADT(k,1:n_road_type_flag_index), &
+                clean_delay(k), &
+                clean_start_mm(k), &
+                clean_end_mm(k), &
+                binding_gm2(k,1:n_road_type_flag_index), &
+                binding_ADT(k,1:n_road_type_flag_index), &
+                binding_delay(k), &
+                binding_start_mm(k), &
+                binding_end_mm(k)
+                
+
+            if (1.eq.2) then
+                write(*,*) &
+                k_index,region_id(k), &
+                salt_gm2(k,1:n_road_type_flag_index), &
+                salt_ADT(k,1:n_road_type_flag_index), &
+                salt_delay(k), &
+                salt_type_distribution_region(k), &
+                sand_gm2(k,1:n_road_type_flag_index), &
+                sand_ADT(k,1:n_road_type_flag_index), &
+                sand_delay(k), &
+                clean_eff(k,1:n_road_type_flag_index), &
+                clean_ADT(k,1:n_road_type_flag_index), &
+                clean_delay(k), &
+                clean_start_mm(k), &
+                clean_end_mm(k), &
+                binding_gm2(k,1:n_road_type_flag_index), &
+                binding_ADT(k,1:n_road_type_flag_index), &
+                binding_delay(k), &
+                binding_start_mm(k), &
+                binding_end_mm(k)
+            endif
+            
+
+        enddo
+         
+    close(unit_in,status='keep')
+        
+    do i=1,n_roadlinks
+        !Find the corresponding region_id and attribute the studded tyre and emission factor data to it
+        !ID's in roadlink data are kommune, first two numbers are fylke
+        do k=1,n_region
+            !write(*,*) inputdata_int_rl(region_id_rl_index,i),region_id(k)
+            if (inputdata_int_rl(region_id_rl_index,i).eq.region_id(k)) then
+                
+                multi_sand_mass(i)=sand_gm2(k,inputdata_int_rl(roadactivitytype_rl_index,i))
+                multi_sand_ADT_temp=sand_ADT(k,inputdata_int_rl(roadactivitytype_rl_index,i))
+                multi_delay_sanding_day(i)=sand_delay(k)
+                !sand_start_mm(k)
+                !sand_end_mm(k)
+                multi_efficiency_of_cleaning(i)=clean_eff(k,inputdata_int_rl(roadactivitytype_rl_index,i))
+                multi_clean_ADT_temp=clean_ADT(k,inputdata_int_rl(roadactivitytype_rl_index,i))
+                multi_delay_cleaning_day(i)=clean_delay(k)
+                multi_start_month_cleaning(i)=clean_start_mm(k)
+                multi_end_month_cleaning(i)=clean_end_mm(k)
+                multi_binding_mass(i)=binding_gm2(k,inputdata_int_rl(roadactivitytype_rl_index,i))
+                multi_binding_ADT_temp=binding_ADT(k,inputdata_int_rl(roadactivitytype_rl_index,i))
+                multi_delay_binding_day(i)=binding_delay(k)
+                multi_start_month_binding(i)=binding_start_mm(k)
+                multi_end_month_binding(i)=binding_end_mm(k)
+                multi_salt_type_distribution(i)=salt_type_distribution_region(k)
+                
+                !Below the ADT value nothing happens
+                if (inputdata_int_rl(roadactivitytype_rl_index,i).lt.multi_sand_ADT_temp) multi_sand_mass(i)=0
+                if (inputdata_int_rl(roadactivitytype_rl_index,i).lt.multi_clean_ADT_temp) multi_efficiency_of_cleaning(i)=0
+                if (inputdata_int_rl(roadactivitytype_rl_index,i).lt.multi_binding_ADT_temp) multi_binding_mass(i)=0
+                
+            
+            else
+            endif
+        enddo
+            
+    enddo
+        
+    write(unit_logfile,'(a)') ' Finished distributing activities to roads: '
+     
+    return
+10  write(unit_logfile,'(A)') 'ERROR reading activity file'
+    stop 10
+
+    
+    end subroutine NORTRIP_multiroad_read_region_activity_data
+    
+    

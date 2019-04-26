@@ -192,9 +192,27 @@
             where (var3d_nc(i,:,:,:).lt.precip_cutoff) var3d_nc(i,:,:,:)=0.
         endif
     enddo
-    
+
+
     status_nc = NF90_CLOSE (id_nc)
     
+    !Put in some basic data checks to see if file is corrupt
+    if (abs(maxval(var3d_nc(temperature_index,:,:,:))).gt.500) then
+        write(unit_logfile,'(A,e12.2)') ' ERROR: out of bounds temperature: ', maxval(var3d_nc(temperature_index,:,:,:))
+        write(unit_logfile,'(A)') ' STOPPING'
+        stop
+    endif    
+    if (abs(maxval(var3d_nc(x_wind_index,:,:,:))).gt.500) then
+        write(unit_logfile,'(A,e12.2)') ' ERROR: out of bounds x wind: ', maxval(var3d_nc(x_wind_index,:,:,:))
+        write(unit_logfile,'(A)') ' STOPPING'
+        stop
+    endif    
+    if (abs(maxval(var3d_nc(shortwaveradiation_index,:,:,:))).gt.5000) then
+        write(unit_logfile,'(A,e12.2)') ' ERROR: out of bounds short wave radiation: ', maxval(var3d_nc(shortwaveradiation_index,:,:,:))
+        write(unit_logfile,'(A)') ' STOPPING'
+        stop
+    endif    
+
     !Calculate angle difference between North and the Model Y direction based on the middle grids
     !Not correct
     i_grid_mid=int(dim_length_nc(x_index)/2)

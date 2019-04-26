@@ -191,6 +191,13 @@
         
     status_nc2 = NF90_CLOSE (id_nc2)
     
+    !Put in some basic data checks to see if file is corrupt
+    if (abs(maxval(var3d_nc2(temperature_index,:,:,:))).gt.500) then
+        write(unit_logfile,'(A,e12.2)') ' ERROR: out of bounds temperature: ', maxval(var3d_nc2(temperature_index,:,:,:))
+        write(unit_logfile,'(A)') ' STOPPING'
+        stop
+    endif    
+
     i_grid_mid=int(dim_length_nc2(x_index)/2)
     j_grid_mid=int(dim_length_nc2(y_index)/2)
     dgrid_nc2(x_index2)=var1d_nc2(x_index2,i_grid_mid)-var1d_nc2(x_index2,i_grid_mid-1)

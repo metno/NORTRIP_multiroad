@@ -51,7 +51,16 @@
         inputdata_rl(windspeed_correction_rl_index,i)=wind_speed_correction
     enddo
    
-      !write(*,*) n_roadlinks,n_save_links,n_save_road
+    !Overwrite the pavement type based on min and max ADT
+    if (n_road_pave_ADT_index.gt.0) then
+        do i=1,n_roadlinks
+        do j=1,n_road_pave_ADT_index
+            if (inputdata_rl(adt_rl_index,i).ge.road_type_pave_flag_input(road_pave_min_ADT_index,j).and.inputdata_rl(adt_rl_index,i).lt.road_type_pave_flag_input(road_pave_max_ADT_index,j)) then
+                inputdata_int_rl(pavementtype_rl_index,i)=road_type_pave_flag_input(road_pave_ADT_flag_index,j)
+            endif
+        enddo
+        enddo
+    endif
   
     !Line or grid all
     !inputdata_int_rl(griddata_rl_index,:)=2
@@ -162,7 +171,7 @@
             endif
         enddo
 
-        write(unit_in,'(a40,a,<n_save_links>i12)') 'Road type for activity',achar(9),inputdata_int_rl(roadactivitytype_rl_index,save_links(1:n_save_links)) !Not used by NORTRIP
+        write(unit_in,'(a40,a,<n_save_links>i12)') 'Road type for activity',achar(9),inputdata_int_rl(roadactivitytype_rl_index,save_links(1:n_save_links)) 
         write(unit_in,'(a40,a,<n_save_links>i12)') 'road_type_salting_flag',achar(9),road_type_activity_flag_roads(road_type_salting_index,save_links(1:n_save_links))
         write(unit_in,'(a40,a,<n_save_links>i12)') 'road_type_binding_flag',achar(9),road_type_activity_flag_roads(road_type_binding_index,save_links(1:n_save_links))
         write(unit_in,'(a40,a,<n_save_links>i12)') 'road_type_sanding_flag',achar(9),road_type_activity_flag_roads(road_type_sanding_index,save_links(1:n_save_links))

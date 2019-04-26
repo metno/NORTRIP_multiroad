@@ -11,6 +11,7 @@
     
     logical :: interpolate_meteo_data=.true.
 
+    real :: nodata_activity=-999.
     real missing_data
     
     real lapse_rate
@@ -199,7 +200,7 @@
     integer road_type_salting_index,road_type_sanding_index,road_type_cleaning_index,road_type_ploughing_index,road_type_binding_index,road_type_flag_index
     parameter (road_type_salting_index=1,road_type_sanding_index=2,road_type_cleaning_index=3,road_type_ploughing_index=4,road_type_binding_index=5,road_type_flag_index=6)
     integer num_road_type_activity,num_road_type_activity_index,num_max_road_types
-    parameter (num_road_type_activity=6,num_road_type_activity_index=5,num_max_road_types=100)   
+    parameter (num_road_type_activity=6,num_road_type_activity_index=5,num_max_road_types=10)   
     integer road_type_salt_index(2)
     data (road_type_salt_index(ii),ii=1,2) /road_type_salting_index,road_type_binding_index/
     !Activity control flags allocatable to each road (road_type_activity_index,n_road_type_flag_index)
@@ -324,6 +325,9 @@
     character(256) inpath_region_EF
     character(256) infile_region_EF
     character(256) pathfilename_region_EF
+    character(256) inpath_region_activity
+    character(256) infile_region_activity
+    character(256) pathfilename_region_activity
     
     character(256), allocatable :: filename_terrain_data(:)
     character(256), allocatable :: filename_forest_data(:)
@@ -468,7 +472,63 @@
     logical, allocatable :: meteo_nc2_available(:)
     
     character(256) projection_name_nc,projection_name_nc2
+ 
+    !Auto activity data
+    real, allocatable :: multi_salting_hour(:,:)
+    real, allocatable :: multi_delay_salting_day(:)
+    real, allocatable :: multi_check_salting_day(:)
+    real, allocatable :: multi_min_temp_salt(:) 
+    real, allocatable :: multi_max_temp_salt(:)
+    real, allocatable :: multi_precip_rule_salt(:)
+    real, allocatable :: multi_RH_rule_salt(:) 
+    real, allocatable :: multi_g_salting_rule(:)
+    real, allocatable :: multi_salt_mass(:) 
+    real, allocatable :: multi_salt_dilution(:) 
+    real, allocatable :: multi_salt_type_distribution(:) 
     
+    real, allocatable :: multi_sanding_hour(:,:)
+    real, allocatable :: multi_delay_sanding_day(:) 
+    real, allocatable :: multi_check_sanding_day(:)
+    real, allocatable :: multi_min_temp_sand(:) 
+    real, allocatable :: multi_max_temp_sand(:)
+    real, allocatable :: multi_precip_rule_sand(:)
+    real, allocatable :: multi_RH_rule_sand(:) 
+    real, allocatable :: multi_g_sanding_rule(:) 
+    real, allocatable :: multi_sand_mass(:) 
+    real, allocatable :: multi_sand_dilution(:)
+    
+    real, allocatable :: multi_delay_ploughing_hour(:)
+    real, allocatable :: multi_ploughing_thresh_2(:) 
+
+    real, allocatable :: multi_cleaning_hour(:,:)
+    real, allocatable :: multi_delay_cleaning_day(:)
+    real, allocatable :: multi_min_temp_cleaning(:)
+    integer, allocatable :: multi_clean_with_salting(:)
+    real, allocatable :: multi_start_month_cleaning(:)
+    real, allocatable :: multi_end_month_cleaning(:)
+    real, allocatable :: multi_wetting_with_cleaning(:)
+    real, allocatable :: multi_efficiency_of_cleaning(:)
+
+    real, allocatable :: multi_binding_hour(:,:)
+    real, allocatable :: multi_delay_binding_day(:)
+    real, allocatable :: multi_check_binding_day(:)
+    real, allocatable :: multi_min_temp_binding(:)
+    real, allocatable :: multi_max_temp_binding(:)
+    real, allocatable :: multi_precip_rule_binding(:)
+    real, allocatable :: multi_RH_rule_binding(:)
+    real, allocatable :: multi_g_binding_rule(:)
+    real, allocatable :: multi_binding_mass(:)
+    real, allocatable :: multi_binding_dilution(:)
+    real, allocatable :: multi_start_month_binding(:)
+    real, allocatable :: multi_end_month_binding(:)
+
+    logical :: multi_read_auto_activity_data=.false.
+
+    integer road_type_pave_flag_input(3,num_max_road_types)
+    integer :: n_road_pave_ADT_index=0
+    integer road_pave_ADT_flag_index,road_pave_min_ADT_index,road_pave_max_ADT_index
+    parameter (road_pave_ADT_flag_index=1,road_pave_min_ADT_index=2,road_pave_max_ADT_index=3)
+ 
     end module NORTRIP_multiroad_index_definitions
     
 !==========================================================================

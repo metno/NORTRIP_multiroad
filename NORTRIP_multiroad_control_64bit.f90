@@ -8,8 +8,11 @@
 !  PROGRAM: NORTRIP_multiroad_control
 !
 !****************************************************************************
-!Linker/input/ Additional dependencies netcdf.lib
-!Linker/general additional library paths C:\BEDRE_BYLUFT\NORTRIP_implementation\NORTRIP_multiroad_control\code\netcdf\include;C:\BEDRE_BYLUFT\NORTRIP_implementation\NORTRIP_multiroad_control\code\netcdf\bin;C:\BEDRE_BYLUFT\NORTRIP_implementation\NORTRIP_multiroad_control\code\netcdf\lib    
+!To link to netcdf in visual studio
+!Tools - options - Intel compilers - VisusalFortran - Compilers - Libraries/includes/executables
+!C:\Program Files (x86)\netcdf 4.3.3.1\include
+!C:\Program Files (x86)\netcdf 4.3.3.1\bin
+!C:\Program Files (x86)\netcdf 4.3.3.1\lib
     
     subroutine NORTRIP_multiroad_control_64bit
 
@@ -100,6 +103,8 @@
     endif
     
     call NORTRIP_multiroad_read_region_EF_data
+    
+    call NORTRIP_multiroad_read_region_activity_data
     
     !Reorder the links and traffic data to fit the selection. Don't do it for the road weather option
     !It also sets the gridding flags so needs to be called

@@ -48,7 +48,7 @@
         speed_factor=max(1.+(50.-traffic_data(V_li_index,1,i))/50.,0.2)
         adt_factor=min(inputdata_rl(adt_rl_index,i)/inputdata_int_rl(nlanes_rl_index,i)/20000.*4.,5.)
         !M2_dust_road(i)=100.*month_scale(date_data(month_index,1))*max_stud_fraction(li)/100.*adt_factor*speed_factor
-        if (inputdata_int_rl(roadactivitytype_rl_index,i).eq.tunnel_roadtype) then
+        if (inputdata_int_rl(roadstructuretype_rl_index,i).eq.tunnel_roadtype) then
             !M2_dust_road(i)=0.
         endif
     enddo
