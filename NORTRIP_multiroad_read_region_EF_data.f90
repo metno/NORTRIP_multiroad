@@ -204,7 +204,8 @@
     real binding_delay(n_region_max)
     integer binding_start_mm(n_region_max)
     integer binding_end_mm(n_region_max)
-    real multi_sand_ADT_temp,multi_clean_ADT_temp,multi_binding_ADT_temp
+    real multi_sand_ADT_temp,multi_clean_ADT_temp,multi_binding_ADT_temp,multi_salt_ADT_temp
+    integer count_multi_salt_mass,count_multi_sand_mass,count_multi_efficiency_of_cleaning,count_multi_binding_mass
 
     !Functions
     !integer day_of_week
@@ -388,18 +389,25 @@
          
     close(unit_in,status='keep')
         
+    count_multi_salt_mass=0
+    count_multi_sand_mass=0
+    count_multi_efficiency_of_cleaning=0
+    count_multi_binding_mass=0
+    
     do i=1,n_roadlinks
-        !Find the corresponding region_id and attribute the studded tyre and emission factor data to it
+        !Find the corresponding region_id and attribute the activity data to it
         !ID's in roadlink data are kommune, first two numbers are fylke
         do k=1,n_region
             !write(*,*) inputdata_int_rl(region_id_rl_index,i),region_id(k)
             if (inputdata_int_rl(region_id_rl_index,i).eq.region_id(k)) then
                 
+                multi_salt_mass(i)=salt_gm2(k,inputdata_int_rl(roadactivitytype_rl_index,i))
+                multi_salt_ADT_temp=salt_ADT(k,inputdata_int_rl(roadactivitytype_rl_index,i))
+                multi_delay_salting_day(i)=salt_delay(k)
+                multi_salt_type_distribution(i)=salt_type_distribution_region(k)
                 multi_sand_mass(i)=sand_gm2(k,inputdata_int_rl(roadactivitytype_rl_index,i))
                 multi_sand_ADT_temp=sand_ADT(k,inputdata_int_rl(roadactivitytype_rl_index,i))
                 multi_delay_sanding_day(i)=sand_delay(k)
-                !sand_start_mm(k)
-                !sand_end_mm(k)
                 multi_efficiency_of_cleaning(i)=clean_eff(k,inputdata_int_rl(roadactivitytype_rl_index,i))
                 multi_clean_ADT_temp=clean_ADT(k,inputdata_int_rl(roadactivitytype_rl_index,i))
                 multi_delay_cleaning_day(i)=clean_delay(k)
@@ -410,12 +418,29 @@
                 multi_delay_binding_day(i)=binding_delay(k)
                 multi_start_month_binding(i)=binding_start_mm(k)
                 multi_end_month_binding(i)=binding_end_mm(k)
-                multi_salt_type_distribution(i)=salt_type_distribution_region(k)
                 
-                !Below the ADT value nothing happens
-                if (inputdata_int_rl(roadactivitytype_rl_index,i).lt.multi_sand_ADT_temp) multi_sand_mass(i)=0
-                if (inputdata_int_rl(roadactivitytype_rl_index,i).lt.multi_clean_ADT_temp) multi_efficiency_of_cleaning(i)=0
-                if (inputdata_int_rl(roadactivitytype_rl_index,i).lt.multi_binding_ADT_temp) multi_binding_mass(i)=0
+                !Below or above the ADT value nothing happens
+                if (inputdata_rl(adt_rl_index,i).lt.multi_salt_ADT_temp) then
+                    multi_salt_mass(i)=0
+                else
+                    count_multi_salt_mass=count_multi_salt_mass+1
+                endif            
+                if (inputdata_rl(adt_rl_index,i).gt.multi_sand_ADT_temp) then
+                    multi_sand_mass(i)=0
+                else
+                    count_multi_sand_mass=count_multi_sand_mass+1
+                    !write(*,*) i,k,inputdata_rl(adt_rl_index,i),multi_sand_ADT_temp
+                endif            
+                if (inputdata_rl(adt_rl_index,i).lt.multi_clean_ADT_temp)  then
+                    multi_efficiency_of_cleaning(i)=0
+                else
+                    count_multi_efficiency_of_cleaning=count_multi_efficiency_of_cleaning+1
+                endif            
+                if (inputdata_rl(adt_rl_index,i).lt.multi_binding_ADT_temp)  then
+                    multi_binding_mass(i)=0
+                else
+                    count_multi_binding_mass=count_multi_binding_mass+1
+                endif            
                 
             
             else
@@ -424,6 +449,10 @@
             
     enddo
         
+    write(unit_logfile,'(a,i)') ' Roads where salting can occur= ',count_multi_salt_mass
+    write(unit_logfile,'(a,i)') ' Roads where sanding can occur= ',count_multi_sand_mass
+    write(unit_logfile,'(a,i)') ' Roads where cleaning can occur= ',count_multi_efficiency_of_cleaning
+    write(unit_logfile,'(a,i)') ' Roads where binding can occur= ',count_multi_binding_mass
     write(unit_logfile,'(a)') ' Finished distributing activities to roads: '
      
     return
