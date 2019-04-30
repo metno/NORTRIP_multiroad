@@ -197,8 +197,8 @@
     real clean_eff(n_region_max,num_max_road_types)
     real clean_ADT(n_region_max,num_max_road_types)
     real clean_delay(n_region_max)
-    integer clean_start_mm(n_region_max)
-    integer clean_end_mm(n_region_max)
+    integer clean_start_mm(n_region_max,num_max_road_types)
+    integer clean_end_mm(n_region_max,num_max_road_types)
     real binding_gm2(n_region_max,num_max_road_types)
     real binding_ADT(n_region_max,num_max_road_types)
     real binding_delay(n_region_max)
@@ -353,8 +353,8 @@
                 clean_eff(k,1:n_road_type_flag_index), &
                 clean_ADT(k,1:n_road_type_flag_index), &
                 clean_delay(k), &
-                clean_start_mm(k), &
-                clean_end_mm(k), &
+                clean_start_mm(k,1:n_road_type_flag_index), &
+                clean_end_mm(k,1:n_road_type_flag_index), &
                 binding_gm2(k,1:n_road_type_flag_index), &
                 binding_ADT(k,1:n_road_type_flag_index), &
                 binding_delay(k), &
@@ -375,8 +375,8 @@
                 clean_eff(k,1:n_road_type_flag_index), &
                 clean_ADT(k,1:n_road_type_flag_index), &
                 clean_delay(k), &
-                clean_start_mm(k), &
-                clean_end_mm(k), &
+                clean_eff(k,1:n_road_type_flag_index), &
+                clean_ADT(k,1:n_road_type_flag_index), &
                 binding_gm2(k,1:n_road_type_flag_index), &
                 binding_ADT(k,1:n_road_type_flag_index), &
                 binding_delay(k), &
@@ -411,8 +411,8 @@
                 multi_efficiency_of_cleaning(i)=clean_eff(k,inputdata_int_rl(roadactivitytype_rl_index,i))
                 multi_clean_ADT_temp=clean_ADT(k,inputdata_int_rl(roadactivitytype_rl_index,i))
                 multi_delay_cleaning_day(i)=clean_delay(k)
-                multi_start_month_cleaning(i)=clean_start_mm(k)
-                multi_end_month_cleaning(i)=clean_end_mm(k)
+                multi_start_month_cleaning(i)=clean_start_mm(k,inputdata_int_rl(roadactivitytype_rl_index,i))
+                multi_end_month_cleaning(i)=clean_end_mm(k,inputdata_int_rl(roadactivitytype_rl_index,i))
                 multi_binding_mass(i)=binding_gm2(k,inputdata_int_rl(roadactivitytype_rl_index,i))
                 multi_binding_ADT_temp=binding_ADT(k,inputdata_int_rl(roadactivitytype_rl_index,i))
                 multi_delay_binding_day(i)=binding_delay(k)
@@ -420,12 +420,12 @@
                 multi_end_month_binding(i)=binding_end_mm(k)
                 
                 !Below or above the ADT value nothing happens
-                if (inputdata_rl(adt_rl_index,i).lt.multi_salt_ADT_temp) then
+                if (inputdata_rl(adt_rl_index,i).lt.multi_salt_ADT_temp.or.multi_salt_mass(i).eq.0) then
                     multi_salt_mass(i)=0
                 else
                     count_multi_salt_mass=count_multi_salt_mass+1
                 endif            
-                if (inputdata_rl(adt_rl_index,i).gt.multi_sand_ADT_temp) then
+                if (inputdata_rl(adt_rl_index,i).gt.multi_sand_ADT_temp.or.multi_sand_mass(i).eq.0) then
                     multi_sand_mass(i)=0
                 else
                     count_multi_sand_mass=count_multi_sand_mass+1
@@ -436,7 +436,7 @@
                 else
                     count_multi_efficiency_of_cleaning=count_multi_efficiency_of_cleaning+1
                 endif            
-                if (inputdata_rl(adt_rl_index,i).lt.multi_binding_ADT_temp)  then
+                if (inputdata_rl(adt_rl_index,i).lt.multi_binding_ADT_temp.or.multi_binding_mass(i).eq.0)  then
                     multi_binding_mass(i)=0
                 else
                     count_multi_binding_mass=count_multi_binding_mass+1
