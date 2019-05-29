@@ -249,6 +249,9 @@
     inpath_region_activity=match_string_char('inpath_region_activity',unit_in,unit_logfile,'')
     infile_region_activity=match_string_char('infile_region_activity',unit_in,unit_logfile,'')
 
+    inpath_region_scaling=match_string_char('inpath_region_scaling',unit_in,unit_logfile,'')
+    infile_region_scaling=match_string_char('infile_region_scaling',unit_in,unit_logfile,'')
+
     DIFUTC_H=match_string_val('Time difference site',unit_in,unit_logfile,0.0)
     DIFUTC_H_traffic=match_string_val('Time difference traffic',unit_in,unit_logfile,0.0)
     missing_data=match_string_val('Missing data value',unit_in,unit_logfile,-999.)
@@ -594,6 +597,10 @@
         inpath_region_activity=replace_string_char(city_str(i),trim(temp_str),inpath_region_activity)
         infile_region_activity=replace_string_char(city_str(i),trim(temp_str),infile_region_activity)
         
+        !Scaling files
+        inpath_region_scaling=replace_string_char(city_str(i),trim(temp_str),inpath_region_scaling)
+        infile_region_scaling=replace_string_char(city_str(i),trim(temp_str),infile_region_scaling)
+
     enddo
     enddo
     

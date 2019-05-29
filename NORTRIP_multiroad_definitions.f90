@@ -328,6 +328,9 @@
     character(256) inpath_region_activity
     character(256) infile_region_activity
     character(256) pathfilename_region_activity
+    character(256) inpath_region_scaling
+    character(256) infile_region_scaling
+    character(256) pathfilename_region_scaling
     
     character(256), allocatable :: filename_terrain_data(:)
     character(256), allocatable :: filename_forest_data(:)
@@ -376,6 +379,10 @@
     integer :: end_stud_season_region(n_region_max,num_date_index)=0
     real :: exhaust_EF_region(n_region_max,num_veh)=0.
     real :: nox_EF_region(n_region_max,num_veh)=0.
+    real :: max_stud_fraction_region_scaling(n_region_max,num_veh)=1.
+    real :: exhaust_EF_region_scaling(n_region_max,num_veh)=1.
+    real :: nox_EF_region_scaling(n_region_max,num_veh)=1.
+    real :: adt_region_scaling(n_region_max,num_veh)=1.
 
     !Order is (date_type,time)
     integer, allocatable :: date_data(:,:)    

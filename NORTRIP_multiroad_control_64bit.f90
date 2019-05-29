@@ -104,8 +104,11 @@
     
     call NORTRIP_multiroad_read_region_EF_data
     
+    call NORTRIP_multiroad_read_region_scaling_data
+
     call NORTRIP_multiroad_read_region_activity_data
     
+
     !Reorder the links and traffic data to fit the selection. Don't do it for the road weather option
     !It also sets the gridding flags so needs to be called
     !if (index(calculation_type,'road weather').eq.0) then
