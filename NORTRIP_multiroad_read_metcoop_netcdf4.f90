@@ -62,16 +62,16 @@
     inquire(file=trim(pathfilename_nc),exist=exists)
     if (.not.exists) then
         write(unit_logfile,'(A,A)') ' WARNING: Meteo netcdf file does not exist: ', trim(pathfilename_nc)
-        write(unit_logfile,'(A)') ' Will try 24 hours before.'
+        write(unit_logfile,'(A)') ' Will try every hour for the past 25 hours.'
         !write(*,'(A,A)') ' ERROR: Meteo netcdf file does not exist. Stopping: ', trim(pathfilename_nc)
         
         !Start search back 24 hours
         new_start_date_input=start_date_input
         found_file=.false.
-        do i=1,1
+        do i=1,25
             !call incrtm(-24,new_start_date_input(1),new_start_date_input(2),new_start_date_input(3),new_start_date_input(4))
             temp_date=date_to_number(new_start_date_input)
-            call number_to_date(temp_date-1.,new_start_date_input)
+            call number_to_date(temp_date-1./24.,new_start_date_input)
             !write(*,*) i,new_start_date_input(1:4)
             call date_to_datestr_bracket(new_start_date_input,filename_nc_in,filename_nc)
             call date_to_datestr_bracket(new_start_date_input,pathname_nc_in,pathname_nc)
