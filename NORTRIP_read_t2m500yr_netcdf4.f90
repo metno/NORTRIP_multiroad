@@ -192,10 +192,19 @@
     status_nc2 = NF90_CLOSE (id_nc2)
     
     !Put in some basic data checks to see if file is corrupt
-    if (abs(maxval(var3d_nc2(temperature_index,:,:,:))).gt.500) then
-        write(unit_logfile,'(A,e12.2)') ' ERROR: out of bounds temperature: ', maxval(var3d_nc2(temperature_index,:,:,:))
-        write(unit_logfile,'(A)') ' STOPPING'
-        stop
+    if (abs(maxval(var3d_nc2(temperature_index2,:,:,:))).gt.500) then
+        !write(unit_logfile,'(A,e12.2)') ' ERROR: out of bounds temperature: ', maxval(var3d_nc2(temperature_index,:,:,:))
+        !write(unit_logfile,'(A)') ' STOPPING'
+        write(unit_logfile,'(A,e12.2)') ' WARNING: out of bounds temperature. Will not use this file but will continue calculations: ', maxval(var3d_nc2(temperature_index2,:,:,:))
+        meteo_nc2_available(t)=.false.
+        !stop
+    endif    
+    if (abs(maxval(var3d_nc2(precip_index2,:,:,:))).gt.1000) then
+        !write(unit_logfile,'(A,e12.2)') ' ERROR: out of bounds temperature: ', maxval(var3d_nc2(temperature_index,:,:,:))
+        !write(unit_logfile,'(A)') ' STOPPING'
+        write(unit_logfile,'(A,e12.2)') ' WARNING: out of bounds precipitation. Will not use this file but will continue calculations: ', maxval(var3d_nc2(precip_index2,:,:,:))
+        meteo_nc2_available(t)=.false.
+        !stop
     endif    
 
     i_grid_mid=int(dim_length_nc2(x_index)/2)

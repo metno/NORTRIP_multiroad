@@ -251,6 +251,10 @@
 
     inpath_region_scaling=match_string_char('inpath_region_scaling',unit_in,unit_logfile,'')
     infile_region_scaling=match_string_char('infile_region_scaling',unit_in,unit_logfile,'')
+    
+    inpath_replace_road_data=match_string_char('inpath_replace_road_data',unit_in,unit_logfile,'')
+    infile_replace_road_data=match_string_char('infile_replace_road_data',unit_in,unit_logfile,'')
+    
 
     DIFUTC_H=match_string_val('Time difference site',unit_in,unit_logfile,0.0)
     DIFUTC_H_traffic=match_string_val('Time difference traffic',unit_in,unit_logfile,0.0)
@@ -489,6 +493,9 @@
     if (unit_logfile.gt.0) then
         close(unit_logfile,status='keep')
     endif
+    
+    multi_finished_file_append=match_string_char('finished_file_append',unit_in,unit_logfile,multi_finished_file_append)
+
  
     
 10	close(unit_in,status='keep')

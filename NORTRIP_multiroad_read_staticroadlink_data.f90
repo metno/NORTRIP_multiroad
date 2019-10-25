@@ -663,4 +663,228 @@
     
     
     end subroutine NORTRIP_multiroad_read_staticroadlink_data_ascii
+!----------------------------------------------------------------------
 
+!----------------------------------------------------------------------
+    subroutine NORTRIP_multiroad_read_replace_road_data
+
+    use NORTRIP_multiroad_index_definitions
+    
+    implicit none
+    
+    !Hardcoded limit to number of links that can be replaced
+    integer n_replace_links_max 
+    parameter(n_replace_links_max=1000)
+    integer n_replace_links
+    
+    integer i,j,k
+    character(256) temp_str
+    integer unit_in
+    integer exists
+    
+    !These two temporary files as these are not used for replacement
+    integer n_subnodes
+    !real temp_tunnel_length
+    
+    !Replacement coordinates
+    real, allocatable :: x0_replace(:),y0_replace(:),x_width_replace(:),y_width_replace(:)
+    real, allocatable :: temp_tunnel_length(:)
+    
+    !Flag to indicate if absolute or scaling of data
+    logical, allocatable :: scaling_flag(:)
+    logical, allocatable :: only_tunnel_flag(:)
+    
+    real, allocatable :: replace_inputdata_rl(:,:)
+    integer, allocatable :: replace_inputdata_int_rl(:,:)
+    
+    integer t
+    integer, allocatable :: start_replace_season(:,:)
+    integer, allocatable :: end_replace_season(:,:)
+    logical, allocatable :: date_within_season_flag(:)
+    
+    double precision date_to_number
+    
+	write(unit_logfile,'(A)') '================================================================'
+	write(unit_logfile,'(A)') 'Reading replacement road data (NORTRIP_multiroad_read_replace_road_data)'
+	write(unit_logfile,'(A)') '================================================================'
+
+    pathfilename_replace_road_data=trim(inpath_replace_road_data)//trim(infile_replace_road_data)
+
+    !Test existence of the filename. If does not exist then return
+    inquire(file=trim(pathfilename_replace_road_data),exist=exists)
+    if (.not.exists) then
+        write(unit_logfile,'(A,A)') ' WARNING: Replacement road file does not exist. Will not replace any data: ', trim(infile_replace_road_data)
+        return
+    endif
+    
+    !Allocate arrays real and integer replace road link arrays
+    allocate(replace_inputdata_rl(num_var_rl,n_replace_links_max))
+    allocate(replace_inputdata_int_rl(num_int_rl,n_replace_links_max))
+    allocate(x0_replace(n_replace_links_max))
+    allocate(y0_replace(n_replace_links_max))
+    allocate(x_width_replace(n_replace_links_max))
+    allocate(y_width_replace(n_replace_links_max))
+    allocate(scaling_flag(n_replace_links_max))
+    allocate(only_tunnel_flag(n_replace_links_max))
+    allocate(temp_tunnel_length(n_replace_links_max))
+    allocate(start_replace_season(6,n_replace_links_max))
+    allocate(end_replace_season(6,n_replace_links_max))
+    allocate(date_within_season_flag(n_replace_links_max))
+
+    replace_inputdata_rl=missing_data
+    replace_inputdata_int_rl=int(missing_data)
+    temp_tunnel_length=missing_data
+    only_tunnel_flag=.false.
+    start_replace_season=0
+    scaling_flag=.false.
+    end_replace_season=0
+    date_within_season_flag=.false.
+    
+    unit_in=20
+    open(unit_in,file=pathfilename_replace_road_data,access='sequential',status='old',readonly)  
+        write(unit_logfile,'(a)') ' Opening road replacement file '//trim(pathfilename_replace_road_data)
+    
+        rewind(unit_in)
+
+        !read the header line
+        read(unit_in,'(a)',ERR=19) temp_str
+            k=0
+            do while(.not.eof(unit_in))
+                k=k+1
+                if (k.gt.n_replace_links_max) then
+                    write(unit_logfile,'(A,i)') ' ERROR: Too many replacement road links. Maximum is: ', n_replace_links_max
+                    stop
+                endif
+
+                !Uses the same structure as the static input files
+                read(unit_in,*,ERR=19) &
+                     replace_inputdata_int_rl(id_rl_index,k) &
+                    ,replace_inputdata_rl(adt_rl_index,k) &
+                    ,replace_inputdata_rl(hdv_rl_index,k) &
+                    ,replace_inputdata_int_rl(roadactivitytype_rl_index,k) &
+                    ,replace_inputdata_rl(speed_rl_index,k) &
+                    ,replace_inputdata_rl(width_rl_index,k) &
+                    ,replace_inputdata_int_rl(nlanes_rl_index,k) &
+                    ,n_subnodes &
+                    ,replace_inputdata_int_rl(roadcategory_rl_index,k) &                    
+                    ,replace_inputdata_rl(length_rl_index,k) &
+                    ,replace_inputdata_int_rl(roadstructuretype_rl_index,k) &                    
+                    ,replace_inputdata_int_rl(region_id_rl_index,k) &
+                    ,replace_inputdata_int_rl(roadsurface_id_rl_index,k) &                    
+                    ,temp_tunnel_length(k) &
+                    ,x0_replace(k),y0_replace(k),x_width_replace(k),y_width_replace(k) &
+                    ,scaling_flag(k),only_tunnel_flag(k) &
+                    ,start_replace_season(month_index,k),start_replace_season(day_index,k),end_replace_season(month_index,k),end_replace_season(day_index,k)
+                
+                !write(*,*) k,replace_inputdata_int_rl(id_rl_index,k),x0_replace(k)
+            enddo
+    
+19          close(unit_in)
+    
+    n_replace_links=k
+
+    !Set start and stop time variables to be used for selection
+    t=1
+    !Set start and end years to be the current year
+    start_replace_season(year_index,:)=date_data(year_index,t)
+    end_replace_season(year_index,:)=date_data(year_index,t)
+    do k=1,n_replace_links
+        !Test to see if the end of season is smaller than or larger than the start and adjust the year appropriately
+        if (date_to_number(end_replace_season(:,k)).le.date_to_number(start_replace_season(:,k))) then
+            !Set the end year to next year, also when dates are the same
+            end_replace_season(year_index,k)=start_replace_season(year_index,k)+1
+        endif
+        !Check if the date is within the defined season and set the flag
+        if (date_to_number(date_data(:,t)).ge.date_to_number(start_replace_season(:,k)).and.date_to_number(date_data(:,t)).lt.date_to_number(end_replace_season(:,k))) then
+            date_within_season_flag(k)=.true.
+        else
+            date_within_season_flag(k)=.false.            
+        endif
+        !write(*,'(a,i,6i)') 'Start:',k,start_replace_season(:,k)
+        !write(*,'(a,i,6i)') 'End:',k,end_replace_season(:,k)
+        !write(*,'(a,i,l)') 'Inside:',k,date_within_season_flag(k)
+    enddo
+        
+            
+            
+    
+    !Look for replacement ID's and values and replace      
+    do i=1,n_roadlinks
+        !Loop through roads and only make changes if it is within the season
+        do k=1,n_replace_links
+        if (date_within_season_flag(k)) then
+            if (replace_inputdata_int_rl(id_rl_index,k).eq.inputdata_int_rl(id_rl_index,i)) then
+                !Replacement link is found. Loop through the variables and see if they are valid (>=0)
+                do j=1,num_int_rl
+                    if (replace_inputdata_int_rl(j,k).ne.int(missing_data).and.j.ne.id_rl_index) then
+                        !If valid data is found then replace
+                        write(unit_logfile,'(a,i,i,i,i)') 'Replacing road integer data based on ID (ID,what,value_replace,value_replaced): ',replace_inputdata_int_rl(id_rl_index,k),j,replace_inputdata_int_rl(j,k),inputdata_int_rl(j,i)
+                        inputdata_int_rl(j,i)=replace_inputdata_int_rl(j,k)
+                    endif
+                enddo
+                do j=1,num_var_rl
+                    if (replace_inputdata_rl(j,k).ne.missing_data.and.j.ne.id_rl_index) then
+                        !If valid data is found then replace
+                        if (scaling_flag(k)) then
+                            write(unit_logfile,'(a,i,i,f12.2,f12.2)') 'Scaling road real data based on ID (ID,what,value_replace,value_replaced): ',replace_inputdata_int_rl(id_rl_index,k),j,replace_inputdata_rl(j,k),inputdata_rl(j,i)
+                            inputdata_int_rl(j,i)=replace_inputdata_rl(j,k)*inputdata_rl(j,i)
+                        else
+                            write(unit_logfile,'(a,i,i,f12.2,f12.2)') 'Replacing road real data based on ID (ID,what,value_replace,value_replaced): ',replace_inputdata_int_rl(id_rl_index,k),j,replace_inputdata_rl(j,k),inputdata_rl(j,i)
+                            inputdata_rl(j,i)=replace_inputdata_rl(j,k)
+                        endif
+                    endif
+                enddo
+            endif
+            
+            !Replace based on geography and check for tunnel flag (6 is the NORTRIP tunnel index but this is not defined in the multiroad routines, it is just transferred on)
+            if ((only_tunnel_flag(k).and.inputdata_int_rl(roadstructuretype_rl_index,i).eq.6).or..not.only_tunnel_flag(k)) then
+            if (x0_replace(k).ne.missing_data.and.y0_replace(k).ne.missing_data) then
+                if (inputdata_rl(x0_rl_index,i)>=x0_replace(k)-x_width_replace(k)/2.0.and.inputdata_rl(x0_rl_index,i)<=x0_replace(k)+x_width_replace(k)/2.0.and. &
+                    inputdata_rl(y0_rl_index,i)>=y0_replace(k)-y_width_replace(k)/2.0.and.inputdata_rl(y0_rl_index,i)<=y0_replace(k)+y_width_replace(k)/2.0) then
+                    
+                    do j=1,num_int_rl
+                        if (replace_inputdata_int_rl(j,k).ne.int(missing_data).and.j.ne.id_rl_index) then
+                            !If valid data is found then replace
+                            write(unit_logfile,'(a,i,i,i,i)') 'Replacing road integer data based on position (ID,what,value_replace,value_replaced): ',inputdata_int_rl(id_rl_index,i),j,replace_inputdata_int_rl(j,k),inputdata_int_rl(j,i)
+                            inputdata_int_rl(j,i)=replace_inputdata_int_rl(j,k)
+                        endif
+                    enddo
+                    do j=1,num_var_rl
+                        if (replace_inputdata_rl(j,k).ne.missing_data.and.j.ne.id_rl_index) then
+                            !If valid data is found then replace
+                            if (scaling_flag(k)) then
+                                write(unit_logfile,'(a,i,i,f12.2,f12.2)') 'Scaling road real data based on position (ID,what,value_replace,value_replaced): ',inputdata_int_rl(id_rl_index,i),j,replace_inputdata_rl(j,k),inputdata_rl(j,i)
+                                inputdata_int_rl(j,i)=replace_inputdata_rl(j,k)*inputdata_rl(j,i)
+                            else
+                                write(unit_logfile,'(a,i,i,f12.2,f12.2)') 'Replacing road real data based on position (ID,what,value_replace,value_replaced): ',inputdata_int_rl(id_rl_index,i),j,replace_inputdata_rl(j,k),inputdata_rl(j,i)
+                                inputdata_rl(j,i)=replace_inputdata_rl(j,k)
+                            endif
+                            
+                        endif
+                    enddo
+                                    
+                endif
+            endif
+            endif
+        
+        endif
+        enddo
+        
+    enddo
+    
+    
+    deallocate(replace_inputdata_rl)
+    deallocate(replace_inputdata_int_rl)
+    deallocate(x0_replace)
+    deallocate(y0_replace)
+    deallocate(x_width_replace)
+    deallocate(y_width_replace)
+    deallocate(scaling_flag)
+    deallocate(only_tunnel_flag)
+    deallocate(temp_tunnel_length)
+    deallocate(start_replace_season)
+    deallocate(end_replace_season)
+    deallocate(date_within_season_flag)
+
+    end subroutine NORTRIP_multiroad_read_replace_road_data
+!----------------------------------------------------------------------

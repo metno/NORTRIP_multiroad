@@ -94,6 +94,9 @@
         call NORTRIP_multiroad_read_staticroadlink_data
     endif
         
+    !Replace any road data if necessary
+    call NORTRIP_multiroad_read_replace_road_data
+    
     !Read in weekly dynamic road link data and redstribute to correct day of week
     call NORTRIP_multiroad_read_weekdynamictraffic_data
         

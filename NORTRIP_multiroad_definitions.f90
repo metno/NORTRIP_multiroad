@@ -331,6 +331,10 @@
     character(256) inpath_region_scaling
     character(256) infile_region_scaling
     character(256) pathfilename_region_scaling
+    !Replacemnet file name
+    character(256) inpath_replace_road_data
+    character(256) infile_replace_road_data
+    character(256) pathfilename_replace_road_data
     
     character(256), allocatable :: filename_terrain_data(:)
     character(256), allocatable :: filename_forest_data(:)
@@ -535,6 +539,10 @@
     integer :: n_road_pave_ADT_index=0
     integer road_pave_ADT_flag_index,road_pave_min_ADT_index,road_pave_max_ADT_index
     parameter (road_pave_ADT_flag_index=1,road_pave_min_ADT_index=2,road_pave_max_ADT_index=3)
+    
+    
+    character(256) :: multi_finished_file_append=''
+
  
     end module NORTRIP_multiroad_index_definitions
     
