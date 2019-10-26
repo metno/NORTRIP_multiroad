@@ -701,6 +701,9 @@
     integer, allocatable :: start_replace_season(:,:)
     integer, allocatable :: end_replace_season(:,:)
     logical, allocatable :: date_within_season_flag(:)
+    !Flags to say if a road or tunnel have been replaced already
+    logical, allocatable :: inputdata_int_rl_replaced_flag(:,:)
+    logical, allocatable :: inputdata_rl_replaced_flag(:,:)
     
     double precision date_to_number
     
@@ -730,6 +733,8 @@
     allocate(start_replace_season(6,n_replace_links_max))
     allocate(end_replace_season(6,n_replace_links_max))
     allocate(date_within_season_flag(n_replace_links_max))
+    allocate(inputdata_rl_replaced_flag(num_var_rl,n_roadlinks))
+    allocate(inputdata_int_rl_replaced_flag(num_int_rl,n_roadlinks))
 
     replace_inputdata_rl=missing_data
     replace_inputdata_int_rl=int(missing_data)
@@ -739,6 +744,8 @@
     scaling_flag=.false.
     end_replace_season=0
     date_within_season_flag=.false.
+    inputdata_rl_replaced_flag=.false.
+    inputdata_int_rl_replaced_flag=.false.
     
     unit_in=20
     open(unit_in,file=pathfilename_replace_road_data,access='sequential',status='old',readonly)  
@@ -818,19 +825,25 @@
                 do j=1,num_int_rl
                     if (replace_inputdata_int_rl(j,k).ne.int(missing_data).and.j.ne.id_rl_index) then
                         !If valid data is found then replace
-                        write(unit_logfile,'(a,i,i,i,i)') 'Replacing road integer data based on ID (ID,what,value_replace,value_replaced): ',replace_inputdata_int_rl(id_rl_index,k),j,replace_inputdata_int_rl(j,k),inputdata_int_rl(j,i)
+                        if (.not.inputdata_int_rl_replaced_flag(j,i)) then
+                        write(unit_logfile,'(a,i,3i,i,i)') 'Replacing road integer data based on ID (ID,what,value_replace,value_replaced): ',replace_inputdata_int_rl(id_rl_index,k),j,k,i,replace_inputdata_int_rl(j,k),inputdata_int_rl(j,i)
                         inputdata_int_rl(j,i)=replace_inputdata_int_rl(j,k)
+                        inputdata_int_rl_replaced_flag(j,i)=.true.
+                        endif
                     endif
                 enddo
                 do j=1,num_var_rl
                     if (replace_inputdata_rl(j,k).ne.missing_data.and.j.ne.id_rl_index) then
                         !If valid data is found then replace
+                        if (.not.inputdata_rl_replaced_flag(j,i)) then
                         if (scaling_flag(k)) then
-                            write(unit_logfile,'(a,i,i,f12.2,f12.2)') 'Scaling road real data based on ID (ID,what,value_replace,value_replaced): ',replace_inputdata_int_rl(id_rl_index,k),j,replace_inputdata_rl(j,k),inputdata_rl(j,i)
-                            inputdata_int_rl(j,i)=replace_inputdata_rl(j,k)*inputdata_rl(j,i)
+                            write(unit_logfile,'(a,i,3i,f12.2,f12.2)') 'Scaling road real data based on ID (ID,what,value_replace,value_replaced): ',replace_inputdata_int_rl(id_rl_index,k),j,k,i,replace_inputdata_rl(j,k),inputdata_rl(j,i)
+                            inputdata_rl(j,i)=replace_inputdata_rl(j,k)*inputdata_rl(j,i)
                         else
-                            write(unit_logfile,'(a,i,i,f12.2,f12.2)') 'Replacing road real data based on ID (ID,what,value_replace,value_replaced): ',replace_inputdata_int_rl(id_rl_index,k),j,replace_inputdata_rl(j,k),inputdata_rl(j,i)
+                            write(unit_logfile,'(a,i,3i,f12.2,f12.2)') 'Replacing road real data based on ID (ID,what,value_replace,value_replaced): ',replace_inputdata_int_rl(id_rl_index,k),j,k,i,replace_inputdata_rl(j,k),inputdata_rl(j,i)
                             inputdata_rl(j,i)=replace_inputdata_rl(j,k)
+                        endif
+                        inputdata_rl_replaced_flag(j,i)=.true.
                         endif
                     endif
                 enddo
@@ -845,21 +858,27 @@
                     do j=1,num_int_rl
                         if (replace_inputdata_int_rl(j,k).ne.int(missing_data).and.j.ne.id_rl_index) then
                             !If valid data is found then replace
-                            write(unit_logfile,'(a,i,i,i,i)') 'Replacing road integer data based on position (ID,what,value_replace,value_replaced): ',inputdata_int_rl(id_rl_index,i),j,replace_inputdata_int_rl(j,k),inputdata_int_rl(j,i)
+                            if (.not.inputdata_int_rl_replaced_flag(j,i)) then
+                            write(unit_logfile,'(a,i,3i,i,i)') 'Replacing road integer data based on position (ID,what,value_replace,value_replaced): ',inputdata_int_rl(id_rl_index,i),j,k,i,replace_inputdata_int_rl(j,k),inputdata_int_rl(j,i)
                             inputdata_int_rl(j,i)=replace_inputdata_int_rl(j,k)
+                            inputdata_int_rl_replaced_flag(j,i)=.true.
+                            endif
                         endif
                     enddo
                     do j=1,num_var_rl
                         if (replace_inputdata_rl(j,k).ne.missing_data.and.j.ne.id_rl_index) then
                             !If valid data is found then replace
+                            if (.not.inputdata_rl_replaced_flag(j,i)) then
                             if (scaling_flag(k)) then
-                                write(unit_logfile,'(a,i,i,f12.2,f12.2)') 'Scaling road real data based on position (ID,what,value_replace,value_replaced): ',inputdata_int_rl(id_rl_index,i),j,replace_inputdata_rl(j,k),inputdata_rl(j,i)
-                                inputdata_int_rl(j,i)=replace_inputdata_rl(j,k)*inputdata_rl(j,i)
+                                write(unit_logfile,'(a,i,3i,f12.2,f12.2)') 'Scaling road real data based on position (ID,what,value_replace,value_replaced): ',inputdata_int_rl(id_rl_index,i),j,k,i,replace_inputdata_rl(j,k),inputdata_rl(j,i)
+                                inputdata_rl(j,i)=replace_inputdata_rl(j,k)*inputdata_rl(j,i)
                             else
-                                write(unit_logfile,'(a,i,i,f12.2,f12.2)') 'Replacing road real data based on position (ID,what,value_replace,value_replaced): ',inputdata_int_rl(id_rl_index,i),j,replace_inputdata_rl(j,k),inputdata_rl(j,i)
+                                write(unit_logfile,'(a,i,3i,f12.2,f12.2)') 'Replacing road real data based on position (ID,what,value_replace,value_replaced): ',inputdata_int_rl(id_rl_index,i),j,k,i,replace_inputdata_rl(j,k),inputdata_rl(j,i)
                                 inputdata_rl(j,i)=replace_inputdata_rl(j,k)
                             endif
-                            
+                            inputdata_rl_replaced_flag(j,i)=.true.
+                            endif
+                           
                         endif
                     enddo
                                     
@@ -885,6 +904,8 @@
     deallocate(start_replace_season)
     deallocate(end_replace_season)
     deallocate(date_within_season_flag)
+    deallocate(inputdata_rl_replaced_flag)
+    deallocate(inputdata_int_rl_replaced_flag)
 
     end subroutine NORTRIP_multiroad_read_replace_road_data
 !----------------------------------------------------------------------
