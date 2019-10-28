@@ -799,10 +799,17 @@
     end_replace_season(year_index,:)=date_data(year_index,t)
     do k=1,n_replace_links
         !Test to see if the end of season is smaller than or larger than the start and adjust the year appropriately
-        if (date_to_number(end_replace_season(:,k)).le.date_to_number(start_replace_season(:,k))) then
+        !if (date_to_number(end_replace_season(:,k)).le.date_to_number(start_replace_season(:,k))) then
+        if (date_to_number(end_replace_season(:,k)).le.date_to_number(start_replace_season(:,k)).and.date_to_number(date_data).le.date_to_number(end_replace_season(:,k))) then
+            start_replace_season(year_index,k)=start_replace_season(year_index,k)-1
+        elseif (date_to_number(end_replace_season(:,k)).le.date_to_number(start_replace_season(:,k)).and.date_to_number(date_data).ge.date_to_number(start_replace_season(:,k))) then
+            end_replace_season(year_index,k)=end_replace_season(year_index,k)+1
+        else
             !Set the end year to next year, also when dates are the same
-            end_replace_season(year_index,k)=start_replace_season(year_index,k)+1
+            !end_replace_season(year_index,k)=start_replace_season(year_index,k)+1
         endif
+        
+        !endif
         !Check if the date is within the defined season and set the flag
         if (date_to_number(date_data(:,t)).ge.date_to_number(start_replace_season(:,k)).and.date_to_number(date_data(:,t)).lt.date_to_number(end_replace_season(:,k))) then
             date_within_season_flag(k)=.true.
