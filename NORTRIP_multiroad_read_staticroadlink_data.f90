@@ -674,7 +674,7 @@
     
     !Hardcoded limit to number of links that can be replaced
     integer n_replace_links_max 
-    parameter(n_replace_links_max=1000)
+    parameter(n_replace_links_max=10000)
     integer n_replace_links
     
     integer i,j,k
@@ -704,6 +704,8 @@
     !Flags to say if a road or tunnel have been replaced already
     logical, allocatable :: inputdata_int_rl_replaced_flag(:,:)
     logical, allocatable :: inputdata_rl_replaced_flag(:,:)
+    
+    integer :: replacement_counter=0
     
     double precision date_to_number
     
@@ -815,7 +817,8 @@
             
             
     
-    !Look for replacement ID's and values and replace      
+    !Look for replacement ID's and values and replace
+    replacement_counter=0
     do i=1,n_roadlinks
         !Loop through roads and only make changes if it is within the season
         do k=1,n_replace_links
@@ -829,6 +832,7 @@
                         write(unit_logfile,'(a,i,3i,i,i)') 'Replacing road integer data based on ID (ID,what,value_replace,value_replaced): ',replace_inputdata_int_rl(id_rl_index,k),j,k,i,replace_inputdata_int_rl(j,k),inputdata_int_rl(j,i)
                         inputdata_int_rl(j,i)=replace_inputdata_int_rl(j,k)
                         inputdata_int_rl_replaced_flag(j,i)=.true.
+                        replacement_counter=replacement_counter+1
                         endif
                     endif
                 enddo
@@ -844,6 +848,7 @@
                             inputdata_rl(j,i)=replace_inputdata_rl(j,k)
                         endif
                         inputdata_rl_replaced_flag(j,i)=.true.
+                        replacement_counter=replacement_counter+1
                         endif
                     endif
                 enddo
@@ -862,6 +867,7 @@
                             write(unit_logfile,'(a,i,3i,i,i)') 'Replacing road integer data based on position (ID,what,value_replace,value_replaced): ',inputdata_int_rl(id_rl_index,i),j,k,i,replace_inputdata_int_rl(j,k),inputdata_int_rl(j,i)
                             inputdata_int_rl(j,i)=replace_inputdata_int_rl(j,k)
                             inputdata_int_rl_replaced_flag(j,i)=.true.
+                            replacement_counter=replacement_counter+1
                             endif
                         endif
                     enddo
@@ -877,6 +883,7 @@
                                 inputdata_rl(j,i)=replace_inputdata_rl(j,k)
                             endif
                             inputdata_rl_replaced_flag(j,i)=.true.
+                            replacement_counter=replacement_counter+1
                             endif
                            
                         endif
@@ -891,6 +898,8 @@
         
     enddo
     
+    write(unit_logfile,'(a,i)')'Number of road links for replacement = ',n_replace_links
+    write(unit_logfile,'(a,i)')'Number of road link objects replaced = ',replacement_counter
     
     deallocate(replace_inputdata_rl)
     deallocate(replace_inputdata_int_rl)
