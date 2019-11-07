@@ -477,6 +477,8 @@
     var_name_nc2(precip_index2)=match_string_char('meteo2_precip_index',unit_in,unit_logfile,var_name_nc2(precip_index2))
     var_name_nc2(x_wind_index2)=match_string_char('meteo2_x_wind_index',unit_in,unit_logfile,var_name_nc2(x_wind_index2))
     var_name_nc2(y_wind_index2)=match_string_char('meteo2_y_wind_index',unit_in,unit_logfile,var_name_nc2(y_wind_index2))
+    var_name_nc2(speed_wind_index2)=match_string_char('meteo2_speed_wind_index',unit_in,unit_logfile,var_name_nc2(speed_wind_index2))
+    var_name_nc2(dir_wind_index2)=match_string_char('meteo2_dir_wind_index',unit_in,unit_logfile,var_name_nc2(dir_wind_index2))
 
     !Additional controls for zipping and further
     temp_int=match_string_int('save_metadata_in_zip_format',unit_in,unit_logfile,0)

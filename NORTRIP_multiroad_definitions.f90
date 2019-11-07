@@ -67,14 +67,14 @@
     integer start_dim_nc2(num_dims_nc2)
 
     !3d data. Reorganised for memory reduction
-    integer temperature_index2,relhumidity_index2,cloudfraction_index2,precip_index2,x_wind_index2,y_wind_index2
-    parameter (temperature_index2=1,relhumidity_index2=2,cloudfraction_index2=3,precip_index2=4,x_wind_index2=5,y_wind_index2=6)
+    integer temperature_index2,relhumidity_index2,cloudfraction_index2,precip_index2,x_wind_index2,y_wind_index2,speed_wind_index2,dir_wind_index2
+    parameter (temperature_index2=1,relhumidity_index2=2,cloudfraction_index2=3,precip_index2=4,x_wind_index2=5,speed_wind_index2=6,dir_wind_index2=7)
     !2d data
     integer lat_index2,lon_index2,elevation_index2 
-    parameter (lat_index2=7,lon_index2=8,elevation_index2=9)
+    parameter (lat_index2=8,lon_index2=9,elevation_index2=10)
     
     integer num_var_nc2
-    parameter (num_var_nc2=9)                ! number of variables
+    parameter (num_var_nc2=10)                ! number of variables
 
     character(256) var_name_nc2(num_var_nc2)
     character(256) dim_name_nc2(num_dims_nc2)
@@ -481,6 +481,7 @@
     integer :: meteo_nc_projection_type=LCC_projection_index
     integer :: meteo_nc2_projection_type=LCC_projection_index
     logical, allocatable :: meteo_nc2_available(:)
+    logical, allocatable :: meteo_var_nc2_available(:,:)
     
     character(256) projection_name_nc,projection_name_nc2
  

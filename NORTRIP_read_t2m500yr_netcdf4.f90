@@ -47,6 +47,8 @@
     new_start_date_input=start_date_input
          
     if (.not.allocated(meteo_nc2_available)) allocate (meteo_nc2_available(n_hours_input)) 
+    if (.not.allocated(meteo_var_nc2_available)) allocate (meteo_var_nc2_available(n_hours_input,num_dims_nc2)) 
+    meteo_var_nc2_available=.true.
     
     !Loop through the number of time steps nad read in data when available
     do t=1,n_hours_input
@@ -177,9 +179,11 @@
                 dim_length_nc2(time_index2)=dim_length_nc2(time_index2)
                 write(unit_logfile,'(A,i3,2A,2f16.2)') ' ',status_nc2,trim(var_name_nc2(i)),' (min, max): ' &
                 ,minval(var3d_nc2(i,:,:,t)),maxval(var3d_nc2(i,:,:,t)) 
+
         endif
         else
              write(unit_logfile,'(8A,8A)') ' Cannot read ',trim(var_name_nc2(i))
+             meteo_var_nc2_available(t,i)=.false.
         endif
         
         if (i.eq.precip_index2) then
@@ -195,15 +199,20 @@
     if (abs(maxval(var3d_nc2(temperature_index2,:,:,:))).gt.500) then
         !write(unit_logfile,'(A,e12.2)') ' ERROR: out of bounds temperature: ', maxval(var3d_nc2(temperature_index,:,:,:))
         !write(unit_logfile,'(A)') ' STOPPING'
-        write(unit_logfile,'(A,e12.2)') ' WARNING: out of bounds temperature. Will not use this file but will continue calculations: ', maxval(var3d_nc2(temperature_index2,:,:,:))
-        meteo_nc2_available(t)=.false.
+        write(unit_logfile,'(A,e12.2)') ' WARNING: out of bounds temperature. Will not use these data but will continue calculations: ', maxval(var3d_nc2(temperature_index2,:,:,:))
+        meteo_var_nc2_available(temperature_index2,t)=.false.
         !stop
     endif    
     if (abs(maxval(var3d_nc2(precip_index2,:,:,:))).gt.1000) then
         !write(unit_logfile,'(A,e12.2)') ' ERROR: out of bounds temperature: ', maxval(var3d_nc2(temperature_index,:,:,:))
         !write(unit_logfile,'(A)') ' STOPPING'
-        write(unit_logfile,'(A,e12.2)') ' WARNING: out of bounds precipitation. Will not use this file but will continue calculations: ', maxval(var3d_nc2(precip_index2,:,:,:))
-        meteo_nc2_available(t)=.false.
+        write(unit_logfile,'(A,e12.2)') ' WARNING: out of bounds precipitation. Will not use these data but will continue calculations: ', maxval(var3d_nc2(precip_index2,:,:,:))
+        meteo_var_nc2_available(precip_index2,t)=.false.
+        !stop
+    endif    
+    if (abs(maxval(var3d_nc2(relhumidity_index2,:,:,:))).gt.1.0) then
+        write(unit_logfile,'(A,e12.2)') ' WARNING: out of bounds humidity. Will not use these data but will continue calculations: ', maxval(var3d_nc2(relhumidity_index2,:,:,:))
+        meteo_var_nc2_available(relhumidity_index2,t)=.false.
         !stop
     endif    
 

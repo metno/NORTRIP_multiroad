@@ -461,23 +461,42 @@
                         ,var3d_nc2(y_wind_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t))
                     write(unit_logfile,'(a,i,f10.3,f10.3)') 'Precipitation:',t,meteo_temp(precip_index),max(0.,var3d_nc2(precip_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t))
                 endif
-                meteo_temp(temperature_index)=var3d_nc2(temperature_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t)-273.15
- 
-                meteo_temp(speed_wind_index)=sqrt(var3d_nc2(x_wind_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t)**2 &
-                + var3d_nc2(y_wind_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t)**2) 
-                meteo_temp(dir_wind_index)=DIRECTION(var3d_nc2(x_wind_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t) &
-                ,var3d_nc2(y_wind_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t))
-                meteo_temp(relhumidity_index)=var3d_nc2(relhumidity_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t)*100.
-                meteo_temp(precip_index)=max(0.,var3d_nc2(precip_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t))
-                if (meteo_temp(temperature_index).gt.0) then
-                    meteo_temp(rain_index)=meteo_temp(precip_index)
-                    meteo_temp(snow_index)=0
-                else
-                    meteo_temp(rain_index)=0
-                    meteo_temp(snow_index)=meteo_temp(precip_index)
+                
+                if (meteo_var_nc2_available(t,temperature_index2)) then
+                    meteo_temp(temperature_index)=var3d_nc2(temperature_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t)-273.15
                 endif
-                meteo_temp(cloudfraction_index)=var3d_nc2(cloudfraction_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t)
-               
+                
+                if (meteo_var_nc2_available(t,x_wind_index2).and.meteo_var_nc2_available(t,y_wind_index2)) then
+                    meteo_temp(speed_wind_index)=sqrt(var3d_nc2(x_wind_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t)**2 &
+                    + var3d_nc2(y_wind_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t)**2) 
+                    meteo_temp(dir_wind_index)=DIRECTION(var3d_nc2(x_wind_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t) &
+                    ,var3d_nc2(y_wind_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t))
+                endif
+                
+                if (meteo_var_nc2_available(t,speed_wind_index2).and.meteo_var_nc2_available(t,dir_wind_index2)) then
+                    meteo_temp(speed_wind_index)=var3d_nc2(speed_wind_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t) 
+                    meteo_temp(dir_wind_index)=var3d_nc2(dir_wind_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t) 
+                endif
+                
+                if (meteo_var_nc2_available(t,relhumidity_index2)) then
+                    meteo_temp(relhumidity_index)=var3d_nc2(relhumidity_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t)*100.
+                endif
+                
+                if (meteo_var_nc2_available(t,precip_index2)) then
+                    meteo_temp(precip_index)=max(0.,var3d_nc2(precip_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t))                
+                    if (meteo_temp(temperature_index).gt.0) then
+                        meteo_temp(rain_index)=meteo_temp(precip_index)
+                        meteo_temp(snow_index)=0
+                    else
+                        meteo_temp(rain_index)=0
+                        meteo_temp(snow_index)=meteo_temp(precip_index)
+                    endif
+                endif
+                
+                if (meteo_var_nc2_available(t,cloudfraction_index2)) then
+                    meteo_temp(cloudfraction_index)=var3d_nc2(cloudfraction_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t)
+                endif
+                
             endif
             endif       
 
