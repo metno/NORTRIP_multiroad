@@ -68,13 +68,13 @@
 
     !3d data. Reorganised for memory reduction
     integer temperature_index2,relhumidity_index2,cloudfraction_index2,precip_index2,x_wind_index2,y_wind_index2,speed_wind_index2,dir_wind_index2
-    parameter (temperature_index2=1,relhumidity_index2=2,cloudfraction_index2=3,precip_index2=4,x_wind_index2=5,speed_wind_index2=6,dir_wind_index2=7)
+    parameter (temperature_index2=1,relhumidity_index2=2,cloudfraction_index2=3,precip_index2=4,x_wind_index2=5,y_wind_index2=6,speed_wind_index2=7,dir_wind_index2=8)
     !2d data
     integer lat_index2,lon_index2,elevation_index2 
-    parameter (lat_index2=8,lon_index2=9,elevation_index2=10)
+    parameter (lat_index2=9,lon_index2=10,elevation_index2=11)
     
     integer num_var_nc2
-    parameter (num_var_nc2=10)                ! number of variables
+    parameter (num_var_nc2=11)                ! number of variables
 
     character(256) var_name_nc2(num_var_nc2)
     character(256) dim_name_nc2(num_dims_nc2)
@@ -582,6 +582,8 @@
     var_name_nc2(precip_index2)='precipitation_amount'
     var_name_nc2(x_wind_index2)='x_wind_10m'
     var_name_nc2(y_wind_index2)='y_wind_10m'
+    var_name_nc2(speed_wind_index2)='speed_wind_10m'
+    var_name_nc2(dir_wind_index2)='dir_wind_10m'
 
     dim_name_nc(x_index)='x'
     dim_name_nc(y_index)='y'
