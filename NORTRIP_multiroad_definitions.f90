@@ -582,8 +582,8 @@
     var_name_nc2(precip_index2)='precipitation_amount'
     var_name_nc2(x_wind_index2)='x_wind_10m'
     var_name_nc2(y_wind_index2)='y_wind_10m'
-    var_name_nc2(speed_wind_index2)='speed_wind_10m'
-    var_name_nc2(dir_wind_index2)='dir_wind_10m'
+    var_name_nc2(speed_wind_index2)='wind_speed_10m'
+    var_name_nc2(dir_wind_index2)='wind_direction_10m'
 
     dim_name_nc(x_index)='x'
     dim_name_nc(y_index)='y'
