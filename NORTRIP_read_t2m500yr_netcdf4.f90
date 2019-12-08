@@ -47,7 +47,7 @@
     new_start_date_input=start_date_input
          
     if (.not.allocated(meteo_nc2_available)) allocate (meteo_nc2_available(n_hours_input)) 
-    if (.not.allocated(meteo_var_nc2_available)) allocate (meteo_var_nc2_available(n_hours_input,num_dims_nc2)) 
+    if (.not.allocated(meteo_var_nc2_available)) allocate (meteo_var_nc2_available(n_hours_input,num_var_nc2)) 
     meteo_var_nc2_available=.true.
     
     !Loop through the number of time steps nad read in data when available
@@ -210,7 +210,7 @@
         meteo_var_nc2_available(precip_index2,t)=.false.
         !stop
     endif    
-    if (abs(maxval(var3d_nc2(relhumidity_index2,:,:,:))).gt.1.0) then
+    if (abs(maxval(var3d_nc2(relhumidity_index2,:,:,:))).gt.1.10) then
         write(unit_logfile,'(A,e12.2)') ' WARNING: out of bounds humidity. Will not use these data but will continue calculations: ', maxval(var3d_nc2(relhumidity_index2,:,:,:))
         meteo_var_nc2_available(relhumidity_index2,t)=.false.
         !stop
