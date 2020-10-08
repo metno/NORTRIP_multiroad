@@ -36,8 +36,9 @@
     
     double precision, allocatable :: var1d_nc_dp(:)
     double precision, allocatable :: var2d_nc_dp(:,:)
-    double precision, allocatable :: var3d_nc_dp(:,:,:)
-    double precision, allocatable :: var4d_nc_dp(:,:,:,:)
+    !double precision, allocatable :: var3d_nc_dp(:,:,:)
+    !double precision, allocatable :: var4d_nc_dp(:,:,:,:)
+    real, allocatable :: var3d_emep(:,:,:)
     real, allocatable :: var4d_nc(:,:,:,:)
 
     double precision temp_date
@@ -145,11 +146,15 @@
     allocate (var1d_nc_dp(maxval(dim_length_nc))) !x and y and time maximum dimmensions
     allocate (var3d_nc(num_var_nc,dim_length_nc(x_index),dim_length_nc(y_index),dim_length_nc(time_index)))
     allocate (var2d_nc(2,dim_length_nc(x_index),dim_length_nc(y_index))) !Lat and lon
-    allocate (var3d_nc_dp(dim_length_nc(x_index),dim_length_nc(y_index),dim_length_nc(time_index)))
+    !allocate (var3d_nc_dp(dim_length_nc(x_index),dim_length_nc(y_index),dim_length_nc(time_index)))
     allocate (var2d_nc_dp(dim_length_nc(x_index),dim_length_nc(y_index))) !Lat and lon
-    allocate (var4d_nc_dp(dim_length_nc(x_index),dim_length_nc(y_index),1,dim_length_nc(time_index)))
-    allocate (var4d_nc(dim_length_nc(x_index),dim_length_nc(y_index),1,dim_length_nc(time_index)))
- 
+    !allocate (var4d_nc_dp(dim_length_nc(x_index),dim_length_nc(y_index),1,dim_length_nc(time_index)))
+    if (index(meteo_data_type,'emep').gt.0) then
+        allocate (var3d_emep(dim_length_nc(x_index),dim_length_nc(y_index),dim_length_nc(time_index)))
+    else
+        allocate (var4d_nc(dim_length_nc(x_index),dim_length_nc(y_index),1,dim_length_nc(time_index)))
+    endif
+    
     !Set the number of hours to be read
     
     !Read the x, y and time values
@@ -198,8 +203,18 @@
         dim_start_metcoop_nc(4)=1
         dim_start_metcoop_nc(5)=dim_start_nc(time_index)
         write(unit_logfile,'(a,i)') 'Ensemble member 0 used with dim index ',dim_id_nc_ensemble
-    else
+    elseif (index(meteo_data_type,'emep').gt.0) then
+        write(unit_logfile,'(a)') 'Reading as EMEP meteo data with 3 dimensions:'
+        ! emep has 3 dimensions. z is 1 so must adjust this.
+        allocate (dim_length_metcoop_nc(3))
+        allocate (dim_start_metcoop_nc(3))
+        dim_length_metcoop_nc(1:2)=dim_length_nc(1:2)
+        dim_length_metcoop_nc(3)=dim_length_nc(time_index)
+        dim_start_metcoop_nc(1:2)=dim_start_nc(1:2)
+        dim_start_metcoop_nc(3)=dim_start_nc(time_index)
+    else 
         !MetCoOp data has 4 dimensions. z is 1 so must adjust this.
+        write(unit_logfile,'(a)') 'Reading as MetCoop/MEPS meteo data with 4 dimensions:'
         allocate (dim_length_metcoop_nc(4))
         allocate (dim_start_metcoop_nc(4))
         dim_length_metcoop_nc(1:2)=dim_length_nc(1:2)
@@ -229,8 +244,12 @@
                 ,minval(var2d_nc(i,:,:)),maxval(var2d_nc(i,:,:)) 
         else
             !status_nc = NF_GET_VARA_REAL (id_nc, var_id_nc(i), dim_start_metcoop_nc, dim_length_metcoop_nc, var4d_nc);var3d_nc(i,:,:,:)=var4d_nc(:,:,1,:)
-            status_nc = NF90_GET_VAR (id_nc, var_id_nc(i), var4d_nc,start=(/dim_start_metcoop_nc/), count=(/dim_length_metcoop_nc/));var3d_nc(i,:,:,:)=var4d_nc(:,:,1,:)
-            
+            if (index(meteo_data_type,'emep').gt.0) then
+                status_nc = NF90_GET_VAR (id_nc, var_id_nc(i), var3d_emep,start=(/dim_start_metcoop_nc/), count=(/dim_length_metcoop_nc/));var3d_nc(i,:,:,:)=var3d_emep(:,:,:)
+            else
+                status_nc = NF90_GET_VAR (id_nc, var_id_nc(i), var4d_nc,start=(/dim_start_metcoop_nc/), count=(/dim_length_metcoop_nc/));var3d_nc(i,:,:,:)=var4d_nc(:,:,1,:)
+            endif
+           
             !Make appropriate changes, going backwards so as to overwrite the existing data
             if (i.eq.precip_index.or.i.eq.precip_snow_index) then
                 do tt=dim_length_nc(time_index),2,-1
@@ -311,10 +330,12 @@
     end_dim_nc=dim_length_nc
     start_dim_nc=dim_start_nc
     
-    deallocate (var3d_nc_dp)
+    !deallocate (var3d_nc_dp)
     deallocate (var2d_nc_dp)
-    deallocate (var4d_nc_dp)
-    deallocate (var4d_nc)
+    !deallocate (var4d_nc_dp)
+    if (allocated(var4d_nc)) deallocate(var4d_nc)
+    if (allocated(var3d_emep)) deallocate(var3d_emep)
+    
 
     end subroutine NORTRIP_read_metcoop_netcdf4
 

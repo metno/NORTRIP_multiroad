@@ -59,8 +59,13 @@
 	write(unit_logfile,'(A)') 'Creating multiroad meteorology file (NORTRIP_multiroad_create_meteodata)'
 	write(unit_logfile,'(A)') '================================================================'
     
-    allocate (meteo_output(num_var_meteo,n_hours_input,n_save_links))
-    allocate (meteo_obs_ID_output(n_save_links))
+    !Should be dimensions n_roadlinks?
+    !Either this or meteo_output needs to be indexed with j not i
+    !Note I have not used this select only roads functionality since changing to the combined version so there  could be something wrong.
+    !allocate (meteo_output(num_var_meteo,n_hours_input,n_save_links))
+    !allocate (meteo_obs_ID_output(n_save_links))
+    allocate (meteo_output(num_var_meteo,n_hours_input,n_roadlinks))
+    allocate (meteo_obs_ID_output(n_roadlinks))
         
     !Attribute a grid index to each road link
     allocate (grid_index_rl(2,n_roadlinks))
@@ -108,7 +113,7 @@
             endif
         
         !This actually means we do not have an x,y coodinate system and we 'approximate' the lat lon assuming the x,y grid is roughly in a N-S direction
-        elseif (index(meteo_data_type,'nbv').gt.0.or.index(meteo_data_type,'metcoop').gt.0) then
+        elseif (index(meteo_data_type,'nbv').gt.0.or.index(meteo_data_type,'metcoop').gt.0.or.index(meteo_data_type,'emep').gt.0) then
             !loop through all grids to find the nearest in lat lon
             !This method is very inneffective for large numbers of links. Another way must be found
             !i_dist_min=0
@@ -358,9 +363,14 @@
             meteo_temp(shortwaveradiation_index)=var3d_nc(shortwaveradiation_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i),j_mod)
             meteo_temp(longwaveradiation_index)=var3d_nc(longwaveradiation_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i),j_mod)
             meteo_temp(cloudfraction_index)=var3d_nc(cloudfraction_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i),j_mod)
-            meteo_temp(pressure_index)=var3d_nc(pressure_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i),j_mod)/100.
             meteo_temp(road_temperature_index)=var3d_nc(surface_temperature_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i),j_mod)-273.15
             !meteo_temp(road_temperature_index)=missing_data
+            !EMEP meteo data is in hPa but meps is in Pa
+            if (index(meteo_data_type,'emep').gt.0) then
+                meteo_temp(pressure_index)=var3d_nc(pressure_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i),j_mod)
+            else
+                meteo_temp(pressure_index)=var3d_nc(pressure_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i),j_mod)/100.
+            endif
             
            
             !Bilineal interpolation, which is the same as an area weighted interpolation
