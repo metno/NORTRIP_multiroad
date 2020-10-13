@@ -493,7 +493,6 @@
     real fraction_summer_tyres(1:num_veh)
     real fraction_studded_tyres(1:num_veh)
 
-
     !Functions
     integer day_of_week
     double precision date_to_number
@@ -517,7 +516,7 @@
     exhaust_EF_region_scaling=1.
     nox_EF_region_scaling=1.
     adt_region_scaling=1.
-    
+        
     !Open the file for reading
     unit_in=20
     open(unit_in,file=pathfilename_region_scaling,access='sequential',status='old',readonly)  
@@ -531,21 +530,22 @@
         read(unit_in,*,ERR=10) n_region
         write(unit_logfile,'(a,i)') ' Number of regions read: ',n_region
         call NXTDAT(unit_in,nxtdat_flag)
-        do k=1,n_region          
-            read(unit_in,*,ERR=10) &
-                k_index,region_id(k), &
-                adt_region_scaling(k,li),adt_region_scaling(k,he), &
-                max_stud_fraction_region_scaling(k,li),max_stud_fraction_region_scaling(k,he), &
-                exhaust_EF_region_scaling(k,li),exhaust_EF_region_scaling(k,he), &
-                nox_EF_region_scaling(k,li),nox_EF_region_scaling(k,he)
-            !write(*,'(2i,8f10.3)')  &
-            !    k_index,region_id(k), &
-            !    adt_region_scaling(k,li),adt_region_scaling(k,he), &
-            !    max_stud_fraction_region_scaling(k,li),max_stud_fraction_region_scaling(k,he), &
-            !    exhaust_EF_region_scaling(k,li),exhaust_EF_region_scaling(k,he), &
-            !    nox_EF_region_scaling(k,li),nox_EF_region_scaling(k,he)
-        enddo
-         
+        
+            do k=1,n_region          
+                read(unit_in,*,ERR=10) &
+                    k_index,region_id(k), &
+                    adt_region_scaling(k,li),adt_region_scaling(k,he), &
+                    max_stud_fraction_region_scaling(k,li),max_stud_fraction_region_scaling(k,he), &
+                    exhaust_EF_region_scaling(k,li),exhaust_EF_region_scaling(k,he), &
+                    nox_EF_region_scaling(k,li),nox_EF_region_scaling(k,he)
+                !write(*,'(2i,8f10.3)')  &
+                !    k_index,region_id(k), &
+                !    adt_region_scaling(k,li),adt_region_scaling(k,he), &
+                !    max_stud_fraction_region_scaling(k,li),max_stud_fraction_region_scaling(k,he), &
+                !    exhaust_EF_region_scaling(k,li),exhaust_EF_region_scaling(k,he), &
+                !    nox_EF_region_scaling(k,li),nox_EF_region_scaling(k,he)
+            enddo
+    
     close(unit_in,status='keep')
    
     do i=1,n_roadlinks
@@ -643,3 +643,64 @@
 
     
     end subroutine NORTRIP_multiroad_read_region_scaling_data    
+    
+    
+    subroutine NORTRIP_multiroad_read_region_population_data
+    !Reads population data per region
+    
+    use NORTRIP_multiroad_index_definitions
+    
+    implicit none
+    
+    integer unit_in
+    integer exists
+    logical nxtdat_flag
+
+    integer k,k_index
+
+	write(unit_logfile,'(A)') '================================================================'
+	write(unit_logfile,'(A)') 'Reading regional population data (NORTRIP_multiroad_read_region_population_data)'
+	write(unit_logfile,'(A)') '================================================================'
+
+    pathfilename_region_population=trim(inpath_region_population)//trim(infile_region_population)
+
+    !Test existence of the filename. If does not exist then use default
+    inquire(file=trim(pathfilename_region_population),exist=exists)
+    if (.not.exists) then
+        write(unit_logfile,'(A,A)') ' WARNING: Regional population data file does not exist: ', trim(pathfilename_region_population)
+        write(unit_logfile,'(A)') ' WARNING: default file values will be used: '
+        population_region_scaling(1:n_region_max)=population_cutoff
+        return
+    endif
+            
+    !Open the file for reading
+    unit_in=20
+    open(unit_in,file=pathfilename_region_population,access='sequential',status='old',readonly)  
+        write(unit_logfile,'(a)') ' Opening regional population file: '//trim(pathfilename_region_population)
+    
+        !Skip over header lines starting with *
+        rewind(unit_in)
+        call NXTDAT(unit_in,nxtdat_flag)
+       
+        !Read the data
+        read(unit_in,*,ERR=10) n_region
+        write(unit_logfile,'(a,i)') ' Number of regions read: ',n_region
+        call NXTDAT(unit_in,nxtdat_flag)
+        
+            do k=1,n_region          
+                read(unit_in,*,ERR=10) &
+                    k_index,population_region_id(k),population_region_scaling(k)
+                !write(*,*) k_index,population_region_id(k),population_region_scaling(k)
+            enddo
+            
+    close(unit_in,status='keep')
+    
+    write(unit_logfile,'(a,i)') ' Total population: ',sum(population_region_scaling(1:n_region))
+     
+    return
+10  write(unit_logfile,'(A)') 'ERROR reading population file'
+    stop 10
+
+    
+    end subroutine NORTRIP_multiroad_read_region_population_data    
+ 

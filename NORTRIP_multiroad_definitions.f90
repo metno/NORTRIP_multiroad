@@ -144,8 +144,8 @@
     parameter (N_week_index=1,HDV_week_index=2,V_week_index=3)
     integer num_week_traffic
     parameter (num_week_traffic=3)
-    integer hours_in_week,days_in_week,hours_in_day,seconds_in_hour
-    parameter (hours_in_week=168,days_in_week=7,hours_in_day=24,seconds_in_hour=3600)
+    integer hours_in_week,days_in_week,hours_in_day,seconds_in_hour,months_in_year
+    parameter (hours_in_week=168,days_in_week=7,hours_in_day=24,seconds_in_hour=3600,months_in_year=12)
 
     integer dir1_index,dir2_index,dirall_index,num_week_emission
     parameter (dir1_index=1,dir2_index=2,dirall_index=3,num_week_emission=3)
@@ -331,6 +331,9 @@
     character(256) inpath_region_scaling
     character(256) infile_region_scaling
     character(256) pathfilename_region_scaling
+    character(256) inpath_region_population
+    character(256) infile_region_population
+    character(256) pathfilename_region_population
     !Replacemnet file name
     character(256) inpath_replace_road_data
     character(256) infile_replace_road_data
@@ -341,7 +344,10 @@
     character(256), allocatable :: filename_urban_data(:)
 
  
-    character(256) calculation_type
+    character(256) :: calculation_type='normal'
+    !Time variation data type. 'normal' or 'NUDL'
+    character(256) :: timevariation_type='normal'
+
     !Declare log file name
     character(256) filename_log
 
@@ -387,6 +393,8 @@
     real :: exhaust_EF_region_scaling(n_region_max,num_veh)=1.
     real :: nox_EF_region_scaling(n_region_max,num_veh)=1.
     real :: adt_region_scaling(n_region_max,num_veh)=1.
+    integer :: population_region_scaling(n_region_max)=0
+    integer :: population_region_id(n_region_max)=0
 
     !Order is (date_type,time)
     integer, allocatable :: date_data(:,:)    
@@ -544,7 +552,9 @@
     
     character(256) :: multi_finished_file_append=''
 
- 
+    !For allocating NUDL timevariation profiles need this
+    integer :: population_cutoff=20000
+
     end module NORTRIP_multiroad_index_definitions
     
 !==========================================================================

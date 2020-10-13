@@ -97,7 +97,11 @@
     !Replace any road data if necessary
     call NORTRIP_multiroad_read_replace_road_data
     
-    !Read in weekly dynamic road link data and redstribute to correct day of week
+    !Read in weekly dynamic road link data and redistribute to correct day of week
+    if (index(timevariation_type,'NUDL').gt.0) then
+        call NORTRIP_multiroad_read_region_population_data
+    endif
+    
     call NORTRIP_multiroad_read_weekdynamictraffic_data
         
     !Read in exhaust emission and database IDs for use with episode model

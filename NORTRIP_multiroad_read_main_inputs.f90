@@ -251,6 +251,9 @@
 
     inpath_region_scaling=match_string_char('inpath_region_scaling',unit_in,unit_logfile,'')
     infile_region_scaling=match_string_char('infile_region_scaling',unit_in,unit_logfile,'')
+
+    inpath_region_population=match_string_char('inpath_region_population',unit_in,unit_logfile,'')
+    infile_region_population=match_string_char('infile_region_population',unit_in,unit_logfile,'')
     
     inpath_replace_road_data=match_string_char('inpath_replace_road_data',unit_in,unit_logfile,'')
     infile_replace_road_data=match_string_char('infile_replace_road_data',unit_in,unit_logfile,'')
@@ -261,6 +264,7 @@
     missing_data=match_string_val('Missing data value',unit_in,unit_logfile,-999.)
     hours_between_init=match_string_int('Hours between saving init files',unit_in,unit_logfile,24)
     calculation_type=match_string_char('Calculation type',unit_in,unit_logfile,'normal')                     	
+    timevariation_type=match_string_char('Timevariation type',unit_in,unit_logfile,'normal')                     	
     ID_dynamic_emission(pm25_index)=match_string_char('Model output ID PM2.5',unit_in,unit_logfile,'{no-index-in-main-config-file}')                     	
     ID_dynamic_emission(pm10_index)=match_string_char('Model output ID PM10',unit_in,unit_logfile,'{no-index-in-main-config-file}')
     exhaust_EF(he)=match_string_val('Exhaust EF (he)',unit_in,unit_logfile,0.0)
@@ -497,7 +501,8 @@
     endif
     
     multi_finished_file_append=match_string_char('finished_file_append',unit_in,unit_logfile,multi_finished_file_append)
-
+    !NUDL cutoff population
+    population_cutoff=match_string_int('population_cutoff',unit_in,unit_logfile,population_cutoff)
  
     
 10	close(unit_in,status='keep')
@@ -610,6 +615,9 @@
         inpath_region_scaling=replace_string_char(city_str(i),trim(temp_str),inpath_region_scaling)
         infile_region_scaling=replace_string_char(city_str(i),trim(temp_str),infile_region_scaling)
 
+        !Population files
+        inpath_region_population=replace_string_char(city_str(i),trim(temp_str),inpath_region_population)
+        infile_region_population=replace_string_char(city_str(i),trim(temp_str),infile_region_population)
     enddo
     enddo
     
