@@ -648,7 +648,7 @@
     
     logical :: use_uEMEP_receptor_file=.false.
     integer n_receptor_max
-    parameter (n_receptor_max=1000)
+    parameter (n_receptor_max=2000)
     character(256) name_receptor(n_receptor_max,2)
     real lon_receptor(n_receptor_max),lat_receptor(n_receptor_max),h_receptor(n_receptor_max)
     integer n_receptor,k,kk
@@ -656,6 +656,7 @@
     
     real adt_of_link_max,adt_of_link
     integer i_link_adt_max
+    real :: min_search_distance=100.
 
 
 	write(unit_logfile,'(A)') '================================================================'
@@ -786,8 +787,9 @@
             rewind(unit_in)
             !call NXTDAT(unit_in,nxtdat_flag)
             !read the header to find out how many links there are
-            read(unit_in,'(a)',ERR=19) temp_str
+            read(unit_in,'(a)',ERR=19) temp_str1
             k=0
+            !write(*,*) trim(temp_str1)
             do while(.not.eof(unit_in))
                 k=k+1
                 read(unit_in,*,ERR=19) name_receptor(k,1),lon_receptor(k),lat_receptor(k)!,h_receptor(k),name_receptor(k,2)
@@ -898,7 +900,7 @@
                     !    i_link_distance_min=i
                     !endif
                     adt_of_link=inputdata_rl(adt_rl_index,i)
-                    if (adt_of_link.gt.adt_of_link_max.and.distance_to_link.lt.50.) then
+                    if (adt_of_link.gt.adt_of_link_max.and.distance_to_link.lt.min_search_distance) then
                         adt_of_link_max=adt_of_link
                         i_link_adt_max=i
                         distance_to_link_min=distance_to_link
@@ -910,7 +912,7 @@
             enddo
                 !write(*,*) j,i_link_distance_min,distance_to_link_min
             !if (i_link_distance_min.gt.0.and.distance_to_link_min.lt.100.) then
-            if (i_link_distance_min.gt.0.and.i_link_adt_max.gt.0.and.distance_to_link_min.lt.50.) then
+            if (i_link_distance_min.gt.0.and.i_link_adt_max.gt.0.and.distance_to_link_min.lt.min_search_distance) then
                 jj=jj+1
                 i_link_distance_min=i_link_adt_max
                 inputdata_int_rl(savedata_rl_index,i_link_distance_min)=1
@@ -939,7 +941,7 @@
         elseif (use_only_special_links_flag.eq.2) then
             !Save all the road links
             write(unit_logfile,'(a,i)') ' Calculating all road links and specifying special road links to be saved: ',n_save_links
-            write(unit_logfile,'(a,i)') ' Number of special road links to be saved: ',sum(inputdata_int_rl(savedata_rl_index,:))
+            write(unit_logfile,'(a,i)') ' Number of unique special road links to be saved: ',sum(inputdata_int_rl(savedata_rl_index,:))
             do i=1,n_roadlinks
                 save_links(i)=i
             enddo      

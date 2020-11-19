@@ -29,12 +29,16 @@
     integer l,m,n,k
     real hour_normalise,month_normalise
     integer month_temp
+    integer julian_day
+    integer week_of_year,first_week,week_day_start
+    integer date_data_start(num_date_index)
 
 
     !Functions
     integer day_of_week
     logical summer_time_europe
     double precision date_to_number
+    real date_to_julian
     
 	write(unit_logfile,'(A)') '================================================================'
 	write(unit_logfile,'(A)') 'Reading dynamic weekly traffic data (NORTRIP_multiroad_read_weekdynamictraffic_data)'
@@ -206,12 +210,24 @@
         hour_temp=date_data_temp(hour_index)
         month_temp=date_data_temp(month_index)
         
+        !Calculate week of year
+        julian_day=floor(date_to_julian(date_data_temp))
+        date_data_start=date_data_temp
+        date_data_start(2)=1;date_data_start(3)=1;
+        week_day_start=day_of_week(date_data_start)
+        first_week=1
+        if (week_day_start.gt.4) first_week=0
+        week_of_year=floor((julian_day+week_day_start-2)/7.)+first_week
+        if (week_of_year.lt.1) week_of_year=52
+        if (week_of_year.gt.52) week_of_year=52
+        
         !Cannot trust this routine. Do as in uEMEP
         !call incrtm(int(DIFUTC_H_traffic_temp),date_data_temp(1),date_data_temp(2),date_data_temp(3),date_data_temp(4))
 
         !This could be right now. Test with an end of week date
         week_day_temp=day_of_week(date_data_temp(:))
         !write(*,'(a,3i6,i)') 'IN:  ',t,week_day_temp,hour_temp,0
+        write(*,'(a,i4,3i5,3i8)') 'DATES(t,yyyy,mm,dd,day,week,week_day):  ',t,date_data_temp(1:3),julian_day,week_of_year,week_day_temp
 
         hour_temp=date_data_temp(hour_index)+DIFUTC_H_traffic_temp
         if (hour_temp.le.0) then
