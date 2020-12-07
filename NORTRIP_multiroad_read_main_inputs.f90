@@ -891,7 +891,8 @@
             do i=1,n_roadlinks
                 !Only look in the correct ID
                 distance_to_link2=sqrt((inputdata_rl(x0_rl_index,i)-save_road_x(j))**2+(inputdata_rl(y0_rl_index,i)-save_road_y(j))**2)
-                if (distance_to_link2.lt.2500) then
+                !Do not look for roads more than 2500 m away or look for tunnel portal jets, defined as 6 in NORTRIP. Should be specified better as parameter
+                if (distance_to_link2.lt.2500.and.inputdata_int_rl(roadstructuretype_rl_index,i).ne.6) then
                 !if (save_road_id(j).eq.inputdata_int_rl(id_rl_index,i)) then
                     call distrl(save_road_x(j),save_road_y(j),inputdata_rl(x1_rl_index,i),inputdata_rl(y1_rl_index,i),inputdata_rl(x2_rl_index,i),inputdata_rl(y2_rl_index,i),temp_val,temp_val2,distance_to_link)!(X0,Y0,X1,Y1,X2,Y2,XM,YM,DM)
                     !write(*,'(i8,i8,f12.0,f12.0,f12.0,f12.0,f12.0,f12.0,f12.0,f12.0,f12.0)') j,i,save_road_x(j),save_road_y(j),inputdata_rl(x1_rl_index,i),inputdata_rl(y1_rl_index,i),temp_val,temp_val2,distance_to_link,distance_to_link2,distance_to_link_min
@@ -906,7 +907,7 @@
                         distance_to_link_min=distance_to_link
                         i_link_distance_min=i
                     endif
-                 !endif
+                !endif
                 endif
                 !write(*,*) j,i,distance_to_link_min !save_road_x(j),save_road_y(j),inputdata_int_rl(id_rl_index,i),inputdata_rl(x1_rl_index,i),inputdata_rl(y2_rl_index,i)
             enddo
