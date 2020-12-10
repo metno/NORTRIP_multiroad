@@ -923,8 +923,8 @@
                 save_road_index(jj)=i_link_distance_min
                 save_meteo_index(jj)=j
                 !write(*,*) ':::',jj,i_link_distance_min,distance_to_link_min,inputdata_rl(x1_rl_index,i_link_distance_min),inputdata_rl(y1_rl_index,i_link_distance_min)
-                write(unit_logfile,'(a,i8,a24,f12.2,i12,i12,f12.0)') 'Special links (i,name,dist,index,ID): ',jj,trim(inputdata_char_rl(roadname_rl_index,i_link_distance_min)) &
-                    ,distance_to_link_min,save_road_index(jj),inputdata_int_rl(id_rl_index,save_road_index(jj)),inputdata_rl(adt_rl_index,save_road_index(jj))
+                write(unit_logfile,'(a,i8,a24,f12.2,i12,i12,f12.0,i12)') 'Special links (i,name,dist,index,ID,ADT,type): ',jj,trim(inputdata_char_rl(roadname_rl_index,i_link_distance_min)) &
+                    ,distance_to_link_min,save_road_index(jj),inputdata_int_rl(id_rl_index,save_road_index(jj)),inputdata_rl(adt_rl_index,save_road_index(jj)),inputdata_int_rl(roadstructuretype_rl_index,save_road_index(jj))
             endif
         enddo
         write(unit_logfile,'(a,i)') ' Number of roads found near (<100 m) of receptor points  = ', jj
