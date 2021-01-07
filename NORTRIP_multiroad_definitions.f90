@@ -612,7 +612,7 @@
     missing_data=-99.0
     n_roadlinks=1
     lapse_rate=-0.005 !(K/m)
-    precip_cutoff=0.05 !Must be more than this to give precipitation
+    precip_cutoff=0.005 !Must be more than this to give precipitation (was 0.05 until 07.01.2021, increased to include fog droplet deposition)
  
     !Stnr Year Month Day Time(NMT) UU PO TA RR_1 FF DD QSI NN TV
     var_name_meteo_obs(:)=''

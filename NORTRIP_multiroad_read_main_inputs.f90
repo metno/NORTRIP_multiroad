@@ -503,6 +503,7 @@
     multi_finished_file_append=match_string_char('finished_file_append',unit_in,unit_logfile,multi_finished_file_append)
     !NUDL cutoff population
     population_cutoff=match_string_int('population_cutoff',unit_in,unit_logfile,population_cutoff)
+    precip_cutoff=match_string_val('precip_cutoff',unit_in,unit_logfile,precip_cutoff)
  
     
 10	close(unit_in,status='keep')
