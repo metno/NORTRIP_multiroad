@@ -338,6 +338,8 @@
     character(256) inpath_replace_road_data
     character(256) infile_replace_road_data
     character(256) pathfilename_replace_road_data
+    character(256) inpath_activity
+    character(256) infile_activity
     
     character(256), allocatable :: filename_terrain_data(:)
     character(256), allocatable :: filename_forest_data(:)
@@ -554,6 +556,31 @@
 
     !For allocating NUDL timevariation profiles need this
     integer :: population_cutoff=20000
+    
+    !This data is read in for any time and any road and is processed later
+    real, allocatable :: multi_activity_input_data(:,:)
+
+    !Set activity input file indexes
+    integer M_sanding_index,t_ploughing_index,t_cleaning_index,g_road_wetting_index
+    integer M_salting1_index,M_salting2_index,M_fugitive_index
+    integer num_activity_index
+    parameter (M_sanding_index=1,t_ploughing_index=2,t_cleaning_index=3,g_road_wetting_index=4)
+    parameter (M_salting1_index=5,M_salting2_index=6,M_fugitive_index=7)
+    parameter (num_activity_index=7)
+    !integer M_salting_index(2)
+    !data (M_salting_index(ii),ii=1,2) /M_salting1_index,M_salting2_index/
+    
+    !Set extra date indexes for the activity file since this is not necessarilly in chronological order 
+    integer activity_year_index,activity_month_index,activity_day_index,activity_hour_index,activity_minute_index
+    integer activity_roadID_index
+    integer num_activity_input_index
+    parameter (activity_year_index=8,activity_month_index=9,activity_day_index=10,activity_hour_index=11,activity_minute_index=12)
+    parameter (activity_roadID_index=13)
+    parameter (num_activity_input_index=13)
+    
+    logical :: multi_available_activity_data(num_activity_input_index)=.false.
+
+
 
     end module NORTRIP_multiroad_index_definitions
     

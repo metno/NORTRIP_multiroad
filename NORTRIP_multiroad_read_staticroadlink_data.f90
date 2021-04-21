@@ -674,7 +674,7 @@
     
     !Hardcoded limit to number of links that can be replaced
     integer n_replace_links_max 
-    parameter(n_replace_links_max=10000)
+    !parameter(n_replace_links_max=100000)
     integer n_replace_links
     
     integer i,j,k
@@ -721,6 +721,31 @@
         write(unit_logfile,'(A,A)') ' WARNING: Replacement road file does not exist. Will not replace any data: ', trim(infile_replace_road_data)
         return
     endif
+    
+    !Read file to find length for allocation of arrays
+    unit_in=20
+    open(unit_in,file=pathfilename_replace_road_data,access='sequential',status='old',readonly)  
+        write(unit_logfile,'(a)') ' Opening road replacement file and reading length '//trim(pathfilename_replace_road_data)
+    
+        rewind(unit_in)
+
+        !read the header line
+        read(unit_in,'(a)',ERR=18) temp_str
+            k=0
+            do while(.not.eof(unit_in))
+                k=k+1
+                read(unit_in,*,ERR=19) temp_str
+            enddo
+    
+18  close(unit_in)
+    
+    n_replace_links_max=k
+    write(unit_logfile,'(a,i)') ' Number of road link replacements = ',n_replace_links_max
+    
+    if (n_replace_links_max.eq.0) then
+        write(unit_logfile,'(a)') ' Empty road link replacement file, returning without replacement.'
+        return
+    endif    
     
     !Allocate arrays real and integer replace road link arrays
     allocate(replace_inputdata_rl(num_var_rl,n_replace_links_max))

@@ -72,7 +72,7 @@
     endif
     
     !Read main Episode file
-    if (infile_main_AQmodel.ne.''.and.grid_road_data_flag) then
+    if (infile_main_AQmodel.ne.''.and.grid_road_data_flag.and.index(calculation_type,'episode').gt.0) then
         call NORTRIP_read_main_EPISODE_file
     endif
 
@@ -115,6 +115,7 @@
 
     call NORTRIP_multiroad_read_region_activity_data
     
+    call NORTRIP_multiroad_read_activity_data
 
     !Reorder the links and traffic data to fit the selection. Don't do it for the road weather option
     !It also sets the gridding flags so needs to be called

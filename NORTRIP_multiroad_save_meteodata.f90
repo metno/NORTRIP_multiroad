@@ -121,7 +121,7 @@
             !dist_min=1.e32
             !do ii=1,dim_length_nc(x_index)
             !do jj=1,dim_length_nc(y_index)
-            !    dist=sqrt((var2d_nc(lat_index,ii,jj)-inputdata_rl(lat0_rl_index,i))**2+(var2d_nc(lon_index,ii,jj)/cos(var2d_nc(lat_index,ii,jj)/180.*3.14159)-inputdata_rl(lon0_rl_index,i)/cos(inputdata_rl(lat0_rl_index,i)/180.*3.14159))**2)
+            !    dist=sqrt((var2d_nc(lat_index,ii,jj)-inputdata_rl(lat0_rl_index,i))**2+(var2d_nc(lon_index,ii,jj)*cos(var2d_nc(lat_index,ii,jj)/180.*3.14159)-inputdata_rl(lon0_rl_index,i)*cos(inputdata_rl(lat0_rl_index,i)/180.*3.14159))**2)
             !    if (dist.lt.dist_min) then
             !        dist_min=dist
             !        i_dist_min=ii
@@ -134,7 +134,7 @@
             !grid_index_rl(y_index,i)=j_dist_min
             !write(*,*) i,grid_index_rl(x_index,i),grid_index_rl(y_index,i)
             !This method is also not very efficient. Still has to find the minimum in a loop for each road
-                !grid_index_rl(x_index:y_index,i)=minloc((var2d_nc(lat_index,:,:)-inputdata_rl(lat0_rl_index,i))**2+(var2d_nc(lon_index,:,:)/cos(var2d_nc(lat_index,:,:)/180.*3.14159)-inputdata_rl(lon0_rl_index,i)/cos(inputdata_rl(lat0_rl_index,i)/180.*3.14159))**2)
+                !grid_index_rl(x_index:y_index,i)=minloc((var2d_nc(lat_index,:,:)-inputdata_rl(lat0_rl_index,i))**2+(var2d_nc(lon_index,:,:)*cos(var2d_nc(lat_index,:,:)/180.*3.14159)-inputdata_rl(lon0_rl_index,i)*cos(inputdata_rl(lat0_rl_index,i)/180.*3.14159))**2)
                 !write(*,*) k,i,grid_index_rl(x_index,i),grid_index_rl(y_index,i),110*minval(sqrt((var2d_nc(lat_index,:,:)-inputdata_rl(lat0_rl_index,i))**2+(var2d_nc(lon_index,:,:)/cos(var2d_nc(lat_index,:,:)/180.*3.14159)-inputdata_rl(lon0_rl_index,i)/cos(inputdata_rl(lat0_rl_index,i)/180.*3.14159))**2))          
             
             !This method should work for any roughly north south projection but is not 'exact'. Can be out by a grid
