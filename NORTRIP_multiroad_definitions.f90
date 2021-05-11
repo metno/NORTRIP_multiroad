@@ -232,7 +232,9 @@
     character(256) pathfilename_mainfile
     !Declare file and path names for netcdf files
     character(256) filename_nc_template
+    character(256) filename_alternative_nc_template
     character(256) filename_nc
+    character(256) filename_alternative_nc
     character(256) pathname_nc
     character(256) pathfilename_nc
     character(256) filename_nc2_template

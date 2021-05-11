@@ -111,6 +111,7 @@
     call date_to_datestr_bracket(start_date_input,pathname_traffic,pathname_traffic)
     call date_to_datestr_bracket(start_date_input,pathname_dynamic_emission,pathname_dynamic_emission)
     call date_to_datestr_bracket(start_date_input,filename_nc_template,filename_nc)
+    call date_to_datestr_bracket(start_date_input,filename_alternative_nc_template,filename_alternative_nc)
     call date_to_datestr_bracket(start_date_input,filename_nc2_template,filename_nc2)
     call date_to_datestr_bracket(start_date_input,filename_rl(1),filename_rl(1))
     call date_to_datestr_bracket(start_date_input,filename_rl(2),filename_rl(2))
@@ -121,6 +122,7 @@
     call date_to_datestr_bracket(start_date_input,path_inputdata_for_NORTRIP,path_inputdata_for_NORTRIP)
     call date_to_datestr_bracket(start_date_input,filename_NORTRIP_template,filename_NORTRIP_data)
     call date_to_datestr_bracket(start_date_input,filename_nc_template,filename_nc)
+    call date_to_datestr_bracket(start_date_input,filename_alternative_nc_template,filename_alternative_nc)
     call date_to_datestr_bracket(start_date_input,inpath_meteo_obs_data,inpath_meteo_obs_data)
     call date_to_datestr_bracket(start_date_input,infile_meteo_obs_data,infile_meteo_obs_data)
     call date_to_datestr_bracket(start_date_input,path_outputdata,path_outputdata)    
@@ -146,6 +148,7 @@
     !Set the netcdf filename using the given dates
     !call date_to_datestr(start_date_input,filename_nc_template,filename_nc)
     write(unit_logfile,'(A,A)') ' Netcdf file to be read: ', trim(filename_nc)
+    write(unit_logfile,'(A,A)') ' Alternative Netcdf file to be read: ', trim(filename_alternative_nc)
 
     !Set the template NORTRIP filename using the given dates
     !call date_to_datestr(start_date_input,filename_NORTRIP_template,filename_NORTRIP_data)
@@ -238,6 +241,7 @@
     pathname_forest=match_string_char('inpath_forest',unit_in,unit_logfile,'')
     pathname_urban=match_string_char('inpath_urban',unit_in,unit_logfile,'')
     filename_nc_template=match_string_char('infile_meteo_nc',unit_in,unit_logfile,'')
+    filename_alternative_nc_template=match_string_char('infile_meteo_alternative_nc',unit_in,unit_logfile,'')
     filename_nc2_template=match_string_char('infile_meteo_nc2',unit_in,unit_logfile,'')
     filename_rl(1)=match_string_char('infile_static_road_1',unit_in,unit_logfile,'')
     filename_rl(2)=match_string_char('infile_static_road_2',unit_in,unit_logfile,'')

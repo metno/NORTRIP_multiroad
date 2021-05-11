@@ -28,7 +28,7 @@
     integer ii,jj,tt
     integer new_start_date_input(num_date_index)
     logical found_file
-    character(256) pathname_nc_in,filename_nc_in
+    character(256) pathname_nc_in,filename_nc_in,filename_alternative_nc_in
     
     integer dim_id_nc_ensemble
     logical ensemble_dim_flag
@@ -54,7 +54,9 @@
     !filename_nc='AROME_1KM_OSLO_20141028_EPI.nc'
     pathname_nc_in=pathname_nc
     filename_nc_in=filename_nc_template
+    filename_alternative_nc_in=filename_alternative_nc_template
     call date_to_datestr_bracket(start_date_input,filename_nc_in,filename_nc)
+    call date_to_datestr_bracket(start_date_input,filename_alternative_nc_in,filename_alternative_nc)
     call date_to_datestr_bracket(start_date_input,pathname_nc_in,pathname_nc)
     
     pathfilename_nc=trim(pathname_nc)//trim(filename_nc)
@@ -88,7 +90,50 @@
         enddo
         
         if (.not.found_file) then
-            write(unit_logfile,'(A,A)') ' ERROR: Meteo netcdf file still does not exist: ', trim(pathfilename_nc)
+            write(unit_logfile,'(A,A)') ' WARNING: Meteo netcdf file still does not exist: ', trim(pathfilename_nc)
+            !write(unit_logfile,'(A)') ' STOPPING'
+            !write(*,'(A,A)') ' ERROR: Meteo netcdf file does not exist. Stopping: ', trim(pathfilename_nc)
+            !stop 8
+        else
+            write(unit_logfile,'(A,A)') ' Found earlier meteo netcdf file: ', trim(pathfilename_nc)
+        endif
+        
+    endif
+
+    if (.not.found_file) then
+    pathfilename_nc=trim(pathname_nc)//trim(filename_alternative_nc)
+    write(unit_logfile,'(A,A)') ' Trying to find alternative meteo netcdf file does not exist: ', trim(pathfilename_nc)
+     
+    !Test existence of the filename. If does not exist then use default
+    inquire(file=trim(pathfilename_nc),exist=exists)
+    if (.not.exists) then
+        write(unit_logfile,'(A,A)') ' WARNING: Alternative meteo netcdf file does not exist: ', trim(pathfilename_nc)
+        write(unit_logfile,'(A)') ' Will try every hour for the past 25 hours.'
+        !write(*,'(A,A)') ' ERROR: Meteo netcdf file does not exist. Stopping: ', trim(pathfilename_nc)
+        
+        !Start search back 24 hours
+        new_start_date_input=start_date_input
+        found_file=.false.
+        do i=1,25
+            !call incrtm(-24,new_start_date_input(1),new_start_date_input(2),new_start_date_input(3),new_start_date_input(4))
+            temp_date=date_to_number(new_start_date_input)
+            call number_to_date(temp_date-1./24.,new_start_date_input)
+            !write(*,*) i,new_start_date_input(1:4)
+            call date_to_datestr_bracket(new_start_date_input,filename_alternative_nc_in,filename_alternative_nc)
+            call date_to_datestr_bracket(new_start_date_input,pathname_nc_in,pathname_nc)
+            pathfilename_nc=trim(pathname_nc)//trim(filename_alternative_nc)
+            write(unit_logfile,'(A,A)') ' Trying: ', trim(pathfilename_nc)
+            inquire(file=trim(pathfilename_nc),exist=exists)
+            if (exists) then
+                found_file=.true.
+                exit
+            else 
+                found_file=.false.
+            endif
+        enddo
+        
+        if (.not.found_file) then
+            write(unit_logfile,'(A,A)') ' ERROR: Alternative meteo netcdf file still does not exist: ', trim(pathfilename_nc)
             write(unit_logfile,'(A)') ' STOPPING'
             !write(*,'(A,A)') ' ERROR: Meteo netcdf file does not exist. Stopping: ', trim(pathfilename_nc)
             stop 8
@@ -97,7 +142,8 @@
         endif
         
     endif
-
+    endif
+    
     !Open the netcdf file for reading
     write(unit_logfile,'(2A)') ' Opening netcdf meteo file: ',trim(pathfilename_nc)
     status_nc = NF90_OPEN (pathfilename_nc, NF90_NOWRITE, id_nc)
