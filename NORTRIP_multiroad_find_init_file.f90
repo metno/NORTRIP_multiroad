@@ -31,6 +31,10 @@
     filename_init_in=trim(filename_NORTRIP_data_temp)//'_init.txt'
     filename_init_start=filename_init_in
     pathfilename_init_in=trim(pathname_init_in)//trim(filename_init_in)
+        !Update the date string 3 times incase there are more than one bracket
+        call date_to_datestr_bracket(init_date,pathfilename_init_in,pathfilename_init_in)
+        call date_to_datestr_bracket(init_date,pathfilename_init_in,pathfilename_init_in)
+        call date_to_datestr_bracket(init_date,pathfilename_init_in,pathfilename_init_in)
     
     write(unit_logfile,'(A,A)') ' Looking for NORTRIP initialisation file: ', trim(filename_init_start)
 
@@ -43,6 +47,10 @@
         call date_to_datestr_bracket(init_date,filename_NORTRIP_template,filename_NORTRIP_data_temp)
         filename_init_in=trim(filename_NORTRIP_data_temp)//'_init.txt'
         pathfilename_init_in=trim(pathname_init_in)//trim(filename_init_in)
+        !Update the date string 3 times incase there are more than one bracket
+        call date_to_datestr_bracket(init_date,pathfilename_init_in,pathfilename_init_in)
+        call date_to_datestr_bracket(init_date,pathfilename_init_in,pathfilename_init_in)
+        call date_to_datestr_bracket(init_date,pathfilename_init_in,pathfilename_init_in)
         
         init_counter=init_counter+1
         inquire(file=trim(pathfilename_init_in),exist=exists)
