@@ -26,6 +26,8 @@
     
     !Set the NORTRIP input initialisation filename using the given dates
     call date_to_datestr_bracket(init_date,filename_NORTRIP_template,filename_NORTRIP_data_temp)
+    call date_to_datestr_bracket(init_date,filename_NORTRIP_data_temp,filename_NORTRIP_data_temp)
+    call date_to_datestr_bracket(init_date,filename_NORTRIP_data_temp,filename_NORTRIP_data_temp)
     filename_init_in=trim(filename_NORTRIP_data_temp)//'_init.txt'
     filename_init_start=filename_init_in
     pathfilename_init_in=trim(pathname_init_in)//trim(filename_init_in)
