@@ -137,6 +137,11 @@
     call date_to_datestr_bracket(start_date_input,inpath_region_EF,inpath_region_EF)    
     call date_to_datestr_bracket(start_date_input,infile_region_EF,infile_region_EF)    
     
+    call date_to_datestr_bracket(start_date_input,path_init_for_NORTRIP,path_init_for_NORTRIP)
+    call date_to_datestr_bracket(start_date_input,path_inputdata_for_NORTRIP,path_inputdata_for_NORTRIP)
+    call date_to_datestr_bracket(start_date_input,path_output_roadmeteo,path_output_roadmeteo)
+    
+    
     !Replace the city string in the files. This is done after time is replaced
     !Can be a problem if there is a 'mm' in the path name. Not after implementing the bracket version
     call replace_NORTRIP_citystr
