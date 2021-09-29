@@ -137,7 +137,8 @@
     call date_to_datestr_bracket(start_date_input,inpath_region_EF,inpath_region_EF)    
     call date_to_datestr_bracket(start_date_input,infile_region_EF,infile_region_EF)    
     
-    call date_to_datestr_bracket(start_date_input,path_init_for_NORTRIP,path_init_for_NORTRIP)
+    !Do not fill in the date here. This is done when looking for the init file
+    !call date_to_datestr_bracket(start_date_input,path_init_for_NORTRIP,path_init_for_NORTRIP)
     call date_to_datestr_bracket(start_date_input,path_inputdata_for_NORTRIP,path_inputdata_for_NORTRIP)
     call date_to_datestr_bracket(start_date_input,path_output_roadmeteo,path_output_roadmeteo)
     
