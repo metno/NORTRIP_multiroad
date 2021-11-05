@@ -130,6 +130,8 @@
     !Roadlink ID activity files
     call date_to_datestr_bracket(start_date_input,inpath_activity,inpath_activity)    
     call date_to_datestr_bracket(start_date_input,infile_activity,infile_activity)    
+    call date_to_datestr_bracket(start_date_input,inpath_static_activity,inpath_static_activity)    
+    call date_to_datestr_bracket(start_date_input,infile_static_activity,infile_static_activity)    
 
     !Replace possible date in regional files
     call date_to_datestr_bracket(start_date_input,inpath_region_scaling,inpath_region_scaling)    
@@ -271,6 +273,8 @@
 
     inpath_activity=match_string_char('inpath_activity',unit_in,unit_logfile,'')
     infile_activity=match_string_char('infile_activity',unit_in,unit_logfile,'')
+    inpath_static_activity=match_string_char('inpath_static_activity',unit_in,unit_logfile,'')
+    infile_static_activity=match_string_char('infile_static_activity',unit_in,unit_logfile,'')
 
     inpath_region_scaling=match_string_char('inpath_region_scaling',unit_in,unit_logfile,'')
     infile_region_scaling=match_string_char('infile_region_scaling',unit_in,unit_logfile,'')
@@ -638,6 +642,8 @@
         !Roadlink ID activity files
         inpath_activity=replace_string_char(city_str(i),trim(temp_str),inpath_activity)
         infile_activity=replace_string_char(city_str(i),trim(temp_str),infile_activity)
+        inpath_static_activity=replace_string_char(city_str(i),trim(temp_str),inpath_static_activity)
+        infile_static_activity=replace_string_char(city_str(i),trim(temp_str),infile_static_activity)
 
         !Scaling files
         inpath_region_scaling=replace_string_char(city_str(i),trim(temp_str),inpath_region_scaling)

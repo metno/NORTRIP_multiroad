@@ -342,7 +342,9 @@
     character(256) pathfilename_replace_road_data
     character(256) inpath_activity
     character(256) infile_activity
-    
+    character(256) inpath_static_activity
+    character(256) infile_static_activity
+   
     character(256), allocatable :: filename_terrain_data(:)
     character(256), allocatable :: filename_forest_data(:)
     character(256), allocatable :: filename_urban_data(:)
