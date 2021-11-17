@@ -127,12 +127,12 @@ subroutine NORTRIP_multiroad_read_activity_data
             multi_activity_input_data(M_fugitive_index,i)    
             !write(*,*) int(multi_activity_input_data(activity_roadID_index,i)),int(multi_activity_input_data(activity_day_index,i)),int(multi_activity_input_data(activity_hour_index,i)),multi_activity_input_data(M_salting1_index,i)
         
-            !Set each date to the start date
-            multi_activity_input_data(activity_year_index,i)=start_date_input(year_index)
-            multi_activity_input_data(activity_month_index,i)=start_date_input(month_index)
-            multi_activity_input_data(activity_day_index,i)=start_date_input(day_index)
-            multi_activity_input_data(activity_hour_index,i)=start_date_input(hour_index)
-            multi_activity_input_data(activity_minute_index,i)=start_date_input(minute_index)
+            !Do not change the date
+            !multi_activity_input_data(activity_year_index,i)=start_date_input(year_index)
+            !multi_activity_input_data(activity_month_index,i)=start_date_input(month_index)
+            !multi_activity_input_data(activity_day_index,i)=start_date_input(day_index)
+            !multi_activity_input_data(activity_hour_index,i)=start_date_input(hour_index)
+            !multi_activity_input_data(activity_minute_index,i)=start_date_input(minute_index)
         enddo
            
     endif
