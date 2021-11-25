@@ -89,7 +89,7 @@
     count_found=0
     
     do s=1,n_skyview
-        az_skyview(s,ro)=(s-1)*360./n_skyview
+        az_skyview(s,:)=(s-1)*360./n_skyview
     enddo
     
     do f=1,n_dem_files
