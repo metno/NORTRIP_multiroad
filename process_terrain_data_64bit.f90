@@ -88,6 +88,10 @@
     
     count_found=0
     
+    do s=1,n_skyview
+        az_skyview(s,ro)=(s-1)*360./n_skyview
+    enddo
+    
     do f=1,n_dem_files
 
         !Test existence of the roadlink filename (1). If does not exist then use default
