@@ -532,6 +532,7 @@
     population_cutoff=match_string_int('population_cutoff',unit_in,unit_logfile,population_cutoff)
     precip_cutoff=match_string_val('precip_cutoff',unit_in,unit_logfile,precip_cutoff)
  
+    wetbulb_snow_rain_flag=match_string_int('wetbulb_snow_rain_flag',unit_in,unit_logfile,wetbulb_snow_rain_flag)
     
 10	close(unit_in,status='keep')
      

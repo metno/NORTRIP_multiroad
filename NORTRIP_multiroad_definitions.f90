@@ -584,6 +584,7 @@
     
     logical :: multi_available_activity_data(num_activity_input_index)=.false.
 
+    integer :: wetbulb_snow_rain_flag=0
 
 
     end module NORTRIP_multiroad_index_definitions

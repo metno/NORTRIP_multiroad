@@ -40,9 +40,12 @@
     logical :: show_analysis=.false.
     logical some_meteo_nc2_available
     
+    real wetbulb_temp
+    
     !Functions
     real DIRECTION
     double precision date_to_number
+    real wetbulb_temperature
  
     !zip line commands
     !To extract
@@ -447,13 +450,26 @@
             meteo_temp(speed_wind_index)=sqrt(meteo_temp(x_wind_index)**2+meteo_temp(y_wind_index)**2)
             meteo_temp(dir_wind_index)=DIRECTION(meteo_temp(x_wind_index),meteo_temp(y_wind_index))
             if (.not.var_available_nc(precip_snow_index)) then
-                if (meteo_temp(temperature_index).gt.0) then
-                    meteo_temp(rain_index)=meteo_temp(precip_index)
-                    meteo_temp(snow_index)=0
-                else
-                    meteo_temp(rain_index)=0
-                    meteo_temp(snow_index)=meteo_temp(precip_index)
-                endif
+                    wetbulb_temp=meteo_temp(temperature_index)
+                    if (wetbulb_snow_rain_flag.eq.0) then
+                        if (meteo_temp(temperature_index).gt.0) then
+                            meteo_temp(rain_index)=meteo_temp(precip_index)
+                            meteo_temp(snow_index)=0
+                        else
+                            meteo_temp(rain_index)=0
+                            meteo_temp(snow_index)=meteo_temp(precip_index)
+                        endif
+                    elseif (wetbulb_snow_rain_flag.eq.1) then                       
+                        call distribute_rain_snow(wetbulb_temp,meteo_temp(precip_index),wetbulb_snow_rain_flag,meteo_temp(rain_index),meteo_temp(snow_index))
+                    else
+                        wetbulb_temp=wetbulb_temperature(meteo_temp(temperature_index),meteo_temp(pressure_index)*100.,meteo_temp(relhumidity_index))
+                        call distribute_rain_snow(wetbulb_temp,meteo_temp(precip_index),wetbulb_snow_rain_flag,meteo_temp(rain_index),meteo_temp(snow_index))
+                    endif
+                    if (meteo_temp(precip_index).gt.0.and.1.eq.2) then
+                        write(*,*) wetbulb_temp,meteo_temp(temperature_index),meteo_temp(pressure_index),meteo_temp(relhumidity_index)
+                        write(*,*) wetbulb_temp,meteo_temp(precip_index),meteo_temp(rain_index),meteo_temp(snow_index)
+                    endif                       
+                
             endif
             
             !write(*,'(2i,f12.4,5f12.4)') i,j_mod,sum_weighting_nc,meteo_temp(temperature_index),meteo_temp(speed_wind_index),meteo_temp(dir_wind_index),meteo_temp(shortwaveradiation_index),meteo_temp(rain_index)
@@ -494,13 +510,26 @@
                 
                 if (meteo_var_nc2_available(t,precip_index2)) then
                     meteo_temp(precip_index)=max(0.,var3d_nc2(precip_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t))                
-                    if (meteo_temp(temperature_index).gt.0) then
-                        meteo_temp(rain_index)=meteo_temp(precip_index)
-                        meteo_temp(snow_index)=0
+                    wetbulb_temp=meteo_temp(temperature_index)
+                    if (wetbulb_snow_rain_flag.eq.0) then
+                        if (meteo_temp(temperature_index).gt.0) then
+                            meteo_temp(rain_index)=meteo_temp(precip_index)
+                            meteo_temp(snow_index)=0
+                        else
+                            meteo_temp(rain_index)=0
+                            meteo_temp(snow_index)=meteo_temp(precip_index)
+                        endif
+                    elseif (wetbulb_snow_rain_flag.eq.1) then                       
+                        call distribute_rain_snow(wetbulb_temp,meteo_temp(precip_index),wetbulb_snow_rain_flag,meteo_temp(rain_index),meteo_temp(snow_index))
                     else
-                        meteo_temp(rain_index)=0
-                        meteo_temp(snow_index)=meteo_temp(precip_index)
+                        wetbulb_temp=wetbulb_temperature(meteo_temp(temperature_index),meteo_temp(pressure_index)*100.,meteo_temp(relhumidity_index))
+                        call distribute_rain_snow(wetbulb_temp,meteo_temp(precip_index),wetbulb_snow_rain_flag,meteo_temp(rain_index),meteo_temp(snow_index))
                     endif
+                    if (meteo_temp(precip_index).gt.0.and.1.eq.2) then
+                        write(*,*) wetbulb_temp,meteo_temp(temperature_index),meteo_temp(pressure_index),meteo_temp(relhumidity_index)
+                        write(*,*) wetbulb_temp,meteo_temp(precip_index),meteo_temp(rain_index),meteo_temp(snow_index)
+                    endif                       
+
                 endif
                 
                 if (meteo_var_nc2_available(t,cloudfraction_index2)) then
