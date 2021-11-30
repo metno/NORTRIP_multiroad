@@ -405,6 +405,7 @@
     !Data for reading and replacing model data with observational data
     replace_meteo_with_obs=match_string_int('replace_meteo_with_obs',unit_in,unit_logfile,0)
     replace_meteo_with_yr=match_string_int('replace_meteo_with_yr',unit_in,unit_logfile,0)
+    wetbulb_snow_rain_flag=match_string_int('wetbulb_snow_rain_flag',unit_in,unit_logfile,wetbulb_snow_rain_flag)
     filename_meteo_obs_metadata=match_string_char('filename_meteo_obs_metadata',unit_in,unit_logfile,'')
     inpath_meteo_obs_data=match_string_char('inpath_meteo_obs_data',unit_in,unit_logfile,'')
     infile_meteo_obs_data=match_string_char('infile_meteo_obs_data',unit_in,unit_logfile,'')
@@ -532,7 +533,6 @@
     population_cutoff=match_string_int('population_cutoff',unit_in,unit_logfile,population_cutoff)
     precip_cutoff=match_string_val('precip_cutoff',unit_in,unit_logfile,precip_cutoff)
  
-    wetbulb_snow_rain_flag=match_string_int('wetbulb_snow_rain_flag',unit_in,unit_logfile,wetbulb_snow_rain_flag)
     
 10	close(unit_in,status='keep')
      

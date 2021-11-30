@@ -51,25 +51,32 @@
             ,minval(var1d_nc(i,1:dim_length_nc(i))/1000.),maxval(var1d_nc(i,1:dim_length_nc(i))/1000.)     
     enddo
 
-    x_array=var1d_nc(x_index,1:nrows_sub)
-    y_array=var1d_nc(y_index,1:ncols_sub)
+    !x_array=var1d_nc(x_index,1:nrows_sub)
+    !y_array=var1d_nc(y_index,1:ncols_sub)
+    x_array=var1d_nc(x_index,1:ncols_sub)
+    y_array=var1d_nc(y_index,1:nrows_sub)
    
     !Assumes x and y are the same
     cellsize_sub=x_array(2)-x_array(1)
+    
     
     i=terrain_index
     status_nc = NF90_INQ_VARID (id_nc, trim(var_name_terrain_nc(i)), var_id_nc)
     status_nc = NF90_GET_VAR (id_nc, var_id_nc, array(:,:),start=(/dim_start_nc(1:2)/), count=(/dim_length_nc(1:2)/))
     
-    !write(unit_logfile,'(3A,2f12.4)') ' ',trim(var_name_terrain_nc(i)),' (min, max): ' &
-    !            ,minval(array(:,:)) &
-    !            ,maxval(array(:,:)) 
+    !write(*,*) array
+
+    write(unit_logfile,'(3A,2f12.4)') ' ',trim(var_name_terrain_nc(i)),' (min, max): ' &
+                ,minval(array(:,:)) &
+                ,maxval(array(:,:)) 
 
     status_nc = NF90_CLOSE (id_nc)
     
+    array=max(0.,array)
+    
     write(unit_logfile,'(2a10,1a12)')'ncols','nrows','cellsize'
     write(unit_logfile,'(2i10,1f12.1)')ncols_sub,nrows_sub,cellsize_sub
-    write(unit_logfile,'(a,f6.1,a,f6.1)') ' Min array val: ',minval(array),' Max array val: ',maxval(array)
+    write(unit_logfile,'(a,f6.1,a,f6.1,a,f6.1)') ' Min array val: ',minval(array),' Max array val: ',maxval(array),' Mean array val: ',sum(array)/ncols_sub/nrows_sub
 
     deallocate (var1d_nc)
     

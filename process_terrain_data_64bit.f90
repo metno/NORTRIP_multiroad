@@ -183,7 +183,7 @@
             
                 !If the point is inside the terrain area
                 if (i_point.ne.0.and.j_point.ne.0) then    
-                    
+                    !write(*,*) ro,i_point,j_point
                     count_found=count_found+1
                     inputdata_rl(elevation_rl_index,ro)=array(i_point,j_point)
                 
@@ -277,7 +277,8 @@
                                     height_skyview(s,ro)=max(array(i_point_step,j_point_step)-search_min,0.)
                                     height_angle_max=height_angle
                                 endif
-                                !write(*,'(i6,5f12.2)') s,dist_step,x_point_step-x_point,y_point_step-y_point,height_angle,height_skyview(s,ro)           
+                                !write(*,'(i6,5f12.2,2i)') s,dist_step,x_point_step-x_point,y_point_step-y_point,height_angle,height_skyview(s,ro),i_point_step,j_point_step  
+                                !write(*,*) array(i_point_step,j_point_step)
                             endif
                         
                         enddo
