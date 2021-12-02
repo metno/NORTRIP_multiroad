@@ -616,14 +616,38 @@
                 if (meteo_obs_data(speed_wind_index,j_obs,ii).ne.missing_data.and.replace_which_meteo_with_obs(speed_wind_index).gt.0) meteo_temp(speed_wind_index)=meteo_obs_data(speed_wind_index,j_obs,ii)
                 if (meteo_obs_data(relhumidity_index,j_obs,ii).ne.missing_data.and.replace_which_meteo_with_obs(relhumidity_index).gt.0) meteo_temp(relhumidity_index)=meteo_obs_data(relhumidity_index,j_obs,ii)
                 if (meteo_obs_data(precip_index,j_obs,ii).ne.missing_data.and.replace_which_meteo_with_obs(precip_index).gt.0) then
-                    if (meteo_temp(temperature_index).gt.0) then
-                        meteo_temp(rain_index)=meteo_obs_data(precip_index,j_obs,ii)
-                        meteo_temp(snow_index)=0
+                    
+                    !if (meteo_temp(temperature_index).gt.0) then
+                    !    meteo_temp(rain_index)=meteo_obs_data(precip_index,j_obs,ii)
+                    !    meteo_temp(snow_index)=0
+                    !else
+                    !    meteo_temp(rain_index)=0
+                    !    meteo_temp(snow_index)=meteo_obs_data(precip_index,j_obs,ii)
+                    !endif            
+                
+                    wetbulb_temp=meteo_temp(temperature_index)
+                    if (wetbulb_snow_rain_flag.eq.0) then
+                        if (meteo_temp(temperature_index).gt.0) then
+                            meteo_temp(rain_index)=meteo_obs_data(precip_index,j_obs,ii)
+                            meteo_temp(snow_index)=0
+                        else
+                            meteo_temp(rain_index)=0
+                            meteo_temp(snow_index)=meteo_obs_data(precip_index,j_obs,ii)
+                        endif
+                    elseif (wetbulb_snow_rain_flag.eq.1) then                       
+                        call distribute_rain_snow(wetbulb_temp,meteo_obs_data(precip_index,j_obs,ii),wetbulb_snow_rain_flag,meteo_temp(rain_index),meteo_temp(snow_index))
                     else
-                        meteo_temp(rain_index)=0
-                        meteo_temp(snow_index)=meteo_obs_data(precip_index,j_obs,ii)
-                    endif            
+                        wetbulb_temp=wetbulb_temperature(meteo_temp(temperature_index),meteo_temp(pressure_index)*100.,meteo_temp(relhumidity_index))
+                        call distribute_rain_snow(wetbulb_temp,meteo_obs_data(precip_index,j_obs,ii),wetbulb_snow_rain_flag,meteo_temp(rain_index),meteo_temp(snow_index))
+                    endif
+                    if (meteo_temp(precip_index).gt.0.and.1.eq.2) then
+                        write(*,*) wetbulb_temp,meteo_temp(temperature_index),meteo_temp(pressure_index),meteo_temp(relhumidity_index)
+                        write(*,*) wetbulb_temp,meteo_obs_data(precip_index,j_obs,ii),meteo_temp(rain_index),meteo_temp(snow_index)
+                    endif                       
+
                 endif
+                
+                
                 if (meteo_obs_data(shortwaveradiation_index,j_obs,ii).ne.missing_data.and.replace_which_meteo_with_obs(shortwaveradiation_index).gt.0) meteo_temp(shortwaveradiation_index)=meteo_obs_data(shortwaveradiation_index,j_obs,ii)
                 if (meteo_obs_data(longwaveradiation_index,j_obs,ii).ne.missing_data.and.replace_which_meteo_with_obs(longwaveradiation_index).gt.0) meteo_temp(longwaveradiation_index)=meteo_obs_data(longwaveradiation_index,j_obs,ii)
                 if (meteo_obs_data(cloudfraction_index,j_obs,ii).ne.missing_data.and.replace_which_meteo_with_obs(cloudfraction_index).gt.0) meteo_temp(cloudfraction_index)=meteo_obs_data(cloudfraction_index,j_obs,ii)
