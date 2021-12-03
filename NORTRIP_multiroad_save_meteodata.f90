@@ -316,15 +316,15 @@
     
     !write(unit_logfile,'(a)') ' Creating meteodata for NORTRIP '//trim(pathfilename_meteo)
     
-    if (meteo_obs_data_available) then
-        write(unit_logfile,'(a)') 'Replacing model values with observations (model,obs)'
-        write(unit_logfile,'(10a20)') 'Temperature','Wind speed','Wind direction','Humidity','Precipitation','Shortwave','Longwave','Pressure','Surface_temperature','T_adjust_lapse'
-    endif
     if (replace_meteo_with_yr.eq.1.and.some_meteo_nc2_available) then
         write(unit_logfile,'(a)') 'Replacing model meteorology with analysis meteorology (model,analysis)'
     endif
     if (replace_meteo_with_yr.eq.1.and..not.some_meteo_nc2_available) then
         write(unit_logfile,'(a)') 'No analysis meteo data available at all. Will not replace'
+    endif
+    if (meteo_obs_data_available) then
+        write(unit_logfile,'(a)') 'Replacing model values with observations (model,obs)'
+        write(unit_logfile,'(10a20)') 'Temperature','Wind speed','Wind direction','Humidity','Precipitation','Shortwave','Longwave','Pressure','Surface_temperature','T_adjust_lapse'
     endif
     
         
@@ -342,6 +342,8 @@
             !do t=start_time_index_nc,end_time_index_nc
             j_mod=start_time_index_nc+t-1
             j_obs=start_time_index_meteo_obs+t-1
+            j_obs=t
+            
             time_temp=var1d_nc(time_index,j_mod)    !Not used here as this is the time stamp
             meteo_temp(temperature_index)=var3d_nc(temperature_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i),j_mod)-273.15
             meteo_temp(speed_wind_index)=sqrt(var3d_nc(x_wind_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i),j_mod)**2 &
@@ -541,11 +543,12 @@
 
             !Replace the data with observed meteo data. The same for all roads except for temperature lapse rate
             if (meteo_obs_data_available.and.replace_meteo_with_obs.eq.1) then
-                ii=save_meteo_index(jj)
+                !ii=save_meteo_index(j)  !Was jj
+                ii=1
                 if (not_shown_once) then 
                     !Adjusts the common observed temperature to the model height (assumes model height is correct)
                     adjust_lapse=(var3d_nc(elevation_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i),j_mod)-meteo_obs_position(meteo_obs_height_index,ii))*lapse_rate
-                    write(unit_logfile,'(18f10.1,f10.3)') meteo_temp(temperature_index),meteo_obs_data(temperature_index,j_obs,ii)+adjust_lapse &
+                    write(unit_logfile,'(18f10.1,f10.3)') meteo_temp(temperature_index),meteo_obs_data_final(temperature_index,j_obs)+adjust_lapse &
                         ,meteo_temp(speed_wind_index),meteo_obs_data_final(speed_wind_index,j_obs) & 
                         ,meteo_temp(dir_wind_index),meteo_obs_data_final(dir_wind_index,j_obs) & 
                         ,meteo_temp(relhumidity_index),meteo_obs_data_final(relhumidity_index,j_obs) & 
@@ -573,15 +576,36 @@
                 if (meteo_obs_data_final(cloudfraction_index,j_obs).ne.missing_data.and.replace_which_meteo_with_obs(cloudfraction_index).gt.0) meteo_temp(cloudfraction_index)=meteo_obs_data_final(cloudfraction_index,j_obs)/8.
                 if (meteo_obs_data_final(pressure_index,j_obs).ne.missing_data.and.replace_which_meteo_with_obs(pressure_index).gt.0) meteo_temp(pressure_index)=meteo_obs_data_final(pressure_index,j_obs)
                 if (meteo_obs_data_final(precip_index,j_obs).ne.missing_data.and.replace_which_meteo_with_obs(precip_index).gt.0) then
-                    if (meteo_temp(temperature_index).gt.0) then
-                        meteo_temp(rain_index)=meteo_obs_data_final(precip_index,j_obs)
-                        meteo_temp(snow_index)=0
+                    !if (meteo_temp(temperature_index).gt.0) then
+                    !    meteo_temp(rain_index)=meteo_obs_data_final(precip_index,j_obs)
+                    !    meteo_temp(snow_index)=0
+                    !else
+                    !    meteo_temp(rain_index)=0
+                    !    meteo_temp(snow_index)=meteo_obs_data_final(precip_index,j_obs)
+                    !endif            
+
+                    wetbulb_temp=meteo_temp(temperature_index)
+                    if (wetbulb_snow_rain_flag.eq.0) then
+                        if (meteo_temp(temperature_index).gt.0) then
+                            meteo_temp(rain_index)=meteo_obs_data_final(precip_index,j_obs)
+                            meteo_temp(snow_index)=0
+                        else
+                            meteo_temp(rain_index)=0
+                            meteo_temp(snow_index)=meteo_obs_data_final(precip_index,j_obs)
+                        endif
+                    elseif (wetbulb_snow_rain_flag.eq.1) then                       
+                        call distribute_rain_snow(wetbulb_temp,meteo_obs_data_final(precip_index,j_obs),wetbulb_snow_rain_flag,meteo_temp(rain_index),meteo_temp(snow_index))
                     else
-                        meteo_temp(rain_index)=0
-                        meteo_temp(snow_index)=meteo_obs_data_final(precip_index,j_obs)
-                    endif            
+                        wetbulb_temp=wetbulb_temperature(meteo_temp(temperature_index),meteo_temp(pressure_index)*100.,meteo_temp(relhumidity_index))
+                        call distribute_rain_snow(wetbulb_temp,meteo_obs_data_final(precip_index,j_obs),wetbulb_snow_rain_flag,meteo_temp(rain_index),meteo_temp(snow_index))
+                    endif
+                    if (meteo_temp(precip_index).gt.0.and.1.eq.2) then
+                        write(*,*) wetbulb_temp,meteo_temp(temperature_index),meteo_temp(pressure_index),meteo_temp(relhumidity_index)
+                        write(*,*) wetbulb_temp,meteo_obs_data_final(precip_index,j_obs),meteo_temp(rain_index),meteo_temp(snow_index)
+                    endif                       
                 endif      
-                !Possible to remove these four data sources
+
+                    !Possible to remove these four data sources
                 if (replace_which_meteo_with_obs(shortwaveradiation_index).lt.0) meteo_temp(shortwaveradiation_index)=missing_data
                 if (replace_which_meteo_with_obs(longwaveradiation_index).lt.0) meteo_temp(longwaveradiation_index)=missing_data
                 if (replace_which_meteo_with_obs(cloudfraction_index).lt.0) meteo_temp(cloudfraction_index)=missing_data
@@ -590,7 +614,7 @@
             
             !Replacing at individual stations
             if (meteo_obs_data_available.and.replace_meteo_with_obs.eq.2) then
-                ii=save_meteo_index(jj)
+                ii=save_meteo_index(j) !Was jj
                 !Adjusts the model temperature according to lapse rate so it fits to the observation height. Only does this if replace_meteo_with_obs.eq.2
                 if (replace_meteo_with_yr.eq.1) then
                     adjust_lapse=(var2d_nc2(elevation_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i))-meteo_obs_position(meteo_obs_height_index,ii))*lapse_rate                

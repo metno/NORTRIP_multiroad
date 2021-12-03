@@ -41,8 +41,8 @@
     integer repeat_count
     integer :: max_count=5
     real :: max_hop=10.
-    real :: min_val=-35.
-    real :: max_val=+25.
+    real :: min_val=-40.
+    real :: max_val=+40.
     real :: max_diff_ta_tv=15.
     logical :: test_repetition=.true.
     
@@ -486,13 +486,14 @@
     enddo
 
     !Fix to be 0-23 instead of 1-24 hours
-    do t=start_dim_meteo_obs,end_dim_meteo_obs
-        date_num_temp=date_to_number(meteo_obs_date(:,t))
-        a=0
-        call number_to_date(date_num_temp,a)
-        meteo_obs_date(:,t)=a
+    !Do not need this any more
+    !do t=start_dim_meteo_obs,end_dim_meteo_obs
+    !    date_num_temp=date_to_number(meteo_obs_date(:,t))
+    !    a=0
+    !    call number_to_date(date_num_temp,a)
+    !    meteo_obs_date(:,t)=a
         !write(*,*) meteo_obs_date(:,t)
-    enddo
+    !enddo
     !stop
     !Very weird. Including the call above changes date_nc. How is this possible?
     !Because the leap month number of days was rremembered and not reedefined wiht the data statement in 'number_to_date'
@@ -500,9 +501,9 @@
     !Obs are in UTC, convert to NMT
     !DIFUTC_H is UTC relative to local, so negative if local time is ahead
     !Do not convert to NMT. Rather change traffic times to UTC
-     do t=start_dim_meteo_obs,end_dim_meteo_obs
+     !do t=start_dim_meteo_obs,end_dim_meteo_obs
         !call incrtm(int(-DIFUTC_H),meteo_obs_date(1,t),meteo_obs_date(2,t),meteo_obs_date(3,t),meteo_obs_date(4,t))
-     enddo
+     !enddo
     
     
     !Match the observed meteorology date indexes to the prescribed dates
@@ -583,10 +584,10 @@
                 meteo_obs_data(temperature_index,t,ro)=missing_data
             endif
             !If difference air and road is > 15 C then discard
-            if (abs(meteo_obs_data(road_temperature_index,t,ro)-meteo_obs_data(temperature_index,t,ro)).gt.max_diff_ta_tv) then
-                meteo_obs_data(road_temperature_index,t,ro)=missing_data
-                meteo_obs_data(temperature_index,t,ro)=missing_data
-            endif
+            !if (abs(meteo_obs_data(road_temperature_index,t,ro)-meteo_obs_data(temperature_index,t,ro)).gt.max_diff_ta_tv) then
+            !    meteo_obs_data(road_temperature_index,t,ro)=missing_data
+            !    meteo_obs_data(temperature_index,t,ro)=missing_data
+            !endif
        enddo
     enddo
  
