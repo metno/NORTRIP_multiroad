@@ -261,6 +261,8 @@
     filename_NORTRIP_info=match_string_char('outfile_NORTRIP_info',unit_in,unit_logfile,'')
     path_inputdata_for_NORTRIP=match_string_char('path_inputdata_for_NORTRIP',unit_in,unit_logfile,'')
     path_init_for_NORTRIP=match_string_char('path_init_for_NORTRIP',unit_in,unit_logfile,'')
+    path_init_out_for_NORTRIP=path_init_for_NORTRIP; !Set the output to be the same as the input init path
+    path_init_out_for_NORTRIP=match_string_char('path_init_out_for_NORTRIP',unit_in,unit_logfile,path_init_out_for_NORTRIP) !If available reset the out path for init
     
     inpath_main_AQmodel=match_string_char('inpath_main_AQmodel',unit_in,unit_logfile,'')
     infile_main_AQmodel=match_string_char('infile_main_AQmodel',unit_in,unit_logfile,'')
@@ -314,7 +316,9 @@
     filename_inputdata=match_string_char('Model input data filename',unit_in,unit_logfile,'')
     path_outputdata=match_string_char('Model output data path',unit_in,unit_logfile,'')
     filename_outputdata=match_string_char('Model output data filename',unit_in,unit_logfile,'')
-    path_init=match_string_char('Model init data path',unit_in,unit_logfile,'')
+    path_init=match_string_char('Model init data path',unit_in,unit_logfile,path_init_out)
+    path_init_out=path_init
+    path_init_out=match_string_char('Model init out data path',unit_in,unit_logfile,path_init_out)
     filename_init=match_string_char('Model init data filename',unit_in,unit_logfile,'')  
     path_output_emis=match_string_char('Model output emission path',unit_in,unit_logfile,'')
     filename_output_emis=match_string_char('Model output emission filename',unit_in,unit_logfile,'')
@@ -329,6 +333,8 @@
     
     max_stud_fraction(li)=match_string_val('max_stud_fraction_li',unit_in,unit_logfile,0.0)
     max_stud_fraction(he)=match_string_val('max_stud_fraction_he',unit_in,unit_logfile,0.0)
+    min_stud_fraction(li)=match_string_val('min_stud_fraction_li',unit_in,unit_logfile,0.0)
+    min_stud_fraction(he)=match_string_val('min_stud_fraction_he',unit_in,unit_logfile,0.0)
     call match_string_multi_int('start_stud_season',unit_in,unit_logfile,start_stud_season(month_index:day_index),2)
     call match_string_multi_int('start_full_stud_season',unit_in,unit_logfile,start_full_stud_season(month_index:day_index),2)
     call match_string_multi_int('end_full_stud_season',unit_in,unit_logfile,end_full_stud_season(month_index:day_index),2)
@@ -533,6 +539,9 @@
     population_cutoff=match_string_int('population_cutoff',unit_in,unit_logfile,population_cutoff)
     precip_cutoff=match_string_val('precip_cutoff',unit_in,unit_logfile,precip_cutoff)
  
+    !Flag if minimum studded tyres is used in the input file
+    read_and_use_min_stud_fraction_flag=match_string_int('read_and_use_min_stud_fraction_flag',unit_in,unit_logfile,population_cutoff)
+    
     
 10	close(unit_in,status='keep')
      
@@ -578,6 +587,7 @@
         filename_dynamic_emission(ep_index)=replace_string_char(city_str(i),trim(temp_str),filename_dynamic_emission(ep_index))
         path_inputdata_for_NORTRIP=replace_string_char(city_str(i),trim(temp_str),path_inputdata_for_NORTRIP)
         path_init_for_NORTRIP=replace_string_char(city_str(i),trim(temp_str),path_init_for_NORTRIP)
+        path_init_out_for_NORTRIP=replace_string_char(city_str(i),trim(temp_str),path_init_out_for_NORTRIP)
         filename_NORTRIP_template=replace_string_char(city_str(i),trim(temp_str),filename_NORTRIP_template)
         filename_NORTRIP_info=replace_string_char(city_str(i),trim(temp_str),filename_NORTRIP_info)
         
@@ -927,7 +937,7 @@
                 !Only look in the correct ID
                 distance_to_link2=sqrt((inputdata_rl(x0_rl_index,i)-save_road_x(j))**2+(inputdata_rl(y0_rl_index,i)-save_road_y(j))**2)
                 !Do not look for roads more than 2500 m away or look for tunnel portal jets, defined as 6 in NORTRIP. Should be specified better as parameter
-                if (distance_to_link2.lt.2500.and.inputdata_int_rl(roadstructuretype_rl_index,i).ne.6) then
+                if (distance_to_link2.lt.2500.and.inputdata_int_rl(roadstructuretype_rl_index,i).ne.tunnelportal_roadtype) then
                 !if (save_road_id(j).eq.inputdata_int_rl(id_rl_index,i)) then
                     call distrl(save_road_x(j),save_road_y(j),inputdata_rl(x1_rl_index,i),inputdata_rl(y1_rl_index,i),inputdata_rl(x2_rl_index,i),inputdata_rl(y2_rl_index,i),temp_val,temp_val2,distance_to_link)!(X0,Y0,X1,Y1,X2,Y2,XM,YM,DM)
                     !write(*,'(i8,i8,f12.0,f12.0,f12.0,f12.0,f12.0,f12.0,f12.0,f12.0,f12.0)') j,i,save_road_x(j),save_road_y(j),inputdata_rl(x1_rl_index,i),inputdata_rl(y1_rl_index,i),temp_val,temp_val2,distance_to_link,distance_to_link2,distance_to_link_min
@@ -936,6 +946,11 @@
                     !    i_link_distance_min=i
                     !endif
                     adt_of_link=inputdata_rl(adt_rl_index,i)
+                    if (inputdata_int_rl(roadstructuretype_rl_index,i).eq.runway_roadtype) then
+                        !Set artificially high for runways so it will always be selected if it is within min_search_distance
+                        adt_of_link=1e12
+                    endif
+                    
                     if (adt_of_link.gt.adt_of_link_max.and.distance_to_link.lt.min_search_distance) then
                         adt_of_link_max=adt_of_link
                         i_link_adt_max=i

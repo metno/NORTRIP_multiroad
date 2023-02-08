@@ -46,7 +46,7 @@
     real :: length_segment_init=50.
     real :: kerb_width=5.
     real :: max_canyon_search_distance=200.
-    real :: max_skyview_search_distance=5000.
+    real :: max_skyview_search_distance=20000.
     real :: forest_kerb_width=10.
     real :: forest_height=10.
     integer :: is_forest=0

@@ -328,27 +328,29 @@
              
         !All tyres are summer is set as default
         tyre_fraction=0.
-        tyre_fraction(:,su)=1.
+        tyre_fraction(:,su)=1.-min_stud_fraction/100.
+        tyre_fraction(:,st)=min_stud_fraction/100.
+        
         !Start of season
         if (date_to_number(date_data(:,t)).gt.date_to_number(start_stud_season).and.date_to_number(date_data(:,t)).lt.date_to_number(start_full_stud_season)) then
             factor_temp=(date_to_number(date_data(:,t))-date_to_number(start_stud_season))/(date_to_number(start_full_stud_season)-date_to_number(start_stud_season))
             tyre_fraction(:,su)=(1.-factor_temp)
-            tyre_fraction(:,st)=max_stud_fraction/100.*factor_temp
-            tyre_fraction(:,wi)=factor_temp*(1.-max_stud_fraction/100.)
+            tyre_fraction(:,st)=max(max_stud_fraction,min_stud_fraction)/100.*factor_temp
+            tyre_fraction(:,wi)=factor_temp*(1.-max(max_stud_fraction,min_stud_fraction)/100.)
         endif
         !End of season
         if (date_to_number(date_data(:,t)).gt.date_to_number(end_full_stud_season).and.date_to_number(date_data(:,t)).lt.date_to_number(end_stud_season)) then
             factor_temp=1.-(date_to_number(date_data(:,t))-date_to_number(end_full_stud_season))/(date_to_number(end_stud_season)-date_to_number(end_full_stud_season))
             tyre_fraction(:,su)=(1.-factor_temp)
-            tyre_fraction(:,st)=max_stud_fraction/100.*factor_temp
-            tyre_fraction(:,wi)=factor_temp*(1.-max_stud_fraction/100.)
+            tyre_fraction(:,st)=max(max_stud_fraction,min_stud_fraction)/100.*factor_temp
+            tyre_fraction(:,wi)=factor_temp*(1.-max(max_stud_fraction,min_stud_fraction)/100.)
         endif
         !Middle of season
         if (date_to_number(date_data(:,t)).ge.date_to_number(start_full_stud_season).and.date_to_number(date_data(:,t)).lt.date_to_number(end_full_stud_season)) then
             factor_temp=1.
             tyre_fraction(:,su)=(1.-factor_temp)
-            tyre_fraction(:,st)=max_stud_fraction/100.*factor_temp
-            tyre_fraction(:,wi)=factor_temp*(1.-max_stud_fraction/100.)
+            tyre_fraction(:,st)=max(max_stud_fraction,min_stud_fraction)/100.*factor_temp
+            tyre_fraction(:,wi)=factor_temp*(1.-max(max_stud_fraction,min_stud_fraction)/100.)
         endif
         !write(*,*) tyre_fraction(li,:)
         do i=1,n_roadlinks
@@ -366,7 +368,7 @@
     write(unit_logfile,'(5a8,11a8)') 'NUM','YEAR','MONTH','DAY','HOUR','N','N_HE','N_LI','N_ST_HE','N_ST_LI','N_WI_HE','N_WI_LI','N_SU_HE','N_SU_LI','V_HE','V_LI'
     i=1
     !write(*,'(2f,2i,2f)') inputdata_rl(adt_rl_index,i),inputdata_rl(hdv_rl_index,i),week_day_temp,month_temp,sum(traffic_data(N_total_index,:,i))
-    do t=1,23
+    do t=1,n_hours_input
         write(unit_logfile,'(5i8,11f8.1)') t,date_data(1:4,t),traffic_data(N_total_index,t,1) &
             ,traffic_data(N_v_index(he),t,i),traffic_data(N_v_index(li),t,i) &
             ,traffic_data(N_t_v_index(st,he),t,i),traffic_data(N_t_v_index(st,li),t,i) &
@@ -374,13 +376,13 @@
             ,traffic_data(N_t_v_index(su,he),t,i),traffic_data(N_t_v_index(su,li),t,i) &
             ,traffic_data(V_he_index,t,i),traffic_data(V_li_index,t,i)
     enddo
-    t=n_hours_input
-        write(unit_logfile,'(5i8,11f8.1)') t,date_data(1:4,t),traffic_data(N_total_index,t,1) &
-            ,traffic_data(N_v_index(he),t,i),traffic_data(N_v_index(li),t,i) &
-            ,traffic_data(N_t_v_index(st,he),t,i),traffic_data(N_t_v_index(st,li),t,i) &
-            ,traffic_data(N_t_v_index(wi,he),t,i),traffic_data(N_t_v_index(wi,li),t,i) &
-            ,traffic_data(N_t_v_index(su,he),t,i),traffic_data(N_t_v_index(su,li),t,i) &
-            ,traffic_data(V_he_index,t,i),traffic_data(V_li_index,t,i)   
+    !t=n_hours_input
+    !    write(unit_logfile,'(5i8,11f8.1)') t,date_data(1:4,t),traffic_data(N_total_index,t,1) &
+    !!       ,traffic_data(N_v_index(he),t,i),traffic_data(N_v_index(li),t,i) &
+    !        ,traffic_data(N_t_v_index(st,he),t,i),traffic_data(N_t_v_index(st,li),t,i) &
+    !        ,traffic_data(N_t_v_index(wi,he),t,i),traffic_data(N_t_v_index(wi,li),t,i) &
+    !        ,traffic_data(N_t_v_index(su,he),t,i),traffic_data(N_t_v_index(su,li),t,i) &
+    !        ,traffic_data(V_he_index,t,i),traffic_data(V_li_index,t,i)   
     
     if (allocated(inputdata_week_traffic)) deallocate(inputdata_week_traffic)
     if (allocated(hour_week_traffic)) deallocate(hour_week_traffic)    

@@ -193,8 +193,8 @@
     data (V_veh_index(ii),ii=he,li) /V_he_index,V_li_index/ 
 
     !Road type indexes. Same as in NORTRIP
-    integer normal_roadtype,tunnel_roadtype,bridge_roadtype,bicyclepath_roadtype
-    parameter (normal_roadtype=1,tunnel_roadtype=2,bridge_roadtype=3,bicyclepath_roadtype=4)
+    integer normal_roadtype,tunnel_roadtype,bridge_roadtype,bicyclepath_roadtype,runway_roadtype,tunnelportal_roadtype
+    parameter (normal_roadtype=1,tunnel_roadtype=2,bridge_roadtype=3,bicyclepath_roadtype=4,runway_roadtype=7,tunnelportal_roadtype=6)
     
     !Road type activity. Only in Fortran version since it is multiroad only
     integer road_type_salting_index,road_type_sanding_index,road_type_cleaning_index,road_type_ploughing_index,road_type_binding_index,road_type_flag_index
@@ -277,11 +277,15 @@
     character(256) filename_init_in
     character(256) pathname_init_in
     character(256) pathfilename_init_in
-    !Declare file and path names for NORTTRIP info file
+    !Declare file and path names for output initialisation file
+    character(256) filename_init_out
+    character(256) pathname_init_out
+    character(256) pathfilename_init_out
+    !Declare file and path names for NORTRIP info file
     character(256) filename_info
     character(256) pathname_info
     character(256) pathfilename_info
-    !Declare file and path names for NORTTRIP initialdata file
+    !Declare file and path names for NORTRIP initialdata file
     character(256) filename_initial
     character(256) pathname_initial
     character(256) pathfilename_initial
@@ -296,6 +300,7 @@
     character(256) path_output_emis_from_NORTRIP
     character(256) path_output_data_from_NORTRIP
     character(256) path_init_for_NORTRIP
+    character(256) path_init_out_for_NORTRIP
     !NORTRIP model pathways and filenames
     character(256) path_inputparam
     character(256) path_inputdata
@@ -310,6 +315,7 @@
     character(256) filename_log_NORTRIP
     character(256) path_init
     character(256) filename_init
+    character(256) path_init_out
     character(256) path_output_emis
     character(256) filename_output_emis
     character(256) path_output_roadmeteo
@@ -379,6 +385,7 @@
     
     !Studded tyre season data
     integer :: max_stud_fraction(num_veh)=0.
+    integer :: min_stud_fraction(num_veh)=0.
     integer :: start_stud_season(num_date_index)=0
     integer :: start_full_stud_season(num_date_index)=0
     integer :: end_full_stud_season(num_date_index)=0
@@ -389,6 +396,7 @@
     parameter (n_region_max=1000)
     integer :: region_id(n_region_max)=0
     integer :: max_stud_fraction_region(n_region_max,num_veh)=0.
+    integer :: min_stud_fraction_region(n_region_max,num_veh)=0.
     integer :: start_stud_season_region(n_region_max,num_date_index)=0
     integer :: start_full_stud_season_region(n_region_max,num_date_index)=0
     integer :: end_full_stud_season_region(n_region_max,num_date_index)=0
@@ -585,6 +593,7 @@
     logical :: multi_available_activity_data(num_activity_input_index)=.false.
 
     integer :: wetbulb_snow_rain_flag=0
+    integer :: read_and_use_min_stud_fraction_flag=0
 
 
     end module NORTRIP_multiroad_index_definitions

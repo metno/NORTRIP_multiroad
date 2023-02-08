@@ -41,12 +41,22 @@
             nox_EF_region(:,v)=nox_EF(v)
             exhaust_EF_region(:,v)=exhaust_EF(v)
         enddo       
-
-        return
+        do k=1,n_region_max
+                start_stud_season_region(k,:)=start_stud_season
+                start_full_stud_season_region(k,:)=start_full_stud_season
+                end_stud_season_region(k,:)=end_stud_season
+                end_full_stud_season_region(k,:)=end_full_stud_season
+                max_stud_fraction_region(k,:)=max_stud_fraction
+                min_stud_fraction_region(k,:)=min_stud_fraction
+        enddo
+        
+        !return
     endif
         
+    if (exists) then
     !Initialise seasonal data
     max_stud_fraction_region=0.
+    min_stud_fraction_region=0.
     start_stud_season_region=0
     start_full_stud_season_region=0
     end_full_stud_season_region=0
@@ -66,6 +76,23 @@
         !Read the data
         read(unit_in,*,ERR=10) n_region
         write(unit_logfile,'(a,i)') ' Number of regions read: ',n_region
+        
+        if (read_and_use_min_stud_fraction_flag.gt.0) then
+        do k=1,n_region          
+            read(unit_in,*,ERR=10) &
+                k_index,region_id(k), &
+                max_stud_fraction_region(k,li),max_stud_fraction_region(k,he), &
+                min_stud_fraction_region(k,li),min_stud_fraction_region(k,he), &
+                start_stud_season_region(k,month_index),start_stud_season_region(k,day_index), &
+                start_full_stud_season_region(k,month_index),start_full_stud_season_region(k,day_index), &
+                end_full_stud_season_region(k,month_index),end_full_stud_season_region(k,day_index), &
+                end_stud_season_region(k,month_index),end_stud_season_region(k,day_index), &
+                exhaust_EF_region(k,li),exhaust_EF_region(k,he), &
+                nox_EF_region(k,li),nox_EF_region(k,he)
+                
+                !write(*,*) max_stud_fraction_region(k,li),max_stud_fraction_region(k,he),min_stud_fraction_region(k,li),min_stud_fraction_region(k,he)
+        enddo
+        else
         do k=1,n_region          
             read(unit_in,*,ERR=10) &
                 k_index,region_id(k), &
@@ -76,11 +103,12 @@
                 end_stud_season_region(k,month_index),end_stud_season_region(k,day_index), &
                 exhaust_EF_region(k,li),exhaust_EF_region(k,he), &
                 nox_EF_region(k,li),nox_EF_region(k,he)
-            !write(*,*) region_id(k),max_stud_fraction_region(k,li),max_stud_fraction_region(k,he),start_stud_season_region(k,month_index:day_index)
-             
+        
         enddo
+        endif
          
     close(unit_in,status='keep')
+    endif
     
     if (.not.allocated(airquality_data)) allocate (airquality_data(num_airquality_index,n_hours_input,n_roadlinks))
 
@@ -101,10 +129,12 @@
                 end_stud_season=end_stud_season_region(k,:)
                 end_full_stud_season=end_full_stud_season_region(k,:)
                 max_stud_fraction=max_stud_fraction_region(k,:)
+                min_stud_fraction=min_stud_fraction_region(k,:)
                 exhaust_EF=exhaust_EF_region(k,:)
                 nox_EF=nox_EF_region(k,:)
                 !write(*,*) region_id(k)
             else
+                !Need an alternative here? If region not found then it will use the values from the last road read. Should be OK as long as it is not the first road
             endif
         enddo
             
@@ -125,27 +155,30 @@
              
         !All tyres are summer is set as default
         tyre_fraction=0.
-        tyre_fraction(:,su)=1.
+        
+        !Out of season
+        tyre_fraction(:,su)=1.-min_stud_fraction/100.
+        tyre_fraction(:,st)=min_stud_fraction/100.
         !Start of season
         if (date_to_number(date_data(:,t)).gt.date_to_number(start_stud_season).and.date_to_number(date_data(:,t)).lt.date_to_number(start_full_stud_season)) then
             factor_temp=(date_to_number(date_data(:,t))-date_to_number(start_stud_season))/(date_to_number(start_full_stud_season)-date_to_number(start_stud_season))
             tyre_fraction(:,su)=(1.-factor_temp)
-            tyre_fraction(:,st)=max_stud_fraction/100.*factor_temp
-            tyre_fraction(:,wi)=factor_temp*(1.-max_stud_fraction/100.)
+            tyre_fraction(:,st)=max(max_stud_fraction,min_stud_fraction)/100.*factor_temp
+            tyre_fraction(:,wi)=factor_temp*(1.-max(max_stud_fraction,min_stud_fraction)/100.)
         endif
         !End of season
         if (date_to_number(date_data(:,t)).gt.date_to_number(end_full_stud_season).and.date_to_number(date_data(:,t)).lt.date_to_number(end_stud_season)) then
             factor_temp=1.-(date_to_number(date_data(:,t))-date_to_number(end_full_stud_season))/(date_to_number(end_stud_season)-date_to_number(end_full_stud_season))
             tyre_fraction(:,su)=(1.-factor_temp)
-            tyre_fraction(:,st)=max_stud_fraction/100.*factor_temp
-            tyre_fraction(:,wi)=factor_temp*(1.-max_stud_fraction/100.)
+            tyre_fraction(:,st)=max(max_stud_fraction,min_stud_fraction)/100.*factor_temp
+            tyre_fraction(:,wi)=factor_temp*(1.-max(max_stud_fraction,min_stud_fraction)/100.)
         endif
         !Middle of season
         if (date_to_number(date_data(:,t)).ge.date_to_number(start_full_stud_season).and.date_to_number(date_data(:,t)).lt.date_to_number(end_full_stud_season)) then
             factor_temp=1.
             tyre_fraction(:,su)=(1.-factor_temp)
-            tyre_fraction(:,st)=max_stud_fraction/100.*factor_temp
-            tyre_fraction(:,wi)=factor_temp*(1.-max_stud_fraction/100.)
+            tyre_fraction(:,st)=max(max_stud_fraction,min_stud_fraction)/100.*factor_temp
+            tyre_fraction(:,wi)=factor_temp*(1.-max(max_stud_fraction,min_stud_fraction)/100.)
         endif
         !write(*,*) tyre_fraction(li,:)
         !do i=1,n_roadlinks

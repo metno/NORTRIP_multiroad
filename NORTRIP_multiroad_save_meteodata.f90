@@ -98,9 +98,10 @@
             grid_index_rl(y_index,i)=1+int((inputdata_rl(y0_rl_index,i)-var1d_nc(y_index,dim_start_nc(y_index))-dgrid_nc(y_index)/2) &
                 /dgrid_nc(y_index))
             !write(unit_logfile,'(a12,4i12)') ' Index (i,j) = ',i,rl_id(i),grid_index_rl(x_index,i),grid_index_rl(y_index,i)
-            if (grid_index_rl(x_index,i).gt.dim_length_nc(x_index).or.grid_index_rl(x_index,i).lt.dim_start_nc(x_index).or. &
-                grid_index_rl(y_index,i).gt.dim_length_nc(y_index).or.grid_index_rl(y_index,i).lt.start_dim_nc(y_index)) then
-                out_of_range_count=out_of_range_count+1           
+            if (grid_index_rl(x_index,i).ge.dim_length_nc(x_index).or.grid_index_rl(x_index,i).le.dim_start_nc(x_index).or. &
+                grid_index_rl(y_index,i).ge.dim_length_nc(y_index).or.grid_index_rl(y_index,i).le.start_dim_nc(y_index)) then
+                out_of_range_count=out_of_range_count+1
+                write(unit_logfile,'(a,6i)') 'WARNING: Road outside meteo grid (link_n,link_ID,grid_i,grid_j,maxgrid_i,maxgrid_j)',i,inputdata_int_rl(id_rl_index,i),grid_index_rl(x_index,i),grid_index_rl(y_index,i),dim_length_nc(x_index),dim_length_nc(y_index)                
             endif
         
             !If out of range set the meteo grid data used to the nearest edge grid
@@ -178,6 +179,16 @@
             grid_index_rl(x_index,i)=1+floor((x_temp-var1d_nc(x_index,1))/dgrid_nc(x_index)+0.5)
             grid_index_rl(y_index,i)=1+floor((y_temp-var1d_nc(y_index,1))/dgrid_nc(y_index)+0.5)
             
+            if (grid_index_rl(x_index,i).ge.dim_length_nc(x_index).or.grid_index_rl(x_index,i).le.dim_start_nc(x_index).or. &
+                grid_index_rl(y_index,i).ge.dim_length_nc(y_index).or.grid_index_rl(y_index,i).le.start_dim_nc(y_index)) then
+                out_of_range_count=out_of_range_count+1
+                write(unit_logfile,'(a,6i)') 'WARNING: Road outside meteo grid (link_n,link_ID,grid_i,grid_j,maxgrid_i,maxgrid_j)',i,inputdata_int_rl(id_rl_index,i),grid_index_rl(x_index,i),grid_index_rl(y_index,i),dim_length_nc(x_index),dim_length_nc(y_index)                
+            endif
+
+                !Limit it to the meteo grid -1 because of the interpolation later
+            grid_index_rl(x_index,i)=min(dim_length_nc(x_index)-1,max(2,grid_index_rl(x_index,i)))
+            grid_index_rl(y_index,i)=min(dim_length_nc(y_index)-1,max(2,grid_index_rl(y_index,i)))
+
             !call LL2UTM(1,utm_zone,var2d_nc(lat_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i)),var2d_nc(lon_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i)),y_utm_temp,x_utm_temp)
             
             !if (abs(grid_index_rl(y_index,i)-y_index_temp).ge.2.or.abs(grid_index_rl(x_index,i)-x_index_temp).ge.2) then
@@ -343,7 +354,7 @@
             j_mod=start_time_index_nc+t-1
             j_obs=start_time_index_meteo_obs+t-1
             j_obs=t
-            
+            !write(*,'(5i)') i,grid_index_rl(x_index,i),grid_index_rl(y_index,i),dim_length_nc(x_index),dim_length_nc(y_index)
             time_temp=var1d_nc(time_index,j_mod)    !Not used here as this is the time stamp
             meteo_temp(temperature_index)=var3d_nc(temperature_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i),j_mod)-273.15
             meteo_temp(speed_wind_index)=sqrt(var3d_nc(x_wind_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i),j_mod)**2 &

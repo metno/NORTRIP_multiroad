@@ -30,6 +30,7 @@
     filename_outputdata=filename_NORTRIP_template
     !filename_outputdata=filename_NORTRIP_data
     path_init=pathname_init_in
+    path_init_out=pathname_init_out
     filename_init=filename_init_in
     filename_output_roadmeteo=trim(filename_NORTRIP_template)//'_roadmeteo.txt'
     
@@ -52,6 +53,7 @@
     write(unit_in,'(A42,2A)') 'Model output data filename',achar(9),filename_outputdata
 
     write(unit_in,'(A42,2A)') 'Model init data path ',achar(9),path_init
+    write(unit_in,'(A42,2A)') 'Model init out data path ',achar(9),path_init_out
     write(unit_in,'(A42,2A)') 'Model init data filename',achar(9),filename_init
     write(unit_in,'(A42,2A)') 'Model output emission path',achar(9),path_output_emis
     write(unit_in,'(A42,2A)') 'Model output emission filename',achar(9),filename_output_emis
