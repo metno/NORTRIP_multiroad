@@ -67,7 +67,7 @@
     
     endif
     
-    if (index(calculation_type,'road weather').gt.0.or.index(calculation_type,'uEMEP').gt.0) then
+    if (index(calculation_type,'road weather').gt.0.or.index(calculation_type,'uEMEP').gt.0.or.index(calculation_type,'Avinor').gt.0) then
         n_roadlinks_read=1
     else
         n_roadlinks_read=n_roadlinks
@@ -108,7 +108,7 @@
     close(unit_in,status='keep')
     
     !The NUDL data is normalised but we do it anyway
-    if (index(calculation_type,'road weather').gt.0.or.index(calculation_type,'uEMEP').gt.0) then
+    if (index(calculation_type,'road weather').gt.0.or.index(calculation_type,'uEMEP').gt.0.or.index(calculation_type,'Avinor').gt.0) then
         do l=1,3
         do m=1,2
         do n=1,2
@@ -148,7 +148,7 @@
      
     close(unit_in,status='keep')
     
-    if (index(calculation_type,'road weather').gt.0.or.index(calculation_type,'uEMEP').gt.0) then
+    if (index(calculation_type,'road weather').gt.0.or.index(calculation_type,'uEMEP').gt.0.or.index(calculation_type,'Avinor').gt.0) then
         N_normalise=sum(inputdata_week_traffic(N_week_index,:,:,n_roadlinks_read))/7.
         HDV_normalise=sum(inputdata_week_traffic(HDV_week_index,:,:,n_roadlinks_read))/size(inputdata_week_traffic(HDV_week_index,:,:,n_roadlinks_read))
         V_normalise=sum(inputdata_week_traffic(V_week_index,:,:,n_roadlinks_read))/size(inputdata_week_traffic(V_week_index,:,:,n_roadlinks_read))
