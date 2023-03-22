@@ -50,6 +50,7 @@
                 min_stud_fraction_region(k,:)=min_stud_fraction
         enddo
         
+        n_region=1
         !return
     endif
         
@@ -120,6 +121,7 @@
     do i=1,n_roadlinks
         !Find the corresponding region_id and attribute the studded tyre and emission factor data to it
         !ID's in roadlink data are kommune, first two numbers are fylke
+        if (exists) then
         do k=1,n_region
             !if (int(inputdata_int_rl(region_id_rl_index,i)/100).eq.region_id(k)) then
             !write(*,*) inputdata_int_rl(region_id_rl_index,i),region_id(k)
@@ -137,6 +139,7 @@
                 !Need an alternative here? If region not found then it will use the values from the last road read. Should be OK as long as it is not the first road
             endif
         enddo
+        endif
             
     !do t=1,n_hours_input
         !Base on the starting date, valid for one day but not necessarily for many more

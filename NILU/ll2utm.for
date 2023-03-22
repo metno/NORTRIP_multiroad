@@ -10,6 +10,7 @@
       REAL LON
       REAL UTMN
       REAL UTME
+      REAL LON0
 
 C I IUTM  - UTM coordinate system indicator
 C I ISONE - UTM sone
