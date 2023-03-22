@@ -32,6 +32,9 @@
     inquire(file=trim(temp_name),exist=exists)
     if (.not.exists) then
         write(unit_logfile,'(A,A)') ' WARNING: Skyview and canyon file does not exist. Setting to default: ', trim(temp_name)
+        !To avoid a divide by 0
+        inputdata_rl(canyondist_north_rl_index,:)=10.
+        inputdata_rl(canyondist_south_rl_index,:)=10.  
         return
     endif
     
