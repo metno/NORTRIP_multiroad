@@ -162,8 +162,8 @@
     real :: DIFUTC_H=-1.    !(Norwegian winter time, not 0 if local time is required in NORTRIP)
     real :: DIFUTC_H_traffic=+1. !(Norwegian winter time, +2 for Norwegian summer time)
     integer :: hours_between_init=24
-    real :: exhaust_EF(num_veh)
-    real :: nox_EF(num_veh)
+    real :: in_exhaust_EF(num_veh)
+    real :: in_nox_EF(num_veh)
     real :: long_rad_in_offset=0.
     real :: RH_offset=0.
     real :: T_a_offset=0.

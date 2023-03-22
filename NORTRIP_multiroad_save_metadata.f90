@@ -138,15 +138,15 @@
 
     
     !If no exhaust emission data read in then set the exhaust emission factors for NORTRIP
-    if (sum(airquality_data(EP_emis_index,:,:)).eq.0.and.exhaust_EF(he).gt.0.and.exhaust_EF(li).gt.0) then
-        EF_temp(li,:)=exhaust_EF(li)
-        EF_temp(he,:)=exhaust_EF(he)
+    if (sum(airquality_data(EP_emis_index,:,:)).eq.0.and.in_exhaust_EF(he).gt.0.and.in_exhaust_EF(li).gt.0) then
+        EF_temp(li,:)=in_exhaust_EF(li)
+        EF_temp(he,:)=in_exhaust_EF(he)
         write(unit_in,'(a40,a,<n_save_links>f12.3)') 'Exhaust EF (he)',achar(9),EF_temp(he,1:n_save_links)
         write(unit_in,'(a40,a,<n_save_links>f12.3)') 'Exhaust EF (li)',achar(9),EF_temp(li,1:n_save_links)
     endif       
-    if (sum(airquality_data(NOX_emis_index,:,:)).eq.0.and.nox_EF(he).gt.0.and.nox_EF(li).gt.0) then
-        EF_temp(li,:)=nox_EF(li)
-        EF_temp(he,:)=nox_EF(he)
+    if (sum(airquality_data(NOX_emis_index,:,:)).eq.0.and.in_nox_EF(he).gt.0.and.in_nox_EF(li).gt.0) then
+        EF_temp(li,:)=in_nox_EF(li)
+        EF_temp(he,:)=in_nox_EF(he)
         write(unit_in,'(a40,a,<n_save_links>f12.3)') 'NOX EF (he)',achar(9),EF_temp(he,1:n_save_links)
         write(unit_in,'(a40,a,<n_save_links>f12.3)') 'NOX EF (li)',achar(9),EF_temp(li,1:n_save_links)
     endif       

@@ -38,8 +38,8 @@
         
         !Set these values in case the regional scaling file is used as these need to be set
         do v=1,num_veh
-            nox_EF_region(:,v)=nox_EF(v)
-            exhaust_EF_region(:,v)=exhaust_EF(v)
+            nox_EF_region(:,v)=in_nox_EF(v)
+            exhaust_EF_region(:,v)=in_exhaust_EF(v)
         enddo       
         do k=1,n_region_max
                 start_stud_season_region(k,:)=start_stud_season
@@ -130,8 +130,8 @@
                 end_full_stud_season=end_full_stud_season_region(k,:)
                 max_stud_fraction=max_stud_fraction_region(k,:)
                 min_stud_fraction=min_stud_fraction_region(k,:)
-                exhaust_EF=exhaust_EF_region(k,:)
-                nox_EF=nox_EF_region(k,:)
+                in_exhaust_EF=exhaust_EF_region(k,:)
+                in_nox_EF=nox_EF_region(k,:)
                 !write(*,*) region_id(k)
             else
                 !Need an alternative here? If region not found then it will use the values from the last road read. Should be OK as long as it is not the first road
@@ -191,8 +191,8 @@
         
         !Set exhaust emissions
         do v=1,num_veh
-            airquality_data(EP_emis_index,1:n_hours_input,i)=airquality_data(EP_emis_index,1:n_hours_input,i)+traffic_data(N_v_index(v),1:n_hours_input,i)*exhaust_EF(v)
-            airquality_data(NOX_emis_index,1:n_hours_input,i)=airquality_data(NOX_emis_index,1:n_hours_input,i)+traffic_data(N_v_index(v),1:n_hours_input,i)*nox_EF(v)
+            airquality_data(EP_emis_index,1:n_hours_input,i)=airquality_data(EP_emis_index,1:n_hours_input,i)+traffic_data(N_v_index(v),1:n_hours_input,i)*in_exhaust_EF(v)
+            airquality_data(NOX_emis_index,1:n_hours_input,i)=airquality_data(NOX_emis_index,1:n_hours_input,i)+traffic_data(N_v_index(v),1:n_hours_input,i)*in_nox_EF(v)
         enddo     
 
         !write(*,*) tyre_fraction(li,:),max_stud_fraction
