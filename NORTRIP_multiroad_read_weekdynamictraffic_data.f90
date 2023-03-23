@@ -363,7 +363,22 @@
         
     enddo
    
+    if (.not.allocated(airquality_data)) allocate (airquality_data(num_airquality_index,n_hours_input,n_roadlinks))
+
+    !Calculate the studded tyre share for each road link based on the region_id
+    airquality_data(EP_emis_index,:,:)=0.
+    airquality_data(NOX_emis_index,:,:)=0.
+    airquality_data(f_conc_index,:,:)=1.
+
+    !Set exhaust emissions
+    do i=1,n_roadlinks
+        do v=1,num_veh
+            airquality_data(EP_emis_index,1:n_hours_input,i)=airquality_data(EP_emis_index,1:n_hours_input,i)+traffic_data(N_v_index(v),1:n_hours_input,i)*in_exhaust_EF(v)
+            airquality_data(NOX_emis_index,1:n_hours_input,i)=airquality_data(NOX_emis_index,1:n_hours_input,i)+traffic_data(N_v_index(v),1:n_hours_input,i)*in_nox_EF(v)
+        enddo 
+    enddo
     
+
     !Write example to log file
     write(unit_logfile,'(5a8,11a8)') 'NUM','YEAR','MONTH','DAY','HOUR','N','N_HE','N_LI','N_ST_HE','N_ST_LI','N_WI_HE','N_WI_LI','N_SU_HE','N_SU_LI','V_HE','V_LI'
     i=1
