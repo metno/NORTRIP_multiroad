@@ -140,10 +140,10 @@
     integer num_char_rl
     parameter(num_char_rl=1)
     
-    integer N_week_index,HDV_week_index,V_week_index
-    parameter (N_week_index=1,HDV_week_index=2,V_week_index=3)
+    integer N_week_index,HDV_week_index,LDV_week_index,V_week_index
+    parameter (N_week_index=1,HDV_week_index=2,LDV_week_index=3,V_week_index=4)
     integer num_week_traffic
-    parameter (num_week_traffic=3)
+    parameter (num_week_traffic=4)
     integer hours_in_week,days_in_week,hours_in_day,seconds_in_hour,months_in_year
     parameter (hours_in_week=168,days_in_week=7,hours_in_day=24,seconds_in_hour=3600,months_in_year=12)
 

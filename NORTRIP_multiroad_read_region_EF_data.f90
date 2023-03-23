@@ -117,6 +117,7 @@
     if (.not.allocated(airquality_data)) allocate (airquality_data(num_airquality_index,n_hours_input,n_roadlinks))
 
     !Calculate the studded tyre share for each road link based on the region_id
+    airquality_data=0.
     airquality_data(EP_emis_index,:,:)=0.
     airquality_data(NOX_emis_index,:,:)=0.
     airquality_data(f_conc_index,:,:)=1.
@@ -165,27 +166,53 @@
         !Out of season
         tyre_fraction(:,su)=1.-min_stud_fraction/100.
         tyre_fraction(:,st)=min_stud_fraction/100.
+        
         !Start of season
+        do v=1,num_veh
         if (date_to_number(date_data(:,t)).gt.date_to_number(start_stud_season).and.date_to_number(date_data(:,t)).lt.date_to_number(start_full_stud_season)) then
             factor_temp=(date_to_number(date_data(:,t))-date_to_number(start_stud_season))/(date_to_number(start_full_stud_season)-date_to_number(start_stud_season))
-            tyre_fraction(:,su)=(1.-factor_temp)
-            tyre_fraction(:,st)=max(max_stud_fraction,min_stud_fraction)/100.*factor_temp
-            tyre_fraction(:,wi)=factor_temp*(1.-max(max_stud_fraction,min_stud_fraction)/100.)
+            tyre_fraction(v,su)=(1.-factor_temp)
+            tyre_fraction(v,st)=max(max_stud_fraction(v),min_stud_fraction(v))/100.*factor_temp
+            tyre_fraction(v,wi)=factor_temp*(1.-max(max_stud_fraction(v),min_stud_fraction(v))/100.)
         endif
         !End of season
         if (date_to_number(date_data(:,t)).gt.date_to_number(end_full_stud_season).and.date_to_number(date_data(:,t)).lt.date_to_number(end_stud_season)) then
             factor_temp=1.-(date_to_number(date_data(:,t))-date_to_number(end_full_stud_season))/(date_to_number(end_stud_season)-date_to_number(end_full_stud_season))
-            tyre_fraction(:,su)=(1.-factor_temp)
-            tyre_fraction(:,st)=max(max_stud_fraction,min_stud_fraction)/100.*factor_temp
-            tyre_fraction(:,wi)=factor_temp*(1.-max(max_stud_fraction,min_stud_fraction)/100.)
+            tyre_fraction(v,su)=(1.-factor_temp)
+            tyre_fraction(v,st)=max(max_stud_fraction(v),min_stud_fraction(v))/100.*factor_temp
+            tyre_fraction(v,wi)=factor_temp*(1.-max(max_stud_fraction(v),min_stud_fraction(v))/100.)
         endif
         !Middle of season
         if (date_to_number(date_data(:,t)).ge.date_to_number(start_full_stud_season).and.date_to_number(date_data(:,t)).lt.date_to_number(end_full_stud_season)) then
             factor_temp=1.
-            tyre_fraction(:,su)=(1.-factor_temp)
-            tyre_fraction(:,st)=max(max_stud_fraction,min_stud_fraction)/100.*factor_temp
-            tyre_fraction(:,wi)=factor_temp*(1.-max(max_stud_fraction,min_stud_fraction)/100.)
+            tyre_fraction(v,su)=(1.-factor_temp)
+            tyre_fraction(v,st)=max(max_stud_fraction(v),min_stud_fraction(v))/100.*factor_temp
+            tyre_fraction(v,wi)=factor_temp*(1.-max(max_stud_fraction(v),min_stud_fraction(v))/100.)
         endif
+        enddo
+
+        !Start of season
+        !if (date_to_number(date_data(:,t)).gt.date_to_number(start_stud_season).and.date_to_number(date_data(:,t)).lt.date_to_number(start_full_stud_season)) then
+        !    factor_temp=(date_to_number(date_data(:,t))-date_to_number(start_stud_season))/(date_to_number(start_full_stud_season)-date_to_number(start_stud_season))
+        !    tyre_fraction(:,su)=(1.-factor_temp)
+        !    tyre_fraction(:,st)=max(max_stud_fraction,min_stud_fraction)/100.*factor_temp
+        !    tyre_fraction(:,wi)=factor_temp*(1.-max(max_stud_fraction,min_stud_fraction)/100.)
+        !endif
+        !End of season
+        !if (date_to_number(date_data(:,t)).gt.date_to_number(end_full_stud_season).and.date_to_number(date_data(:,t)).lt.date_to_number(end_stud_season)) then
+        !    factor_temp=1.-(date_to_number(date_data(:,t))-date_to_number(end_full_stud_season))/(date_to_number(end_stud_season)-date_to_number(end_full_stud_season))
+        !    tyre_fraction(:,su)=(1.-factor_temp)
+        !    tyre_fraction(:,st)=max(max_stud_fraction,min_stud_fraction)/100.*factor_temp
+        !    tyre_fraction(:,wi)=factor_temp*(1.-max(max_stud_fraction,min_stud_fraction)/100.)
+        !endif
+        !Middle of season
+        !if (date_to_number(date_data(:,t)).ge.date_to_number(start_full_stud_season).and.date_to_number(date_data(:,t)).lt.date_to_number(end_full_stud_season)) then
+        !    factor_temp=1.
+        !    tyre_fraction(:,su)=(1.-factor_temp)
+        !    tyre_fraction(:,st)=max(max_stud_fraction,min_stud_fraction)/100.*factor_temp
+        !    tyre_fraction(:,wi)=factor_temp*(1.-max(max_stud_fraction,min_stud_fraction)/100.)
+        !endif
+        
         !write(*,*) tyre_fraction(li,:)
         !do i=1,n_roadlinks
             do v=1,num_veh

@@ -18,7 +18,7 @@
     real tyre_fraction(num_veh,num_tyre)
     real factor_temp
     integer n_roadlinks_read
-    real N_normalise,HDV_normalise,V_normalise
+    real N_normalise,HDV_normalise,V_normalise,LDV_normalise
     integer date_data_temp(num_date_index)
     real DIFUTC_H_traffic_temp
     !NUDL temporary routines
@@ -32,7 +32,7 @@
     integer julian_day
     integer week_of_year,first_week,week_day_start
     integer date_data_start(num_date_index)
-
+    real average_HDV
 
     !Functions
     integer day_of_week
@@ -148,19 +148,47 @@
      
     close(unit_in,status='keep')
     
+    if (index(timevariation_type,'normal2').gt.0) then
+        write(unit_logfile,*) 'Using time profile with LDV and HDV timeprofiles seperately, i.e. normal2'
+        
+        inputdata_week_traffic(LDV_week_index,:,:,:)=inputdata_week_traffic(N_week_index,:,:,:)
+    
+    else
+    !Calculate the HDV profile first
+    write(unit_logfile,*) 'Using incorrect time profiles with NTOTAL and HDV% timeprofiles seperately, i.e. normal. Works for HDV around 10%'
+
+    average_HDV=sum(inputdata_week_traffic(HDV_week_index,:,:,n_roadlinks_read))/size(inputdata_week_traffic(HDV_week_index,:,:,n_roadlinks_read))
+    inputdata_week_traffic(HDV_week_index,:,:,n_roadlinks_read)=inputdata_week_traffic(HDV_week_index,:,:,n_roadlinks_read)*inputdata_week_traffic(N_week_index,:,:,n_roadlinks_read)/average_HDV
+    endif
+    
     if (index(calculation_type,'road weather').gt.0.or.index(calculation_type,'uEMEP').gt.0.or.index(calculation_type,'Avinor').gt.0) then
         N_normalise=sum(inputdata_week_traffic(N_week_index,:,:,n_roadlinks_read))/7.
-        HDV_normalise=sum(inputdata_week_traffic(HDV_week_index,:,:,n_roadlinks_read))/size(inputdata_week_traffic(HDV_week_index,:,:,n_roadlinks_read))
+        HDV_normalise=sum(inputdata_week_traffic(HDV_week_index,:,:,n_roadlinks_read))/7.
+        LDV_normalise=sum(inputdata_week_traffic(LDV_week_index,:,:,n_roadlinks_read))/7.
+        !HDV_normalise=sum(inputdata_week_traffic(HDV_week_index,:,:,n_roadlinks_read))/size(inputdata_week_traffic(HDV_week_index,:,:,n_roadlinks_read))
         V_normalise=sum(inputdata_week_traffic(V_week_index,:,:,n_roadlinks_read))/size(inputdata_week_traffic(V_week_index,:,:,n_roadlinks_read))
-        !write(*,*) N_normalise,HDV_normalise,V_normalise
+        !write(*,*) N_normalise,HDV_normalise,LDV_normalise,t
         !Loop downwards so that the first value (n_roadlinks_read) is updated last
+    if (index(timevariation_type,'normal2').gt.0) then
         do i=n_roadlinks,1,-1
-            inputdata_week_traffic(N_week_index,:,:,i)=inputdata_week_traffic(N_week_index,:,:,n_roadlinks_read)/N_normalise*inputdata_rl(adt_rl_index,i)
-            inputdata_week_traffic(HDV_week_index,:,:,i)=inputdata_week_traffic(HDV_week_index,:,:,n_roadlinks_read)/HDV_normalise*inputdata_rl(hdv_rl_index,i)
+            inputdata_week_traffic(LDV_week_index,:,:,i)=inputdata_week_traffic(LDV_week_index,:,:,n_roadlinks_read)/LDV_normalise*inputdata_rl(adt_rl_index,i)*(1.-inputdata_rl(hdv_rl_index,i)/100.)
+            inputdata_week_traffic(HDV_week_index,:,:,i)=inputdata_week_traffic(HDV_week_index,:,:,n_roadlinks_read)/HDV_normalise*inputdata_rl(adt_rl_index,i)*inputdata_rl(hdv_rl_index,i)/100.
+            inputdata_week_traffic(N_week_index,:,:,i)=inputdata_week_traffic(LDV_week_index,:,:,i)+inputdata_week_traffic(HDV_week_index,:,:,i)
             inputdata_week_traffic(V_week_index,:,:,i)=inputdata_week_traffic(V_week_index,:,:,n_roadlinks_read)/V_normalise*inputdata_rl(speed_rl_index,i)
             hour_week_traffic(:,:,i)=hour_week_traffic(:,:,n_roadlinks_read)
+            !if (i.eq.19) write(*,*) sum(inputdata_week_traffic(N_week_index,:,:,i))/7.,inputdata_rl(adt_rl_index,i),sum(inputdata_week_traffic(HDV_week_index,:,:,i))/7.,inputdata_rl(adt_rl_index,i)*inputdata_rl(hdv_rl_index,i)/100.
         enddo
-
+    else
+        do i=n_roadlinks,1,-1
+            inputdata_week_traffic(N_week_index,:,:,i)=inputdata_week_traffic(N_week_index,:,:,n_roadlinks_read)/N_normalise*inputdata_rl(adt_rl_index,i)
+            !inputdata_week_traffic(HDV_week_index,:,:,i)=inputdata_week_traffic(HDV_week_index,:,:,n_roadlinks_read)/HDV_normalise*inputdata_rl(hdv_rl_index,i)
+            inputdata_week_traffic(HDV_week_index,:,:,i)=inputdata_week_traffic(HDV_week_index,:,:,n_roadlinks_read)/HDV_normalise*inputdata_rl(hdv_rl_index,i)/100.*inputdata_rl(adt_rl_index,i)
+            inputdata_week_traffic(V_week_index,:,:,i)=inputdata_week_traffic(V_week_index,:,:,n_roadlinks_read)/V_normalise*inputdata_rl(speed_rl_index,i)
+            hour_week_traffic(:,:,i)=hour_week_traffic(:,:,n_roadlinks_read)
+            !if (i.eq.19) write(*,*) sum(inputdata_week_traffic(N_week_index,:,:,i))/7.,inputdata_rl(adt_rl_index,i),sum(inputdata_week_traffic(HDV_week_index,:,:,i))/7.,inputdata_rl(adt_rl_index,i)*inputdata_rl(hdv_rl_index,i)/100.
+        enddo
+    endif
+    
     endif
     
     endif
@@ -296,16 +324,32 @@
         
         else
             
+            if (index(timevariation_type,'normal2').gt.0) then
             do i=1,n_roadlinks
                 traffic_data(N_total_index,t,i)=inputdata_week_traffic(N_week_index,week_day_temp,hour_temp,i)
-                traffic_data(N_he_index,t,i)=traffic_data(N_total_index,t,i) &
-                    *(inputdata_week_traffic(HDV_week_index,week_day_temp,hour_temp,i))/100.
-                traffic_data(N_li_index,t,i)=traffic_data(N_total_index,t,i) &
-                    *(100.-inputdata_week_traffic(HDV_week_index,week_day_temp,hour_temp,i))/100.
+                traffic_data(N_he_index,t,i)=inputdata_week_traffic(HDV_week_index,week_day_temp,hour_temp,i)
+                traffic_data(N_li_index,t,i)=inputdata_week_traffic(LDV_week_index,week_day_temp,hour_temp,i)
                 traffic_data(V_li_index,t,i)=inputdata_week_traffic(V_week_index,week_day_temp,hour_temp,i)
                 traffic_data(V_he_index,t,i)=traffic_data(V_li_index,t,i)
+                !if (i.eq.19) write(*,*) t,traffic_data(N_total_index,t,i),traffic_data(N_li_index,t,i),traffic_data(N_he_index,t,i)
             enddo
+                
+            else
         
+            do i=1,n_roadlinks
+                traffic_data(N_total_index,t,i)=inputdata_week_traffic(N_week_index,week_day_temp,hour_temp,i)
+                traffic_data(N_he_index,t,i)=inputdata_week_traffic(HDV_week_index,week_day_temp,hour_temp,i)
+                traffic_data(N_li_index,t,i)=traffic_data(N_total_index,t,i)-inputdata_week_traffic(HDV_week_index,week_day_temp,hour_temp,i)
+                !traffic_data(N_he_index,t,i)=traffic_data(N_total_index,t,i) &
+                !    *(inputdata_week_traffic(HDV_week_index,week_day_temp,hour_temp,i))/100.
+                !traffic_data(N_li_index,t,i)=traffic_data(N_total_index,t,i) &
+                !    *(100.-inputdata_week_traffic(HDV_week_index,week_day_temp,hour_temp,i))/100.
+                traffic_data(V_li_index,t,i)=inputdata_week_traffic(V_week_index,week_day_temp,hour_temp,i)
+                traffic_data(V_he_index,t,i)=traffic_data(V_li_index,t,i)
+                !if (i.eq.19) write(*,*) t,traffic_data(N_total_index,t,i),traffic_data(N_li_index,t,i),traffic_data(N_he_index,t,i)
+            enddo
+            endif
+            
         endif
         
     enddo
@@ -313,7 +357,9 @@
     
     
     !Calculate the studded tyre share
-    do t=1,n_hours_input
+    !do t=1,n_hours_input
+    !Use the first hour to sett the studded tyres
+        t=1
         !Set years for studded tyre season comparison. Assumes the end of season is the following year
         start_stud_season(year_index)=date_data(year_index,t)
         if (date_to_number(date_data(:,t)).gt.date_to_number(start_stud_season)) then
@@ -328,44 +374,55 @@
              
         !All tyres are summer is set as default
         tyre_fraction=0.
-        tyre_fraction(:,su)=1.-min_stud_fraction/100.
-        tyre_fraction(:,st)=min_stud_fraction/100.
+        do v=1,num_veh
+        tyre_fraction(v,su)=1.-min_stud_fraction(v)/100.
+        tyre_fraction(v,st)=min_stud_fraction(v)/100.
+        enddo
         
         !Start of season
+        do v=1,num_veh
         if (date_to_number(date_data(:,t)).gt.date_to_number(start_stud_season).and.date_to_number(date_data(:,t)).lt.date_to_number(start_full_stud_season)) then
             factor_temp=(date_to_number(date_data(:,t))-date_to_number(start_stud_season))/(date_to_number(start_full_stud_season)-date_to_number(start_stud_season))
-            tyre_fraction(:,su)=(1.-factor_temp)
-            tyre_fraction(:,st)=max(max_stud_fraction,min_stud_fraction)/100.*factor_temp
-            tyre_fraction(:,wi)=factor_temp*(1.-max(max_stud_fraction,min_stud_fraction)/100.)
+            tyre_fraction(v,su)=(1.-factor_temp)
+            tyre_fraction(v,st)=max(max_stud_fraction(v),min_stud_fraction(v))/100.*factor_temp
+            tyre_fraction(v,wi)=factor_temp*(1.-max(max_stud_fraction(v),min_stud_fraction(v))/100.)
         endif
         !End of season
         if (date_to_number(date_data(:,t)).gt.date_to_number(end_full_stud_season).and.date_to_number(date_data(:,t)).lt.date_to_number(end_stud_season)) then
             factor_temp=1.-(date_to_number(date_data(:,t))-date_to_number(end_full_stud_season))/(date_to_number(end_stud_season)-date_to_number(end_full_stud_season))
-            tyre_fraction(:,su)=(1.-factor_temp)
-            tyre_fraction(:,st)=max(max_stud_fraction,min_stud_fraction)/100.*factor_temp
-            tyre_fraction(:,wi)=factor_temp*(1.-max(max_stud_fraction,min_stud_fraction)/100.)
+            tyre_fraction(v,su)=(1.-factor_temp)
+            tyre_fraction(v,st)=max(max_stud_fraction(v),min_stud_fraction(v))/100.*factor_temp
+            tyre_fraction(v,wi)=factor_temp*(1.-max(max_stud_fraction(v),min_stud_fraction(v))/100.)
         endif
         !Middle of season
         if (date_to_number(date_data(:,t)).ge.date_to_number(start_full_stud_season).and.date_to_number(date_data(:,t)).lt.date_to_number(end_full_stud_season)) then
             factor_temp=1.
-            tyre_fraction(:,su)=(1.-factor_temp)
-            tyre_fraction(:,st)=max(max_stud_fraction,min_stud_fraction)/100.*factor_temp
-            tyre_fraction(:,wi)=factor_temp*(1.-max(max_stud_fraction,min_stud_fraction)/100.)
+            tyre_fraction(v,su)=(1.-factor_temp)
+            tyre_fraction(v,st)=max(max_stud_fraction(v),min_stud_fraction(v))/100.*factor_temp
+            tyre_fraction(v,wi)=factor_temp*(1.-max(max_stud_fraction(v),min_stud_fraction(v))/100.)
         endif
+        enddo
+        
         !write(*,*) tyre_fraction(li,:)
+        !do t=1,n_hours_input
         do i=1,n_roadlinks
             do v=1,num_veh
                 do ty=1,num_tyre
-                    traffic_data(N_t_v_index(ty,v),t,i)=traffic_data(N_v_index(v),t,i)*tyre_fraction(v,ty)
+                    traffic_data(N_t_v_index(ty,v),1:n_hours_input,i)=traffic_data(N_v_index(v),1:n_hours_input,i)*tyre_fraction(v,ty)
+            !if (i.eq.19) then
+            !    write(*,*) v,ty,tyre_fraction(v,ty)
+            !    write(*,*) traffic_data(N_v_index(v),1:n_hours_input,i)
+            !endif
                 enddo
+            
             enddo
-        enddo
-        
-    enddo
+        enddo        
+        !enddo
    
     if (.not.allocated(airquality_data)) allocate (airquality_data(num_airquality_index,n_hours_input,n_roadlinks))
 
     !Calculate the studded tyre share for each road link based on the region_id
+    airquality_data=0.
     airquality_data(EP_emis_index,:,:)=0.
     airquality_data(NOX_emis_index,:,:)=0.
     airquality_data(f_conc_index,:,:)=1.
@@ -384,7 +441,7 @@
     i=1
     !write(*,'(2f,2i,2f)') inputdata_rl(adt_rl_index,i),inputdata_rl(hdv_rl_index,i),week_day_temp,month_temp,sum(traffic_data(N_total_index,:,i))
     do t=1,n_hours_input
-        write(unit_logfile,'(5i8,11f8.1)') t,date_data(1:4,t),traffic_data(N_total_index,t,1) &
+        write(unit_logfile,'(5i8,11f8.1)') t,date_data(1:4,t),traffic_data(N_total_index,t,i) &
             ,traffic_data(N_v_index(he),t,i),traffic_data(N_v_index(li),t,i) &
             ,traffic_data(N_t_v_index(st,he),t,i),traffic_data(N_t_v_index(st,li),t,i) &
             ,traffic_data(N_t_v_index(wi,he),t,i),traffic_data(N_t_v_index(wi,li),t,i) &
