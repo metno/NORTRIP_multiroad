@@ -540,7 +540,7 @@
     precip_cutoff=match_string_val('precip_cutoff',unit_in,unit_logfile,precip_cutoff)
  
     !Flag if minimum studded tyres is used in the input file
-    read_and_use_min_stud_fraction_flag=match_string_int('read_and_use_min_stud_fraction_flag',unit_in,unit_logfile,population_cutoff)
+    read_and_use_min_stud_fraction_flag=match_string_int('read_and_use_min_stud_fraction_flag',unit_in,unit_logfile,read_and_use_min_stud_fraction_flag)
     
     
 10	close(unit_in,status='keep')

@@ -36,6 +36,8 @@
         write(unit_logfile,'(A,A)') ' WARNING: Regional traffic data file does not exist: ', trim(pathfilename_region_EF)
         write(unit_logfile,'(A)') ' WARNING: Configuration file values will be used: '
         
+        n_region=1
+
         !Set these values in case the regional scaling file is used as these need to be set
         do v=1,num_veh
             nox_EF_region(:,v)=in_nox_EF(v)
@@ -48,10 +50,11 @@
                 end_full_stud_season_region(k,:)=end_full_stud_season
                 max_stud_fraction_region(k,:)=max_stud_fraction
                 min_stud_fraction_region(k,:)=min_stud_fraction
+                region_id(k)=n_region
         enddo
+
+        return
         
-        n_region=1
-        !return
     endif
         
     if (exists) then
@@ -121,7 +124,7 @@
     do i=1,n_roadlinks
         !Find the corresponding region_id and attribute the studded tyre and emission factor data to it
         !ID's in roadlink data are kommune, first two numbers are fylke
-        if (exists) then
+        !if (exists) then
         do k=1,n_region
             !if (int(inputdata_int_rl(region_id_rl_index,i)/100).eq.region_id(k)) then
             !write(*,*) inputdata_int_rl(region_id_rl_index,i),region_id(k)
@@ -139,7 +142,7 @@
                 !Need an alternative here? If region not found then it will use the values from the last road read. Should be OK as long as it is not the first road
             endif
         enddo
-        endif
+        !endif
             
     !do t=1,n_hours_input
         !Base on the starting date, valid for one day but not necessarily for many more
@@ -706,6 +709,7 @@
         write(unit_logfile,'(A,A)') ' WARNING: Regional population data file does not exist: ', trim(pathfilename_region_population)
         write(unit_logfile,'(A)') ' WARNING: default file values will be used: '
         population_region_scaling(1:n_region_max)=population_cutoff
+        n_region=1
         return
     endif
             
