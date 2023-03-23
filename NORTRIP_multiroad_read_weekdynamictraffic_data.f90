@@ -149,13 +149,13 @@
     close(unit_in,status='keep')
     
     if (index(timevariation_type,'normal2').gt.0) then
-        write(unit_logfile,*) 'Using time profile with LDV and HDV timeprofiles seperately, i.e. normal2'
+        write(unit_logfile,'(a)') 'Using time profile with LDV and HDV timeprofiles seperately, i.e. normal2'
         
         inputdata_week_traffic(LDV_week_index,:,:,:)=inputdata_week_traffic(N_week_index,:,:,:)
     
     else
     !Calculate the HDV profile first
-    write(unit_logfile,*) 'Using incorrect time profiles with NTOTAL and HDV% timeprofiles seperately, i.e. normal. Works for HDV around 10%'
+    write(unit_logfile,'(a)') 'Using incorrect time profiles with NTOTAL and HDV% timeprofiles seperately, i.e. normal. Works for HDV around 10%'
 
     average_HDV=sum(inputdata_week_traffic(HDV_week_index,:,:,n_roadlinks_read))/size(inputdata_week_traffic(HDV_week_index,:,:,n_roadlinks_read))
     inputdata_week_traffic(HDV_week_index,:,:,n_roadlinks_read)=inputdata_week_traffic(HDV_week_index,:,:,n_roadlinks_read)*inputdata_week_traffic(N_week_index,:,:,n_roadlinks_read)/average_HDV
@@ -347,6 +347,13 @@
                 traffic_data(V_li_index,t,i)=inputdata_week_traffic(V_week_index,week_day_temp,hour_temp,i)
                 traffic_data(V_he_index,t,i)=traffic_data(V_li_index,t,i)
                 !if (i.eq.19) write(*,*) t,traffic_data(N_total_index,t,i),traffic_data(N_li_index,t,i),traffic_data(N_he_index,t,i)
+                
+                !Don't allow negative values that can occur when using 'normal' time profile type
+                traffic_data(N_he_index,t,i)=min(traffic_data(N_he_index,t,i),traffic_data(N_total_index,t,i))
+                traffic_data(N_li_index,t,i)=min(traffic_data(N_li_index,t,i),traffic_data(N_total_index,t,i))
+                traffic_data(N_he_index,t,i)=max(traffic_data(N_he_index,t,i),0.)
+                traffic_data(N_li_index,t,i)=max(traffic_data(N_li_index,t,i),0.)
+                
             enddo
             endif
             
