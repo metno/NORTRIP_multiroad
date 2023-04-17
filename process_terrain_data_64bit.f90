@@ -113,8 +113,10 @@
             goto 10
         endif
         
+        if (utm_zone.ne.terrain_utm_zone) then
+            write(unit_logfile,'(A,2i)') ' WARNING: Terrain is not the same projection as the road (road utm, terrain utm)', utm_zone,terrain_utm_zone
+        endif
         
-    
         !Define a point for testing
         !x_point=xllcorner+140.0*cellsize
         !y_point=yllcorner+122.4*cellsize
@@ -148,8 +150,8 @@
                 !write(*,*) 'Grid index :',i_point,j_point
     
                 !Mark it as out of bounds    
-                if (i_point.lt.0.or.i_point.gt.ncols) i_point=0
-                if (j_point.lt.0.or.j_point.gt.nrows) j_point=0
+                if (i_point.le.0.or.i_point.gt.ncols) i_point=0
+                if (j_point.le.0.or.j_point.gt.nrows) j_point=0
     
                 !Search for minimum in the local area
                 if (i_point.ne.0.and.j_point.ne.0) then    
@@ -267,6 +269,8 @@
                             !Determine the grid index it is in
                             i_point_step=int((x_point_step-x_array(1)+cellsize)/(x_array(ncols)-x_array(1)+cellsize)*ncols+1)
                             j_point_step=int((y_point_step-y_array(1)+cellsize)/(y_array(nrows)-y_array(1)+cellsize)*nrows+1)
+                            
+                            !write(*,*) i_point_step,j_point_step
            
                             if (i_point_step.gt.1.and.i_point_step.lt.ncols.and.j_point_step.gt.1.and.j_point_step.lt.nrows) then
             
