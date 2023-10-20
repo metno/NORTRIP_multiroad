@@ -448,7 +448,7 @@
     character(256) search_str,temp_str
     real temp
     integer unit_in
-    integer i,j
+    integer i,j,jj
     integer rl_length_short
     integer exists
     logical nxtdat_flag
@@ -458,6 +458,9 @@
     real temp_adt,temp_hdv,temp_speed,temp_width,temp_length,temp_tunnel_length
     integer counter
     integer n_allocate_roadlinks
+    integer n_subnodes_max
+    integer :: step_sublinks=1
+    integer count_max_subnodes
 
 	write(unit_logfile,'(A)') '================================================================'
 	write(unit_logfile,'(A)') 'Reading static road link data ascii (NORTRIP_multiroad_read_staticroadlink_data_ascii)'
@@ -497,12 +500,20 @@
     allocate (inputdata_int_rl(num_int_rl,n_allocate_roadlinks))
     allocate (inputdata_char_rl(num_char_rl,n_allocate_roadlinks))
     allocate (road_type_activity_flag_roads(num_road_type_activity,n_allocate_roadlinks))
+    if (only_use_major_roadlinks) then
+        allocate (inputdata_rl_sub(4,num_n_subnodes,n_allocate_roadlinks))
+    else
+        allocate (inputdata_rl_sub(4,1,n_allocate_roadlinks))
+    endif
+    
 
     !Initialise
     inputdata_rl=0.
     inputdata_int_rl=0
 
     counter=0
+    n_subnodes_max=0
+    count_max_subnodes=0
     !Read the data
     do i=1,n_roadlinks_major
         !ID ADT HDV ROAD_ACTIVITY_TYPE SPEED ROAD_WIDTH N_SUBLINKS ROAD_CATEGORY ROAD_LENGTH ROAD_STRUCTURE_TYPE REGION_ID ROAD_SURFACE_ID
@@ -514,6 +525,8 @@
         !write(*,*) sub_nodes_x(1:n_subnodes),sub_nodes_y(1:n_subnodes)
         !put in the road link data
         !if (temp_adt.gt.200) then
+        if (n_subnodes.gt.n_subnodes_max) n_subnodes_max=n_subnodes
+        
         if (only_use_major_roadlinks) then
             
             counter=counter+1
@@ -539,6 +552,26 @@
             inputdata_int_rl(roadsurface_id_rl_index,counter)=temp_surface_id
             !inputdata_int_rl(tunnel_length_rl_index,counter)=temp_tunnel_length
             
+            !Include the subnodes but do not let them excede the total array dimensions
+            !These are used for the station positions and the shadow calculations
+            !Step, skip over sublinks when there are many of them
+            step_sublinks=int(n_subnodes/num_n_subnodes)+1
+            if (step_sublinks.gt.1) then
+                !write(*,*) i,step_sublinks
+                count_max_subnodes=count_max_subnodes+1
+            endif
+            
+            !n_subnodes=min(n_subnodes,num_n_subnodes)
+            jj=0
+            do j=1,n_subnodes-step_sublinks,step_sublinks
+                jj=jj+1
+                inputdata_rl_sub(x1_rl_index,jj,counter)=sub_nodes_x(j)
+                inputdata_rl_sub(x2_rl_index,jj,counter)=sub_nodes_x(j+step_sublinks)
+                inputdata_rl_sub(y1_rl_index,jj,counter)=sub_nodes_y(j)
+                inputdata_rl_sub(y2_rl_index,jj,counter)=sub_nodes_y(j+step_sublinks)
+            enddo
+            inputdata_int_rl(n_subnodes_rl_index,counter)=jj+1
+            !write(*,*) n_subnodes,inputdata_int_rl(n_subnodes_rl_index,counter),step_sublinks
         else
             
         do j=1,n_subnodes-1
@@ -561,8 +594,13 @@
             inputdata_int_rl(roadstructuretype_rl_index,counter)=temp_road_structure_type
             inputdata_int_rl(roadsurface_id_rl_index,counter)=temp_surface_id
             !inputdata_int_rl(tunnel_length_rl_index,counter)=temp_tunnel_length
+            inputdata_rl_sub(x1_rl_index,1,counter)=inputdata_rl(x1_rl_index,counter)
+            inputdata_rl_sub(x2_rl_index,1,counter)=inputdata_rl(x2_rl_index,counter)
+            inputdata_rl_sub(y1_rl_index,1,counter)=inputdata_rl(y1_rl_index,counter)
+            inputdata_rl_sub(y2_rl_index,1,counter)=inputdata_rl(y2_rl_index,counter)
+
         enddo
-        
+        inputdata_int_rl(n_subnodes_rl_index,counter)=2
         endif
         !endif
     enddo
@@ -570,6 +608,10 @@
     write(unit_logfile,'(a,i)') ' Number of road links used = ', n_roadlinks
  
     close(unit_in,status='keep')
+    
+    write(unit_logfile,'(a,3i)') ' Maximum and allowed number of road sub links = ', n_subnodes_max, num_n_subnodes, count_max_subnodes
+
+    !stop
     
     !No speed in the files currently. Set all to 50 km/hr. Temporary
     !inputdata_rl(speed_rl_index,:)=50.

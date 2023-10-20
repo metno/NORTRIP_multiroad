@@ -43,7 +43,7 @@
     !Print to screen
     write(*,'(A)') ''
  	write(*,'(A)') '################################################################'
-    write(*,'(A)') 'Starting programme NORTRIP_multiroad_control_v4.3 (64 bit)'       
+    write(*,'(A)') 'Starting programme NORTRIP_multiroad_control_v4.4 (64 bit)'       
  	write(*,'(A)') '################################################################'
 
 
@@ -67,7 +67,7 @@
         open(unit_logfile,file=filename_log,status='old',position='append')
         write(unit_logfile,'(A)') ''
         write(unit_logfile,'(A)') '================================================================'
-        write(unit_logfile,'(A)') 'Starting program NORTRIP_multiroad_control_v4.0' 
+        write(unit_logfile,'(A)') 'Starting program NORTRIP_multiroad_control_v4.4' 
   	    write(unit_logfile,'(A)') '================================================================'
     endif
     

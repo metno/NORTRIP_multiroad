@@ -32,7 +32,7 @@
     real height_angle_max_av(2)
     real width_canyon(2),height_canyon(2)
     real :: pi=3.14159
-    integer s,f,ro
+    integer s,f,ro,ro2
     integer exists
     integer count_found
     real y_point_north,x_point_north,y_point_south,x_point_south
@@ -45,7 +45,7 @@
     !set search parameters for shading
     real :: length_segment_init=50.
     real :: kerb_width=5.
-    real :: max_canyon_search_distance=200.
+    real :: max_canyon_search_distance=100.
     real :: max_skyview_search_distance=20000.
     real :: forest_kerb_width=10.
     real :: forest_height=10.
@@ -58,6 +58,7 @@
     real height_angle_max_av_skyview(n_skyview)
     logical :: first_valid_segment=.false.
 
+    real length_sublink
  
 
     !n_skyview set in definitions
@@ -123,18 +124,30 @@
     
         !Loop through road links
         do ro=1,n_roadlinks
-          
-            n_segments=int(inputdata_rl(length_rl_index,ro)/length_segment_init)+1
+        
+            first_valid_segment=.true.
+        
+            !Loop through the sublinks
+            do ro2=1,inputdata_int_rl(n_subnodes_rl_index,ro)-1
+ 
+            !call distrl(save_road_x(j),save_road_y(j),inputdata_rl_sub(x1_rl_index,ii,i),inputdata_rl_sub(y1_rl_index,ii,i),inputdata_rl_sub(x2_rl_index,ii,i),inputdata_rl_sub(y2_rl_index,ii,i),temp_val,temp_val2,distance_to_link)!(X0,Y0,X1,Y1,X2,Y2,XM,YM,DM)
+            length_sublink=sqrt((inputdata_rl_sub(x1_rl_index,ro2,ro)-inputdata_rl_sub(x2_rl_index,ro2,ro))**2+(inputdata_rl_sub(y1_rl_index,ro2,ro)-inputdata_rl_sub(y2_rl_index,ro2,ro))**2)
+            n_segments=int(length_sublink/length_segment_init)+1
+            length_segment=length_sublink/n_segments
+
+            !n_segments=int(inputdata_rl(length_rl_index,ro)/length_segment_init)+1
             !n_segments=max(1,n_segments)
-            length_segment=inputdata_rl(length_rl_index,ro)/n_segments
+            !length_segment=inputdata_rl(length_rl_index,ro)/n_segments
             !write(*,*) ro,n_segments,length_segment
             
-            first_valid_segment=.true.
+            
             
             do seg=0,n_segments-1
             
-                x_point=(inputdata_rl(x1_rl_index,ro)*(n_segments-seg-.5)+inputdata_rl(x2_rl_index,ro)*(seg+.5))/n_segments
-                y_point=(inputdata_rl(y1_rl_index,ro)*(n_segments-seg-.5)+inputdata_rl(y2_rl_index,ro)*(seg+.5))/n_segments
+                !x_point=(inputdata_rl(x1_rl_index,ro)*(n_segments-seg-.5)+inputdata_rl(x2_rl_index,ro)*(seg+.5))/n_segments
+                !y_point=(inputdata_rl(y1_rl_index,ro)*(n_segments-seg-.5)+inputdata_rl(y2_rl_index,ro)*(seg+.5))/n_segments
+                x_point=(inputdata_rl_sub(x1_rl_index,ro2,ro)*(n_segments-seg-.5)+inputdata_rl_sub(x2_rl_index,ro2,ro)*(seg+.5))/n_segments
+                y_point=(inputdata_rl_sub(y1_rl_index,ro2,ro)*(n_segments-seg-.5)+inputdata_rl_sub(y2_rl_index,ro2,ro)*(seg+.5))/n_segments
      
                 !Here we assume that the road link data is in UTM coordinates and the terrain data is in UTM33
                 !If utm_zone <> terrain_utm_zone for the road links then convert the road data points to utm 33
@@ -316,6 +329,7 @@
                 endif !if within domain
                 
             enddo !segments
+            enddo !sublink loop
                 
 
             !Set the average skyview
@@ -404,6 +418,7 @@
     
     !Read in forest data and reset canyon appropriately
     !Sets canyon to 0 
+    !Does not include the sublinks currently, so not really correct
     if (n_forest_files.gt.0) then
 
     allocate (filename_ascii(n_forest_files))

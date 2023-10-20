@@ -130,10 +130,10 @@
     
     integer roadindex_rl_index,id_rl_index,drivingcycle_rl_index,pavementtype_rl_index,roadactivitytype_rl_index,nlanes_rl_index,savedata_rl_index,griddata_rl_index,ospm_pos_rl_index,roadstructuretype_rl_index
     parameter (roadindex_rl_index=1,id_rl_index=2,drivingcycle_rl_index=3,pavementtype_rl_index=4,roadactivitytype_rl_index=5,nlanes_rl_index=6,savedata_rl_index=7,griddata_rl_index=8,ospm_pos_rl_index=9,roadstructuretype_rl_index=10)
-    integer roadcategory_rl_index,region_id_rl_index,roadsurface_id_rl_index
-    parameter (roadcategory_rl_index=11,region_id_rl_index=12,roadsurface_id_rl_index=13)
+    integer roadcategory_rl_index,region_id_rl_index,roadsurface_id_rl_index,n_subnodes_rl_index
+    parameter (roadcategory_rl_index=11,region_id_rl_index=12,roadsurface_id_rl_index=13,n_subnodes_rl_index=14)
     integer num_int_rl,num_int_rl_epi
-    parameter(num_int_rl=13,num_int_rl_epi=2)
+    parameter(num_int_rl=14,num_int_rl_epi=2)
     
     integer roadname_rl_index
     parameter(roadname_rl_index=1)
@@ -595,6 +595,9 @@
     integer :: wetbulb_snow_rain_flag=0
     integer :: read_and_use_min_stud_fraction_flag=0
 
+    integer :: num_n_subnodes=250
+    real, allocatable :: inputdata_rl_sub(:,:,:)
+
 
     end module NORTRIP_multiroad_index_definitions
     
@@ -679,7 +682,7 @@
         slash='/'
         delete_file_command='rm -f'
     endif
-
+    
     
     end subroutine set_constant_values
     
