@@ -704,6 +704,8 @@
     real :: min_search_distance=100.
     real :: min_save_distance=3000.
     real :: min_save_distance_runway=1000.
+    real :: min_save_distance_custom=3000.
+    real :: min_save_distance_camera=100.
     real :: distance_to_link_min2=5000.
     
     logical :: read_receptor_type=.false.
@@ -979,17 +981,19 @@
                     !endif
                     
                     !Find the AQ stations, largest ADT within 100 m
-                    if (type_receptor(j).eq.receptor_aq_index) then
+                    if (save_road_receptor_type(j).eq.receptor_aq_index) then
                     if (adt_of_link.ge.adt_of_link_max.and.distance_to_link.lt.min_search_distance) then
+                    if (distance_to_link.lt.distance_to_link_min) then
                         adt_of_link_max=adt_of_link
                         i_link_adt_max=i
                         distance_to_link_min=distance_to_link
                         i_link_distance_min=i
                     endif
                     endif
+                    endif
                     
                     !Find the SVV and custom stations, closest road link
-                    if (type_receptor(j).eq.receptor_svv_index.or.type_receptor(j).eq.receptor_custom_index.or.type_receptor(j).eq.receptor_camera_index) then
+                    if (save_road_receptor_type(j).eq.receptor_svv_index.or.save_road_receptor_type(j).eq.receptor_custom_index.or.save_road_receptor_type(j).eq.receptor_camera_index) then
                     if (distance_to_link.lt.distance_to_link_min) then
                         adt_of_link_max=adt_of_link
                         i_link_adt_max=i
@@ -998,8 +1002,12 @@
                     endif
                     endif
 
+                    !if (j.eq.1247) then
+                    !    write(*,'(5i,2f12.1)') save_road_receptor_type(j),type_receptor(j),receptor_custom_index,i,ii,i_link_distance_min,distance_to_link,distance_to_link_min
+                    !endif
+
                     !Find the Runway stations, closest road link and the link must be a runway
-                    if (type_receptor(j).eq.receptor_runway_index.and.inputdata_int_rl(roadstructuretype_rl_index,i).eq.runway_roadtype) then
+                    if (save_road_receptor_type(j).eq.receptor_runway_index.and.inputdata_int_rl(roadstructuretype_rl_index,i).eq.runway_roadtype) then
                     if (distance_to_link.lt.distance_to_link_min) then
                         adt_of_link_max=adt_of_link
                         i_link_adt_max=i
@@ -1012,13 +1020,14 @@
                 endif
                 !write(*,*) j,i,distance_to_link_min !save_road_x(j),save_road_y(j),inputdata_int_rl(id_rl_index,i),inputdata_rl(x1_rl_index,i),inputdata_rl(y2_rl_index,i)
             enddo
-                !write(*,*) j,i_link_distance_min,distance_to_link_min
+                !write(*,'(2i,3f12.1)') j,i_link_distance_min,distance_to_link_min,save_road_x(j),save_road_y(j)
             !if (i_link_distance_min.gt.0.and.distance_to_link_min.lt.100.) then
             if (i_link_distance_min.gt.0.and.i_link_adt_max.gt.0.and.distance_to_link_min.le.min_search_distance &
-                .or.(distance_to_link_min.lt.min_save_distance.and.save_road_receptor_type(j).eq.receptor_custom_index) &
+                .or.(distance_to_link_min.lt.min_save_distance_custom.and.save_road_receptor_type(j).eq.receptor_custom_index) &
+                .or.(distance_to_link_min.lt.min_save_distance_camera.and.save_road_receptor_type(j).eq.receptor_camera_index) &
                 .or.(distance_to_link_min.lt.min_save_distance_runway.and.save_road_receptor_type(j).eq.receptor_runway_index)) then
                 jj=jj+1
-                i_link_distance_min=i_link_adt_max
+                !i_link_distance_min=i_link_adt_max
                 inputdata_int_rl(savedata_rl_index,i_link_distance_min)=1
                 inputdata_char_rl(roadname_rl_index,i_link_distance_min)=adjustl(save_road_name(j))
                 inputdata_int_rl(ospm_pos_rl_index,i_link_distance_min)=save_road_ospm_pos(j)

@@ -129,6 +129,9 @@
     !Read in sky view file
     call NORTRIP_multiroad_read_skyview_data
     
+    !Read receptor link file with special links to be saved
+    call NORTRIP_multiroad_read_receptor_data
+    
     !Read in meteorological data
     if (index(meteo_data_type,'metcoop').gt.0) then
         !Read in meteo data from MEPs or METCOOP data. This is standard
@@ -154,9 +157,6 @@
     
     !Read and replace meteo model data with meteo obs data
     call NORTRIP_multiroad_read_meteo_obs_data
-    
-    !Read receptor link file with special links to be saved
-    call NORTRIP_multiroad_read_receptor_data
     
     !Set the number of road links to be save
     !n_roadlinks=10
