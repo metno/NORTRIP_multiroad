@@ -980,14 +980,17 @@
                     !    adt_of_link=1e12
                     !endif
                     
-                    !Find the AQ stations, largest ADT within 100 m
+                    !Find the AQ stations, largest ADT within 100 m, when the same ADT then the closest
                     if (save_road_receptor_type(j).eq.receptor_aq_index) then
+                    !If the ADT is equal to or higher and the distance is less than the maximum allowed
                     if (adt_of_link.ge.adt_of_link_max.and.distance_to_link.lt.min_search_distance) then
-                    if (distance_to_link.lt.distance_to_link_min) then
+                    !if the ADT is higher or if it is the same and the ditance is less than the shortest current
+                    if (adt_of_link.gt.adt_of_link_max.or.(adt_of_link.ge.adt_of_link_max.and.distance_to_link.lt.distance_to_link_min)) then
                         adt_of_link_max=adt_of_link
                         i_link_adt_max=i
                         distance_to_link_min=distance_to_link
                         i_link_distance_min=i
+                        !write(*,*) i_link_adt_max,adt_of_link_max,distance_to_link_min
                     endif
                     endif
                     endif
