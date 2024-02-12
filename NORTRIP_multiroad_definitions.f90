@@ -604,7 +604,7 @@
 !==========================================================================
 !   set_constant_values
 !==========================================================================   
-    subroutine  set_constant_values   
+subroutine  set_constant_values   
     
     use NORTRIP_multiroad_index_definitions
 
@@ -625,7 +625,7 @@
     var_name_nc(elevation_index)='surface_elevation'
     var_name_nc(surface_temperature_index)='air_temperature_0m'
     var_name_nc(precip_snow_index)='snowfall_amount_acc'
-     
+
     var_name_nc2(lat_index2)='lat'
     var_name_nc2(lon_index2)='lon'
     var_name_nc2(elevation_index2)='altitude'
@@ -657,7 +657,7 @@
     n_roadlinks=1
     lapse_rate=-0.005 !(K/m)
     precip_cutoff=0.005 !Must be more than this to give precipitation (was 0.05 until 07.01.2021, increased to include fog droplet deposition)
- 
+
     !Stnr Year Month Day Time(NMT) UU PO TA RR_1 FF DD QSI NN TV
     var_name_meteo_obs(:)=''
     var_name_meteo_obs(pressure_index)='PO'
@@ -684,5 +684,5 @@
     endif
     
     
-    end subroutine set_constant_values
+end subroutine set_constant_values
     
