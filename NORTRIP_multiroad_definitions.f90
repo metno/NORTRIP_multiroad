@@ -277,6 +277,9 @@
     character(256) filename_init_in
     character(256) pathname_init_in
     character(256) pathfilename_init_in
+        !Declare file and path names for input initialisation file on netcdf format
+    character(256) filename_init_in_netcdf
+    character(256) pathfilename_init_in_netcdf
     !Declare file and path names for output initialisation file
     character(256) filename_init_out
     character(256) pathname_init_out
@@ -315,6 +318,7 @@
     character(256) filename_log_NORTRIP
     character(256) path_init
     character(256) filename_init
+    character(256) filename_init_netcdf
     character(256) path_init_out
     character(256) path_output_emis
     character(256) filename_output_emis
