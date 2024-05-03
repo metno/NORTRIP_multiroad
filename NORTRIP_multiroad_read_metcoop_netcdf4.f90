@@ -1,4 +1,4 @@
-    subroutine NORTRIP_read_metcoop_netcdf4
+subroutine NORTRIP_read_metcoop_netcdf4
     !Reads MEPS -  METcoop 66 hour forecast data
     
     use NORTRIP_multiroad_index_definitions
@@ -99,49 +99,47 @@
         endif
         
     endif
-
     if (.not.found_file) then
-    pathfilename_nc=trim(pathname_nc)//trim(filename_alternative_nc)
-    write(unit_logfile,'(A,A)') ' Trying to find alternative meteo netcdf file does not exist: ', trim(pathfilename_nc)
-     
-    !Test existence of the filename. If does not exist then use default
-    inquire(file=trim(pathfilename_nc),exist=exists)
-    if (.not.exists) then
-        write(unit_logfile,'(A,A)') ' WARNING: Alternative meteo netcdf file does not exist: ', trim(pathfilename_nc)
-        write(unit_logfile,'(A)') ' Will try every hour for the past 25 hours.'
-        !write(*,'(A,A)') ' ERROR: Meteo netcdf file does not exist. Stopping: ', trim(pathfilename_nc)
+        pathfilename_nc=trim(pathname_nc)//trim(filename_alternative_nc)
+        write(unit_logfile,'(A,A)') ' Trying to find alternative meteo netcdf file does not exist: ', trim(pathfilename_nc)
         
-        !Start search back 24 hours
-        new_start_date_input=start_date_input
-        found_file=.false.
-        do i=1,25
-            !call incrtm(-24,new_start_date_input(1),new_start_date_input(2),new_start_date_input(3),new_start_date_input(4))
-            temp_date=date_to_number(new_start_date_input)
-            call number_to_date(temp_date-1./24.,new_start_date_input)
-            !write(*,*) i,new_start_date_input(1:4)
-            call date_to_datestr_bracket(new_start_date_input,filename_alternative_nc_in,filename_alternative_nc)
-            call date_to_datestr_bracket(new_start_date_input,pathname_nc_in,pathname_nc)
-            pathfilename_nc=trim(pathname_nc)//trim(filename_alternative_nc)
-            write(unit_logfile,'(A,A)') ' Trying: ', trim(pathfilename_nc)
-            inquire(file=trim(pathfilename_nc),exist=exists)
-            if (exists) then
-                found_file=.true.
-                exit
-            else 
-                found_file=.false.
+        !Test existence of the filename. If does not exist then use default
+        inquire(file=trim(pathfilename_nc),exist=exists)
+        if (.not.exists) then
+            write(unit_logfile,'(A,A)') ' WARNING: Alternative meteo netcdf file does not exist: ', trim(pathfilename_nc)
+            write(unit_logfile,'(A)') ' Will try every hour for the past 25 hours.'
+
+            !Start search back 24 hours
+            new_start_date_input=start_date_input
+            found_file=.false.
+            do i=1,25
+                !call incrtm(-24,new_start_date_input(1),new_start_date_input(2),new_start_date_input(3),new_start_date_input(4))
+                temp_date=date_to_number(new_start_date_input)
+                call number_to_date(temp_date-1./24.,new_start_date_input)
+                !write(*,*) i,new_start_date_input(1:4)
+                call date_to_datestr_bracket(new_start_date_input,filename_alternative_nc_in,filename_alternative_nc)
+                call date_to_datestr_bracket(new_start_date_input,pathname_nc_in,pathname_nc)
+                pathfilename_nc=trim(pathname_nc)//trim(filename_alternative_nc)
+                write(unit_logfile,'(A,A)') ' Trying: ', trim(pathfilename_nc)
+                inquire(file=trim(pathfilename_nc),exist=exists)
+                if (exists) then
+                    found_file=.true.
+                    exit
+                else 
+                    found_file=.false.
+                endif
+            enddo
+            
+            if (.not.found_file) then
+                write(unit_logfile,'(A,A)') ' ERROR: Alternative meteo netcdf file still does not exist: ', trim(pathfilename_nc)
+                write(unit_logfile,'(A)') ' STOPPING'
+                !write(*,'(A,A)') ' ERROR: Meteo netcdf file does not exist. Stopping: ', trim(pathfilename_nc)
+                stop 8
+            else
+                write(unit_logfile,'(A,A)') ' Found earlier meteo netcdf file: ', trim(pathfilename_nc)
             endif
-        enddo
-        
-        if (.not.found_file) then
-            write(unit_logfile,'(A,A)') ' ERROR: Alternative meteo netcdf file still does not exist: ', trim(pathfilename_nc)
-            write(unit_logfile,'(A)') ' STOPPING'
-            !write(*,'(A,A)') ' ERROR: Meteo netcdf file does not exist. Stopping: ', trim(pathfilename_nc)
-            stop 8
-        else
-            write(unit_logfile,'(A,A)') ' Found earlier meteo netcdf file: ', trim(pathfilename_nc)
+            
         endif
-        
-    endif
     endif
     
     !Open the netcdf file for reading
@@ -207,17 +205,15 @@
     do i=1,num_dims_nc
         status_nc = NF90_INQ_VARID (id_nc, trim(dim_name_nc(i)), var_id_nc(i))
         status_nc = NF90_GET_VAR (id_nc, var_id_nc(i), var1d_nc(i,1:dim_length_nc(i)), start=(/dim_start_nc(i)/), count=(/dim_length_nc(i)/))
+
         if (i.eq.time_index) then
-        status_nc = NF90_GET_VAR (id_nc, var_id_nc(i), var1d_nc_dp(1:dim_length_nc(i)), start=(/dim_start_nc(i)/), count=(/dim_length_nc(i)/))
-        !write(*,*) status_nc,dim_length_nc(i),trim(dim_name_nc(i)), var1d_nc_dp(1), var1d_nc_dp(dim_length_nc(i))
-        var1d_nc(i,:)=real(var1d_nc_dp(:))
+            status_nc = NF90_GET_VAR (id_nc, var_id_nc(i), var1d_nc_dp(1:dim_length_nc(i)), start=(/dim_start_nc(i)/), count=(/dim_length_nc(i)/))
+
+            var1d_nc(i,:)=real(var1d_nc_dp(:))
             write(unit_logfile,'(3A,2i14)') ' ',trim(dim_name_nc(i)),' (min, max in hours): ' &
-                !,minval(int((var1d_nc(i,1:dim_length_nc(i))-var1d_nc(i,dim_start_nc(i)))/3600.+.5)+1) &
-                !,maxval(int((var1d_nc(i,1:dim_length_nc(i))-var1d_nc(i,dim_start_nc(i)))/3600.+.5)+1) 
                 ,int((var1d_nc(i,1)-var1d_nc(i,1))/3600.+.5)+1 &
                 ,int((var1d_nc(i,dim_length_nc(i))-var1d_nc(i,1))/3600.+.5)+1
-                !,int(var1d_nc(i,1)) &
-                !,int(var1d_nc(i,dim_length_nc(i)))
+
         else
             write(unit_logfile,'(3A,2f12.2)') ' ',trim(dim_name_nc(i)),' (min, max in km): ' &
                 ,minval(var1d_nc(i,1:dim_length_nc(i))),maxval(var1d_nc(i,1:dim_length_nc(i))) 
@@ -383,6 +379,5 @@
     if (allocated(var3d_emep)) deallocate(var3d_emep)
     
 
-    end subroutine NORTRIP_read_metcoop_netcdf4
 
-    
+end subroutine NORTRIP_read_metcoop_netcdf4

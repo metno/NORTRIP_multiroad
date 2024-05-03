@@ -1,4 +1,4 @@
-    subroutine NORTRIP_multiroad_read_meteo_obs_data
+subroutine NORTRIP_multiroad_read_meteo_obs_data
     
     use NORTRIP_multiroad_index_definitions
     
@@ -12,7 +12,7 @@
     character(256) temp_str,temp_str1,temp_str2
     character(256) temp_str_array(30)
     character(64) header_str(30),read_str(30),match_str
-    integer index_val,index_val1,index_val2,index_val3
+    integer index_val,index_val1,index_val2,index_val3 !TODO: Hva er 1, 2, 3?
     integer i_head
     integer unit_in
     integer ro,k,jj,ii,ro2,t,j
@@ -73,7 +73,7 @@
     
     !This file is a fixed format approximately as it comes out of KDVH but with names as single strings
     !Only accounts for height, not positional differences as these are given in lat lon
-    n_meteo_obs_stations=8
+    n_meteo_obs_stations=8 !TODO: Why is this set to 8?
     
 
     !Find out how long the file is, reading a dummy variable
@@ -140,7 +140,7 @@
         enddo
         write(unit_logfile,*) 'Number of stations in ; seperated file = ',index_val
         n_meteo_obs_stations=i
-      
+
     else
         
         write(unit_logfile,'(a10,a24,a10,a10,a10)') 'ID','Name','Height','Lat','Lon'
@@ -257,8 +257,8 @@
         meteo_obs_inputdata_available=0
         n_meteo_obs_date=0
         do i=1,n_meteo_obs_stations
-             n_meteo_obs_date_counter(i)=0
-             do j=1,index_val
+            n_meteo_obs_date_counter(i)=0
+            do j=1,index_val
                 if (station_id_temp(j).eq.meteo_obs_ID(i)) then
                     meteo_obs_inputdata_available(i)=1
                     n_meteo_obs_date_counter(i)=n_meteo_obs_date_counter(i)+1 !Sets the number of dates based on the last id read
@@ -268,19 +268,10 @@
         n_meteo_obs_station_data=sum(meteo_obs_inputdata_available)
         n_meteo_obs_date=maxval(n_meteo_obs_date_counter)   !Uses the maximum value which should be correct
     
-        !Read data
-        !Must match the metadata file in number of stations
-       ! if (n_meteo_obs_station_data.ne.0) then
-       !     n_meteo_obs_date=int(index_val/n_meteo_obs_station_data+.5)
-        !else
-       !     n_meteo_obs_date=0
-        !endif
-    
         write(unit_logfile,*) 'Number of stations= ',n_meteo_obs_stations
         write(unit_logfile,*) 'Number of stations in file= ',n_meteo_obs_station_data
         write(unit_logfile,*) 'Number of dates= ',n_meteo_obs_date
     
-        !allocate (input_array(i_head,index_val))
         allocate (input_array(i_head,n_meteo_obs_date,n_meteo_obs_stations))
         input_array=missing_data
     
@@ -297,7 +288,7 @@
             index_val=index_val+1
             read(unit_in,*,end=8) read_str(1:i_head)
             !write(*,*) read_str
-             do ii=1,i_head         
+            do ii=1,i_head         
                     !Set these two string types to missing data for the old obs datasets
                     index_val3=index(read_str(ii),'x')
                     index_val1=index(read_str(ii),'-')
@@ -307,158 +298,122 @@
                     else
                         read(read_str(ii),*) input_array_line(ii,index_val)
                     endif
-             enddo
+            enddo
         enddo  
 
 8       allocate (counter_id(n_meteo_obs_stations))
         counter_id=0
         input_array=missing_data
         do i=1,n_meteo_obs_stations
-             do j=1,index_val
+            do j=1,index_val
                 if (station_id_temp(j).eq.meteo_obs_ID(i)) then
                     counter_id(i)=counter_id(i)+1
                     input_array(:,counter_id(i),i)=input_array_line(:,j)
-                    !write(*,*) input_array(:,counter_id(i),i)
 
                 endif
             enddo
         enddo
-     
-        !read(unit_in,*) (((input_array(ii,jj,ro),ii=1,i_head),jj=1,n_meteo_obs_date),ro=1,n_meteo_obs_stations)
-    !    do ro=1,n_meteo_obs_stations
-    !        !Only read if data is available. This method means that the order must be the same in the metadata file and the data files
-    !        if (meteo_obs_inputdata_available(ro).eq.1) then
-    !            do jj=1,n_meteo_obs_date
-    !                read(unit_in,*) read_str(1:i_head)
-    !                !write(*,'(<i_head>a10)') read_str(1:i_head)
-    !                do ii=1,i_head
-    !                    !Set these two string types to missing data when they appear alone
-    !                    index_val1=index(read_str(ii),'-')
-    !                    index_val2=index(read_str(ii),'.')
-    !                    if (index_val1.eq.len(trim(read_str(ii))).or.index_val2.eq.len(trim(read_str(ii)))) then
-    !                        input_array(ii,jj,ro)=missing_data
-    !                    else
-    !                        read(read_str(ii),*) input_array(ii,jj,ro)
-    !                    endif
-    !                enddo          
-    !                !write(*,'(<i_head>f10.2)') input_array(:,jj,ro)
-    !            enddo
-    !        else
-    !            !Fill the array with missing data
-    !            do jj=1,n_meteo_obs_date
-    !            do ii=1,i_head
-    !                input_array(ii,jj,ro)=missing_data
-    !            enddo   
-    !            enddo
-    !        endif
-    !        
-    !    enddo
-    
- 
+
 10      close(unit_in,status='keep')
     
-    else
+    else       
+        do ro=1,n_read_obs_files
+            
+            !Open the obs file for reading
+            unit_in=40
         
-    do ro=1,n_read_obs_files
-        
-        !Open the obs file for reading
-        unit_in=40
-    
-        temp_str='station_str'
-        write(temp_str2,'(i0)') meteo_obs_ID(ro)
-        filename_temp=trim(inpath_meteo_obs_data)//trim(infile_meteo_obs_data)
-        filename_temp=replace_string_char(trim(temp_str2),trim(temp_str),filename_temp)
+            temp_str='station_str'
+            write(temp_str2,'(i0)') meteo_obs_ID(ro)
+            filename_temp=trim(inpath_meteo_obs_data)//trim(infile_meteo_obs_data)
+            filename_temp=replace_string_char(trim(temp_str2),trim(temp_str),filename_temp)
 
-        inquire(file=trim(filename_temp),exist=exists)
-        if (.not.exists) then
-            write(unit_logfile,'(A,A)') ' WARNING: Meteo obs data file does not exist: ', trim(filename_temp)
-            goto 12
-        else
-                write(unit_logfile,'(2A)') ' Opening obs meteo file: ',trim(filename_temp)
-        endif
-        open(unit_in,file=filename_temp,access='sequential',status='old',readonly)  
-    
-        !rewind(unit_in)
-    
-        !Read in header
-        !Stnr Year Month Day Time(NMT) UU PO TA RR_1 FF DD QSI NN TV
- 
-        !Read header string and split at spaces. Assumes single space seperation
-        temp_str1=''
-        temp_str2='Not available'
-        index_val=1
-        i_head=0
-        read(unit_in,'(a)',end=11) temp_str !Read the header string
-        !Check if any data given the ndap format for no data
-        !write(*,*) temp_str
-        if (index(temp_str,'****').gt.0) then
-            input_array(:,:,ro)=missing_data
-            goto 11
-        endif
-    
-        do while (len(trim(temp_str)).ne.0)
-            index_val=index(temp_str,' ')
-            !write(*,*) index_val,trim(temp_str),len(trim(temp_str))
-            if (index_val.gt.1) then
-                temp_str1=temp_str(1:index_val-1)
-                i_head=i_head+1
-                temp_str=temp_str(index_val+1:)
-                header_str(i_head)=temp_str1
-                !write(unit_logfile,*) i_head,len(temp_str),index_val,trim(header_str(i_head))
+            inquire(file=trim(filename_temp),exist=exists)
+            if (.not.exists) then
+                write(unit_logfile,'(A,A)') ' WARNING: Meteo obs data file does not exist: ', trim(filename_temp)
+                goto 12
             else
-                temp_str=temp_str(index_val+1:)
-                !write(*,*) index_val,len(temp_str),'temp_str',trim(temp_str)
-            endif        
+                    write(unit_logfile,'(2A)') ' Opening obs meteo file: ',trim(filename_temp)
+            endif
+            open(unit_in,file=filename_temp,access='sequential',status='old',readonly)  
         
-        end do
-        !write(unit_logfile,*) 'Number of columns= ',i_head
+            !rewind(unit_in)
+        
+            !Read in header
+            !Stnr Year Month Day Time(NMT) UU PO TA RR_1 FF DD QSI NN TV
+    
+            !Read header string and split at spaces. Assumes single space seperation
+            temp_str1=''
+            temp_str2='Not available'
+            index_val=1
+            i_head=0
+            read(unit_in,'(a)',end=11) temp_str !Read the header string
+            !Check if any data given the ndap format for no data
+            !write(*,*) temp_str
+            if (index(temp_str,'****').gt.0) then
+                input_array(:,:,ro)=missing_data
+                goto 11
+            endif
+        
+            do while (len(trim(temp_str)).ne.0)
+                index_val=index(temp_str,' ')
+                !write(*,*) index_val,trim(temp_str),len(trim(temp_str))
+                if (index_val.gt.1) then
+                    temp_str1=temp_str(1:index_val-1)
+                    i_head=i_head+1
+                    temp_str=temp_str(index_val+1:)
+                    header_str(i_head)=temp_str1
+                    !write(unit_logfile,*) i_head,len(temp_str),index_val,trim(header_str(i_head))
+                else
+                    temp_str=temp_str(index_val+1:)
+                    !write(*,*) index_val,len(temp_str),'temp_str',trim(temp_str)
+                endif        
+            
+            end do
+            !write(unit_logfile,*) 'Number of columns= ',i_head
 
-        !Find out how long the file is, reading a dummy variable
-        index_val=0
-        do while(.not.eof(unit_in))
-            index_val=index_val+1
-            read(unit_in,*,ERR=6)
-        enddo  
-        !write(unit_logfile,*) 'Number of rows= ',index_val
+            !Find out how long the file is, reading a dummy variable
+            index_val=0
+            do while(.not.eof(unit_in))
+                index_val=index_val+1
+                read(unit_in,*,ERR=6)
+            enddo  
+            !write(unit_logfile,*) 'Number of rows= ',index_val
 
-        !Read data
-6       n_meteo_obs_date=int(index_val)
-        !write(unit_logfile,*) 'Number of stations= ',ro,n_meteo_obs_stations
-        !write(unit_logfile,*) 'Number of dates= ',n_meteo_obs_date
-        !allocate (input_array(i_head,index_val))
-        if (.not.allocated(input_array)) then
-            allocate (input_array(i_head,n_meteo_obs_date,n_meteo_obs_stations))
-            input_array=missing_data
-        endif
-    
-        start_dim_meteo_obs=1
-        end_dim_meteo_obs=n_meteo_obs_date
-    
-        rewind(unit_in)
-        read(unit_in,*,ERR=6) !Skip header
-    
-        !read(unit_in,*) (((input_array(ii,jj,ro),ii=1,i_head),jj=1,n_meteo_obs_date),ro=1,n_meteo_obs_stations)
-            do jj=1,n_meteo_obs_date
-                read(unit_in,*) read_str(1:i_head)
-                !write(*,'(<i_head>a10)') read_str(1:i_head)
-                do ii=1,i_head
-                    !Set these two string types to missing data for the old obs datasets
-                    index_val3=index(read_str(ii),'x')
-                    index_val1=index(read_str(ii),'-')
-                    index_val2=index(read_str(ii),'.')
-                    if (index_val1.eq.len(trim(read_str(ii))).or.index_val2.eq.len(trim(read_str(ii))).or.index_val3.eq.len(trim(read_str(ii)))) then
-                        input_array(ii,jj,ro)=missing_data
-                    else
-                        read(read_str(ii),*) input_array(ii,jj,ro)
-                    endif
-                enddo          
-                !write(*,'(<i_head>f10.2)') input_array(:,jj,ro)
-            enddo               
- 
-11      close(unit_in,status='keep')
-    
-12  enddo
-    
+            !Read data
+6           n_meteo_obs_date=int(index_val)
+            !write(unit_logfile,*) 'Number of stations= ',ro,n_meteo_obs_stations
+            !write(unit_logfile,*) 'Number of dates= ',n_meteo_obs_date
+            !allocate (input_array(i_head,index_val))
+            if (.not.allocated(input_array)) then
+                allocate (input_array(i_head,n_meteo_obs_date,n_meteo_obs_stations))
+                input_array=missing_data
+            endif
+        
+            start_dim_meteo_obs=1
+            end_dim_meteo_obs=n_meteo_obs_date
+        
+            rewind(unit_in)
+            read(unit_in,*,ERR=6) !Skip header
+        
+            !read(unit_in,*) (((input_array(ii,jj,ro),ii=1,i_head),jj=1,n_meteo_obs_date),ro=1,n_meteo_obs_stations)
+                do jj=1,n_meteo_obs_date
+                    read(unit_in,*) read_str(1:i_head)
+                    !write(*,'(<i_head>a10)') read_str(1:i_head)
+                    do ii=1,i_head
+                        !Set these two string types to missing data for the old obs datasets
+                        index_val3=index(read_str(ii),'x')
+                        index_val1=index(read_str(ii),'-')
+                        index_val2=index(read_str(ii),'.')
+                        if (index_val1.eq.len(trim(read_str(ii))).or.index_val2.eq.len(trim(read_str(ii))).or.index_val3.eq.len(trim(read_str(ii)))) then
+                            input_array(ii,jj,ro)=missing_data
+                        else
+                            read(read_str(ii),*) input_array(ii,jj,ro)
+                        endif
+                    enddo          
+                    !write(*,'(<i_head>f10.2)') input_array(:,jj,ro)
+                enddo               
+11        close(unit_in,status='keep')
+12      enddo
     endif
 
     write(unit_logfile,'(a32,a14,a14,a14)') 'Parameter','First value','Last value','Mean value'
@@ -468,7 +423,7 @@
             input_array(i,1,1),input_array(i,n_meteo_obs_date,n_meteo_obs_stations), &
             sum(input_array(i,1:n_meteo_obs_date,1:n_meteo_obs_stations)/(n_meteo_obs_date*n_meteo_obs_stations))
     end do
- 	write(unit_logfile,'(A)') '----------------------------------------------------------------'
+    write(unit_logfile,'(A)') '----------------------------------------------------------------'
 
     allocate (meteo_obs_ID_data(n_meteo_obs_date,n_meteo_obs_stations))
     allocate (meteo_obs_date(num_date_index,n_meteo_obs_date))
@@ -504,9 +459,10 @@
      !do t=start_dim_meteo_obs,end_dim_meteo_obs
         !call incrtm(int(-DIFUTC_H),meteo_obs_date(1,t),meteo_obs_date(2,t),meteo_obs_date(3,t),meteo_obs_date(4,t))
      !enddo
-    
+
     
     !Match the observed meteorology date indexes to the prescribed dates
+    !TODO: Why does it have to match start or stop? This means that it will not replace hours in the middle of the prescribed date range? Replace this with a date-to-date match
     start_time_index_meteo_obs=0
     end_time_index_meteo_obs=0
     start_time_index_meteo_obs_found=.false.
@@ -525,8 +481,7 @@
             .and.meteo_obs_date(hour_index,t).eq.date_data(hour_index,n_hours_input)) then
             end_time_index_meteo_obs=t
             end_time_index_meteo_obs_found=.true.
-        endif
-        
+        endif        
     enddo
 
     hours_time_index_meteo_obs=end_time_index_meteo_obs-start_time_index_meteo_obs+1
@@ -564,10 +519,7 @@
             endif
         enddo
     enddo
-    !write(*,*) meteo_obs_ID_temp
-    !write(*,*) meteo_obs_ID
-    !write(*,*) meteo_obs_position(meteo_obs_height_index,:)
-    
+
     !Create the new meteo data using the first station in metadata list and filling up missing data downover
     !Temperature adjusted for lapse rate
     allocate (meteo_obs_data_final(num_var_meteo,hours_time_index_meteo_obs))
@@ -714,7 +666,7 @@
         endif  
     enddo
     !meteo_obs_data_final(:,:)=meteo_obs_data(:,start_time_index_meteo_obs:end_time_index_meteo_obs,1)
-   
+
     !Determine how much is still missing
     write(unit_logfile,'(a)') ' Available meteo obs data'
     write(unit_logfile,'(a12,a12,a14)') 'Index','Name','Available(%)'
