@@ -117,12 +117,10 @@
     
     call NORTRIP_multiroad_read_activity_data
 
-    !Reorder the links and traffic data to fit the selection. Don't do it for the road weather option
+    !Reorder the links and traffic data to fit the selection.
     !It also sets the gridding flags so needs to be called
-    !if (index(calculation_type,'road weather').eq.0) then
-        call NORTRIP_multiroad_reorder_staticroadlink_data
-    !endif
-    
+    call NORTRIP_multiroad_reorder_staticroadlink_data
+
     !Read DEM input data and make skyview file
     call process_terrain_data_64bit
     

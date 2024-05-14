@@ -844,11 +844,10 @@
             write(unit_logfile,'(a)') ' Opening receptor file '//trim(filename_NORTRIP_receptors)
     
             rewind(unit_in)
-            !call NXTDAT(unit_in,nxtdat_flag)
+
             !read the header to find out how many links there are
             read(unit_in,'(a)',ERR=19) temp_str1
             k=0
-            !write(*,*) trim(temp_str1)
             do while(.not.eof(unit_in))
                 k=k+1
                 if (read_receptor_type) then
@@ -1085,7 +1084,7 @@
         endif
 
     endif
-            
+
       ! if (use_only_special_links_flag.eq.2) then
       !      !Save all the road links
       !      write(unit_logfile,'(a,i)') ' Saving all road links: ',n_save_links
