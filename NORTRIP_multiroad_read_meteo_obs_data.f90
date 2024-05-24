@@ -425,7 +425,7 @@ subroutine NORTRIP_multiroad_read_meteo_obs_data
     end do
     write(unit_logfile,'(A)') '----------------------------------------------------------------'
 
-    allocate (meteo_obs_ID_data(n_meteo_obs_date,n_meteo_obs_stations))
+    allocate (meteo_obs_ID_data(n_meteo_obs_date,n_meteo_obs_stations)) !TODO: Seems like this is not used further. Can it be deleted?
     allocate (meteo_obs_date(num_date_index,n_meteo_obs_date))
     allocate (meteo_obs_data(num_var_meteo,n_meteo_obs_date,n_meteo_obs_stations))
     allocate (meteo_obs_ID_temp(n_meteo_obs_stations))
@@ -462,7 +462,6 @@ subroutine NORTRIP_multiroad_read_meteo_obs_data
 
     
     !Match the observed meteorology date indexes to the prescribed dates
-    !TODO: Why does it have to match start or stop? This means that it will not replace hours in the middle of the prescribed date range? Replace this with a date-to-date match
     start_time_index_meteo_obs=0
     end_time_index_meteo_obs=0
     start_time_index_meteo_obs_found=.false.

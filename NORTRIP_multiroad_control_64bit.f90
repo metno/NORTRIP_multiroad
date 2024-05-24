@@ -135,8 +135,10 @@
         !Read in meteo data from MEPs or METCOOP data. This is standard
         call NORTRIP_read_metcoop_netcdf4 
         if (replace_meteo_with_yr.eq.1) then
-            !call NORTRIP_read_t2m500yr_netcdf4
             call NORTRIP_read_analysismeteo_netcdf4
+        endif
+        if (replace_meteo_with_met_forecast.eq.1) then
+            call NORTRIP_read_MET_Nordic_forecast_netcdf4
         endif
     elseif (index(meteo_data_type,'emep').gt.0) then
         !Read in meteo data from EMEP. Same routines as coop but Pressure is in HPa and dimensions are different
@@ -153,8 +155,9 @@
          stop    
     endif
     
-    !Read and replace meteo model data with meteo obs data
-    call NORTRIP_multiroad_read_meteo_obs_data
+    !Read and replace meteo model data with meteo obs data !TODO: Make this a choice to determine what kind of file the observations should be read from.
+    !call NORTRIP_multiroad_read_meteo_obs_data
+    call NORTRIP_multiroad_read_meteo_obs_data_netcdf
     
     !Set the number of road links to be save
     !n_roadlinks=10
