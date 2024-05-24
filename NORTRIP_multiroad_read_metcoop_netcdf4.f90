@@ -21,7 +21,7 @@ subroutine NORTRIP_read_metcoop_netcdf4
     integer, allocatable :: dim_start_metcoop_nc(:)
      
     character(256) dimname_temp
-    integer i
+    integer i,j,k
     integer i_grid_mid,j_grid_mid
     real dlat_nc
     integer exists
@@ -50,6 +50,8 @@ subroutine NORTRIP_read_metcoop_netcdf4
     
     integer var_id_nc_projection
     integer :: j,h,t
+    real :: TOC=273.15
+    real :: RH_from_dewpoint_func
 
 	write(unit_logfile,'(A)') '================================================================'
 	write(unit_logfile,'(A)') 'Reading meteorological data (NORTRIP_read_metcoop_netcdf4)'
@@ -194,6 +196,7 @@ subroutine NORTRIP_read_metcoop_netcdf4
     endif
      
     !Allocate the nc arrays for reading
+    allocate (var1d_time_nc_old(dim_length_nc(time_index)) ) !Time allocated separately bc. it needs to be double presicion.
     allocate (var1d_nc_old(num_dims_nc,maxval(dim_length_nc))) !x and y and time maximum dimmensions
     allocate (var1d_nc_dp(maxval(dim_length_nc))) !x and y and time maximum dimmensions
     allocate (var3d_nc_old(num_var_nc,dim_length_nc(x_index),dim_length_nc(y_index),dim_length_nc(time_index)))
@@ -214,8 +217,7 @@ subroutine NORTRIP_read_metcoop_netcdf4
 
         if (i.eq.time_index) then
             status_nc = NF90_GET_VAR (id_nc, var_id_nc(i), var1d_nc_dp(1:dim_length_nc(i)), start=(/dim_start_nc(i)/), count=(/dim_length_nc(i)/))
-
-            var1d_nc_old(i,:)=real(var1d_nc_dp(:))
+            var1d_time_nc_old(:)=var1d_nc_dp(1:dim_length_nc(time_index))
             write(unit_logfile,'(3A,2i14)') ' ',trim(dim_name_nc(i)),' (min, max in hours): ' &
                 ,int((var1d_nc_old(i,1)-var1d_nc_old(i,1))/3600.+.5)+1 &
                 ,int((var1d_nc_old(i,dim_length_nc(i))-var1d_nc_old(i,1))/3600.+.5)+1
@@ -353,6 +355,19 @@ subroutine NORTRIP_read_metcoop_netcdf4
         stop
     endif    
 
+    !Convert dew point to RH if RH not available and dewpoint is
+    if (var_available_nc(dewpoint_index).and..not.var_available_nc(relhumidity_index)) then
+        do k=1,size(var3d_nc,4)
+        do j=1,size(var3d_nc,3)
+        do i=1,size(var3d_nc,2)
+            var3d_nc(relhumidity_index,i,j,k)=RH_from_dewpoint_func(var3d_nc(temperature_index,i,j,k)-TOC,var3d_nc(dewpoint_index,i,j,k)-TOC)/100.
+            var3d_nc(relhumidity_index,i,j,k)=max(var3d_nc(relhumidity_index,i,j,k),0.)
+            var3d_nc(relhumidity_index,i,j,k)=min(var3d_nc(relhumidity_index,i,j,k),1.)
+        enddo
+        enddo
+        enddo
+    endif
+    
     !Calculate angle difference between North and the Model Y direction based on the middle grids
     !Not correct, needs to be fixed !TODO: Is this fixed?
     i_grid_mid=int(dim_length_nc(x_index)/2)

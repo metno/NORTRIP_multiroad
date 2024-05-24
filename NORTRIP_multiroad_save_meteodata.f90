@@ -125,7 +125,7 @@ subroutine NORTRIP_multiroad_create_meteodata
             endif
         
         !This actually means we do not have an x,y coodinate system and we 'approximate' the lat lon assuming the x,y grid is roughly in a N-S direction
-        elseif (index(meteo_data_type,'nbv').gt.0.or.index(meteo_data_type,'metcoop').gt.0.or.index(meteo_data_type,'emep').gt.0) then
+        elseif (index(meteo_data_type,'nbv').gt.0.or.index(meteo_data_type,'metcoop').gt.0.or.index(meteo_data_type,'emep').gt.0.or.index(meteo_data_type,'nora3').gt.0) then
             !loop through all grids to find the nearest in lat lon
             
             !This method should work for any roughly north south projection but is not 'exact'. Can be out by a grid
@@ -211,22 +211,20 @@ subroutine NORTRIP_multiroad_create_meteodata
     end_time_index_nc=end_dim_nc(time_index)
     
     ! !NOTE: This is not optimal because of the round off errors. Should be relooked at
-    ! do t=start_dim_nc(time_index),end_dim_nc(time_index)
+    do t=start_dim_nc(time_index),end_dim_nc(time_index)
     !     !Netcdf are in seconds since 1970
     !     !Round off errors in the time requires getting the value to the nearest hour
     !     !Errors involved
 
-    !     date_nc(:,t)=0
-        
-    !     !Calculate the day
-    !     time_temp=dble(int(var1d_nc(time_index,t)/sngl(seconds_in_hour*hours_in_day)+1./24./60.)) !Add 5 minutes for round off errors
+        date_nc(:,t)=0
+        !Calculate the day
+        time_temp=dble(idint(var1d_time_nc(t)/(seconds_in_hour*hours_in_day)+1./24./3600.)) !Add 1 second for round off errors
+        call number_to_date(time_temp,date_nc(:,t))
+        !Calculate hour of the day
+        date_nc(hour_index,t)=idint((var1d_time_nc(t)-time_temp*dble(seconds_in_hour*hours_in_day))/dble(3600.)+.5)
 
-    !     call number_to_date(time_temp,date_nc(:,t)) 
-    !     !Calculate hour of the day
-    !     date_nc(hour_index,t)=int((var1d_nc(time_index,t)-time_temp*sngl(seconds_in_hour*hours_in_day))/3600.+.5)
-    !     date_nc(minute_index,t)=int((var1d_nc(time_index,t)-(time_temp*sngl(seconds_in_hour*hours_in_day))-(date_nc(hour_index,t)*seconds_in_hour)/60))
-    !    !TODO: number_to_date is defined in two different files that are almost identical (NORTRIP_time_functions and NORTRIP_multiroad/NORTRIP/NORTRIP_time_functions. This is confusing, can one of them be removed? What is the reason for having the "NORTRIP" directory inside the multiroad directory?)
-    ! enddo
+                
+    enddo
 
     !Meteo data in UTC. Adjust the time stamp to local time
     !DIFUTC_H is UTC relative to local, so negative if local time is ahead
@@ -368,14 +366,14 @@ subroutine NORTRIP_multiroad_create_meteodata
             .or.(use_only_special_links_flag.eq.0).or.(use_only_special_links_flag.eq.2)) then
 
 
-                do t=1,hours_time_index_nc
+                do t=1,hours_time_index_nc !TODO: Compare hours_time_index_nc w. n_hours_input
                 
                 !do t=start_time_index_nc,end_time_index_nc
                 j_mod=start_time_index_nc+t-1
                 j_obs=start_time_index_meteo_obs+t-1
                 j_obs=t  
 
-                time_temp=var1d_nc(time_index,j_mod)    !Not used here as this is the time stamp
+                time_temp=var1d_time_nc(j_mod)    !Not used here as this is the time stamp
                 meteo_temp(temperature_index)=var3d_nc(temperature_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i),j_mod)-273.15
                 meteo_temp(speed_wind_index)=sqrt(var3d_nc(x_wind_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i),j_mod)**2 &
                     + var3d_nc(y_wind_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i),j_mod)**2) 
