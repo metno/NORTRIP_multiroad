@@ -117,7 +117,7 @@
             endif
         
         !This actually means we do not have an x,y coodinate system and we 'approximate' the lat lon assuming the x,y grid is roughly in a N-S direction
-        elseif (index(meteo_data_type,'nbv').gt.0.or.index(meteo_data_type,'metcoop').gt.0.or.index(meteo_data_type,'emep').gt.0) then
+        elseif (index(meteo_data_type,'nbv').gt.0.or.index(meteo_data_type,'metcoop').gt.0.or.index(meteo_data_type,'emep').gt.0.or.index(meteo_data_type,'nora3').gt.0) then
             !loop through all grids to find the nearest in lat lon
             !This method is very inneffective for large numbers of links. Another way must be found
             !i_dist_min=0
@@ -258,10 +258,10 @@
 
         date_nc(:,t)=0
         !Calculate the day
-        time_temp=dble(int(var1d_nc(time_index,t)/sngl(seconds_in_hour*hours_in_day)+5./24./60.)) !Add 5 minutes for round off errors
+        time_temp=dble(idint(var1d_time_nc(t)/(seconds_in_hour*hours_in_day)+1./24./3600.)) !Add 1 second for round off errors
         call number_to_date(time_temp,date_nc(:,t))
         !Calculate hour of the day
-        date_nc(hour_index,t)=int((var1d_nc(time_index,t)-time_temp*sngl(seconds_in_hour*hours_in_day))/3600.+.5)
+        date_nc(hour_index,t)=idint((var1d_time_nc(t)-time_temp*dble(seconds_in_hour*hours_in_day))/dble(3600.)+.5)
 
         !time_temp=int(var1d_nc(time_index,t)/sngl(seconds_in_hour))/sngl(hours_in_day)
         !call number_to_date(time_temp,date_nc(:,t))
@@ -355,7 +355,7 @@
             j_obs=start_time_index_meteo_obs+t-1
             j_obs=t
             !write(*,'(5i)') i,grid_index_rl(x_index,i),grid_index_rl(y_index,i),dim_length_nc(x_index),dim_length_nc(y_index)
-            time_temp=var1d_nc(time_index,j_mod)    !Not used here as this is the time stamp
+            time_temp=var1d_time_nc(j_mod)    !Not used here as this is the time stamp
             meteo_temp(temperature_index)=var3d_nc(temperature_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i),j_mod)-273.15
             meteo_temp(speed_wind_index)=sqrt(var3d_nc(x_wind_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i),j_mod)**2 &
                 + var3d_nc(y_wind_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i),j_mod)**2) 

@@ -36,14 +36,14 @@
 
     integer lat_index,lon_index,pressure_index,temperature_index,relhumidity_index,cloudfraction_index
     integer x_wind_index,y_wind_index,precip_index,shortwaveradiation_index,longwaveradiation_index,elevation_index
-    integer speed_wind_index,dir_wind_index,rain_index,snow_index,road_temperature_index,surface_temperature_index,precip_snow_index
+    integer speed_wind_index,dir_wind_index,rain_index,snow_index,road_temperature_index,surface_temperature_index,precip_snow_index,dewpoint_index
     
     parameter (lat_index=1,lon_index=2,pressure_index=3,temperature_index=4,relhumidity_index=5,cloudfraction_index=6)
-    parameter (x_wind_index=7,y_wind_index=8,precip_index=9,shortwaveradiation_index=10,longwaveradiation_index=11,elevation_index=12,surface_temperature_index=13,precip_snow_index=14)
-    parameter (speed_wind_index=15,dir_wind_index=16,rain_index=17,snow_index=18,road_temperature_index=19)
+    parameter (x_wind_index=7,y_wind_index=8,precip_index=9,shortwaveradiation_index=10,longwaveradiation_index=11,elevation_index=12,surface_temperature_index=13,precip_snow_index=14,dewpoint_index=15)
+    parameter (speed_wind_index=16,dir_wind_index=17,rain_index=18,snow_index=19,road_temperature_index=20)
     
     integer num_var_nc,num_var_meteo
-    parameter (num_var_nc=14,num_var_meteo=19)                  ! number of variables
+    parameter (num_var_nc=15,num_var_meteo=20)                  ! number of variables
 
     character(256) var_name_nc(num_var_nc)
     character(256) dim_name_nc(num_dims_nc)
@@ -67,14 +67,14 @@
     integer start_dim_nc2(num_dims_nc2)
 
     !3d data. Reorganised for memory reduction
-    integer temperature_index2,relhumidity_index2,cloudfraction_index2,precip_index2,x_wind_index2,y_wind_index2,speed_wind_index2,dir_wind_index2
+    integer temperature_index2,relhumidity_index2,cloudfraction_index2,precip_index2,x_wind_index2,y_wind_index2,speed_wind_index2,dir_wind_index2,dewpoint_index2
     parameter (temperature_index2=1,relhumidity_index2=2,cloudfraction_index2=3,precip_index2=4,x_wind_index2=5,y_wind_index2=6,speed_wind_index2=7,dir_wind_index2=8)
     !2d data
     integer lat_index2,lon_index2,elevation_index2 
-    parameter (lat_index2=9,lon_index2=10,elevation_index2=11)
+    parameter (lat_index2=9,lon_index2=10,elevation_index2=11,dewpoint_index2=12)
     
     integer num_var_nc2
-    parameter (num_var_nc2=11)                ! number of variables
+    parameter (num_var_nc2=12)                ! number of variables
 
     character(256) var_name_nc2(num_var_nc2)
     character(256) dim_name_nc2(num_dims_nc2)
@@ -100,6 +100,7 @@
 
     !Declare netcdf files
     real, allocatable :: var1d_nc(:,:)
+    double precision, allocatable :: var1d_time_nc(:)
     real, allocatable :: var2d_nc(:,:,:)
     real, allocatable :: var3d_nc(:,:,:,:)
     real angle_nc
@@ -632,6 +633,7 @@
     var_name_nc2(temperature_index2)='air_temperature_2m'
     
     var_name_nc2(relhumidity_index2)='relative_humidity_2m'
+    var_name_nc2(dewpoint_index2)='dew_point_temperature_2m'
     var_name_nc2(cloudfraction_index2)='cloud_area_fraction'
     var_name_nc2(precip_index2)='precipitation_amount'
     var_name_nc2(x_wind_index2)='x_wind_10m'

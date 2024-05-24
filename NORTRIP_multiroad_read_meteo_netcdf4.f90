@@ -172,6 +172,7 @@
     write(unit_logfile,'(A,3I)') ' Size of dimensions (x,y,t): ',dim_length_nc
      
     !Allocate the nc arrays for reading
+    allocate (var1d_time_nc(dim_length_nc(time_index)) )!x and y and time maximum dimmensions
     allocate (var1d_nc(num_dims_nc,maxval(dim_length_nc))) !x and y and time maximum dimmensions
     allocate (var1d_nc_dp(maxval(dim_length_nc))) !x and y and time maximum dimmensions
     allocate (var3d_nc(num_var_nc,dim_length_nc(x_index),dim_length_nc(y_index),dim_length_nc(time_index)))
@@ -190,6 +191,7 @@
         !status_nc = NF90_GET_VAR (id_nc, var_id_nc(i),var1d_nc(i,1:dim_length_nc(i)),start=(/dim_start_nc(i)/),count=(/dim_length_nc(i)/))!;var1d_nc(1:dim_length_nc(i),i)=real(var1d_nc_dp(1:dim_length_nc(i)))  
         status_nc = NF90_GET_VAR (id_nc, var_id_nc(i),var1d_nc_dp(1:dim_length_nc(i)),start=(/dim_start_nc(i)/),count=(/dim_length_nc(i)/));var1d_nc(i,1:dim_length_nc(i))=real(var1d_nc_dp(1:dim_length_nc(i)))  
         if (i.eq.time_index) then
+        var1d_time_nc(:)=var1d_nc_dp(1:dim_length_nc(time_index))
             write(unit_logfile,'(3A,2i12)') ' ',trim(dim_name_nc(i)),' (min, max in hours): ' &
                 ,minval(int((var1d_nc(i,1:dim_length_nc(i))-var1d_nc(i,dim_start_nc(i)))/3600.+.5)+1) &
                 ,maxval(int((var1d_nc(i,1:dim_length_nc(i))-var1d_nc(i,dim_start_nc(i)))/3600.+.5)+1) 
