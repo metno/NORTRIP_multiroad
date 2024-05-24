@@ -140,6 +140,13 @@
             !call NORTRIP_read_t2m500yr_netcdf4
             call NORTRIP_read_analysismeteo_netcdf4
         endif
+    elseif (index(meteo_data_type,'nora3').gt.0) then
+        !Read in meteo data from MEPs or METCOOP data. This is standard
+        call NORTRIP_read_nora3_netcdf4 
+        if (replace_meteo_with_yr.eq.1) then
+            !call NORTRIP_read_t2m500yr_netcdf4
+            call NORTRIP_read_analysismeteo_netcdf4
+        endif 
     elseif (index(meteo_data_type,'emep').gt.0) then
         !Read in meteo data from EMEP. Same routines as coop but Pressure is in HPa and dimensions are different
         call NORTRIP_read_metcoop_netcdf4 
