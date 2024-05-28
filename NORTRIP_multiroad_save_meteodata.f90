@@ -211,20 +211,21 @@ subroutine NORTRIP_multiroad_create_meteodata
     end_time_index_nc=end_dim_nc(time_index)
     
     ! !NOTE: This is not optimal because of the round off errors. Should be relooked at
-    do t=start_dim_nc(time_index),end_dim_nc(time_index)
-    !     !Netcdf are in seconds since 1970
-    !     !Round off errors in the time requires getting the value to the nearest hour
-    !     !Errors involved
+    ! do t=start_dim_nc(time_index),end_dim_nc(time_index)
+    ! !     !Netcdf are in seconds since 1970
+    ! !     !Round off errors in the time requires getting the value to the nearest hour
+    ! !     !Errors involved
 
-        date_nc(:,t)=0
-        !Calculate the day
-        time_temp=dble(idint(var1d_time_nc(t)/(seconds_in_hour*hours_in_day)+1./24./3600.)) !Add 1 second for round off errors
-        call number_to_date(time_temp,date_nc(:,t))
-        !Calculate hour of the day
-        date_nc(hour_index,t)=idint((var1d_time_nc(t)-time_temp*dble(seconds_in_hour*hours_in_day))/dble(3600.)+.5)
+    !     date_nc(:,t)=0
+    !     !Calculate the day
+    !     time_temp=dble(idint(var1d_time_nc(t)/(seconds_in_hour*hours_in_day)+1./24./3600.)) !Add 1 second for round off errors
+    !     call number_to_date(time_temp,date_nc(:,t))
+    !     !Calculate hour of the day
+    !     date_nc(hour_index,t)=idint((var1d_time_nc(t)-time_temp*dble(seconds_in_hour*hours_in_day))/dble(3600.)+.5)
 
+    !     date_nc(minute_index,t)=idint((var1d_time_nc(t)-time_temp*dble(seconds_in_hour*hours_in_day))/dble(3600.)-time_temp*dble(60*60*24)/dble(60.) +.5)
                 
-    enddo
+    ! enddo
 
     !Meteo data in UTC. Adjust the time stamp to local time
     !DIFUTC_H is UTC relative to local, so negative if local time is ahead
@@ -296,7 +297,7 @@ subroutine NORTRIP_multiroad_create_meteodata
         write(unit_logfile,'(a32,6i6)') ' Start date forecast meteo local = ',local_date_nc_forecast(:,start_dim_nc_forecast(time_index))
         write(unit_logfile,'(a32,6i6)') ' End date forecast meteo local = ',local_date_nc_forecast(:,end_dim_nc_forecast(time_index))
     
-        !Find starting and finishing index !TODO: This matches the netcdf dates with the date range given by the simulation setup. Take a closer look at this and determine if start_time_index_nc_forecast and end are set correctly with the new setup.
+        !Find starting and finishing index 
         
         start_time_index_nc_forecast_found=.false.
         end_time_index_nc_forecast_found=.false.
@@ -353,26 +354,24 @@ subroutine NORTRIP_multiroad_create_meteodata
         write(unit_logfile,'(a)') 'No met forecast meteo data available at all. Will not replace arome data with met forecast data.'
     endif
 
-    ! if (meteo_obs_data_available) then
-    !     write(unit_logfile,'(a)') 'Replacing model values with observations (model,obs)'
-    !     write(unit_logfile,'(10a20)') 'Temperature','Wind speed','Wind direction','Humidity','Precipitation','Shortwave','Longwave','Pressure','Surface_temperature','T_adjust_lapse'
-    ! endif
+    if (meteo_obs_data_available) then
+        write(unit_logfile,'(a)') 'Replacing model values with observations (model,obs)'
+        write(unit_logfile,'(10a20)') 'Temperature','Wind speed','Wind direction','Humidity','Precipitation','Shortwave','Longwave','Pressure','Surface_temperature','T_adjust_lapse'
+    endif
 
     !Distribute meteo data to roadlinks. Saves all links or specified links.
     do j=1,n_save_links
         i=save_links(j)
-
+        
         if ((inputdata_int_rl(savedata_rl_index,i).eq.1.and.use_only_special_links_flag.ge.1) &
-            .or.(use_only_special_links_flag.eq.0).or.(use_only_special_links_flag.eq.2)) then
-
-
+        .or.(use_only_special_links_flag.eq.0).or.(use_only_special_links_flag.eq.2)) then
+            
                 do t=1,hours_time_index_nc !TODO: Compare hours_time_index_nc w. n_hours_input
                 
                 !do t=start_time_index_nc,end_time_index_nc
                 j_mod=start_time_index_nc+t-1
                 j_obs=start_time_index_meteo_obs+t-1
                 j_obs=t  
-
                 time_temp=var1d_time_nc(j_mod)    !Not used here as this is the time stamp
                 meteo_temp(temperature_index)=var3d_nc(temperature_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i),j_mod)-273.15
                 meteo_temp(speed_wind_index)=sqrt(var3d_nc(x_wind_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i),j_mod)**2 &
@@ -690,9 +689,14 @@ subroutine NORTRIP_multiroad_create_meteodata
                 endif
                 
                 !Replacing at individual stations
+
                 if (meteo_obs_data_available.and.replace_meteo_with_obs.eq.2) then
+
                     ii=save_meteo_index(j) !Was jj
-                    ii = findloc(meteo_obs_name, trim(save_road_name(j)),dim=1)
+
+
+                    ii = findloc(meteo_obs_name, trim(save_road_name(ii)),dim=1)
+
 
                     !Adjusts the model temperature according to lapse rate so it fits to the observation height. Only does this if replace_meteo_with_obs.eq.2
                     if (replace_meteo_with_yr.eq.1) then
@@ -707,7 +711,8 @@ subroutine NORTRIP_multiroad_create_meteodata
                     if ( any(obs_exist(2,:) == t) ) then
                         datetime_match = findloc(obs_exist,t)
 
-                        if (not_shown_once) then 
+
+                        if (.true.) then 
                             write(unit_logfile,'(18f10.1,f10.3)') meteo_temp(temperature_index)+adjust_lapse,meteo_obs_data(temperature_index,datetime_match(2),ii) &
                                     ,meteo_temp(speed_wind_index),meteo_obs_data(speed_wind_index,datetime_match(2),ii) & 
                                     ,meteo_temp(dir_wind_index),meteo_obs_data(dir_wind_index,datetime_match(2),ii) & 

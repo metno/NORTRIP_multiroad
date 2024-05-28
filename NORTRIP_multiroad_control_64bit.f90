@@ -162,9 +162,12 @@
          stop    
     endif
     
-    !Read and replace meteo model data with meteo obs data !TODO: Make this a choice to determine what kind of file the observations should be read from.
-    !call NORTRIP_multiroad_read_meteo_obs_data
-    call NORTRIP_multiroad_read_meteo_obs_data_netcdf
+    !Read and replace meteo model data with meteo obs data
+    if ( read_obs_from_netcdf ) then
+        call NORTRIP_multiroad_read_meteo_obs_data_netcdf
+    else
+        call NORTRIP_multiroad_read_meteo_obs_data
+    end if
     
     !Set the number of road links to be save
     !n_roadlinks=10

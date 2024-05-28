@@ -77,7 +77,7 @@
     write(unit_logfile,'(A,4I5)') ' End date: ', end_date_input(year_index),end_date_input(month_index),end_date_input(day_index),end_date_input(hour_index)
     
     !Calculate the number of hours between end and start dates
-    n_hours_input=int((date_to_number(end_date_input)-date_to_number(start_date_input))*24./timestep+.5)+1
+    n_hours_input=int((date_to_number(end_date_input)-date_to_number(start_date_input))*24./timestep+.5)
     if (n_hours_input.lt.1) then
         !n_hours_input=n_hours_default
         write(unit_logfile,'(A)') ' ERROR: Number of hours is 0 or less. Stopping'
@@ -86,7 +86,7 @@
     write(unit_logfile,'(A,4I5)') ' Number of timesteps: ', n_hours_input
     
     !Allocate a time array to the input data
-    allocate (date_data(num_date_index,n_hours_input)) !TODO: Should this array still use hours to determine second dimension, or should it be determined by the timestep?
+    allocate (date_data(num_date_index,n_hours_input)) !TODO: Should this array still use hours to determine second dimension, or should it be determined by the timestep? Best option to rename n_hours_input? It is also unclear what this "input" refers to? The dates that have been given as input?
     date_data=0
     
     if ( timestep .eq. 1. ) then
@@ -128,8 +128,11 @@
     call date_to_datestr_bracket(start_date_input,filename_alternative_nc_template,filename_alternative_nc)
     call date_to_datestr_bracket(start_date_input,inpath_meteo_obs_data,inpath_meteo_obs_data)
     call date_to_datestr_bracket(start_date_input,infile_meteo_obs_data,infile_meteo_obs_data)
+    call date_to_datestr_bracket(start_date_input,inpath_meteo_obs_netcdf_data,inpath_meteo_obs_netcdf_data)
+    call date_to_datestr_bracket(start_date_input,infile_meteo_obs_netcdf_data,infile_meteo_obs_netcdf_data)
+    call date_to_datestr_bracket(start_date_input,infile_meteo_obs_netcdf_data,infile_meteo_obs_netcdf_data)
     call date_to_datestr_bracket(start_date_input,path_outputdata,path_outputdata)    
-    
+
     !Roadlink ID activity files
     call date_to_datestr_bracket(start_date_input,inpath_activity,inpath_activity)    
     call date_to_datestr_bracket(start_date_input,infile_activity,infile_activity)    
@@ -296,6 +299,8 @@
     DIFUTC_H=match_string_val('Time difference site',unit_in,unit_logfile,0.0)
     DIFUTC_H_traffic=match_string_val('Time difference traffic',unit_in,unit_logfile,0.0)
     missing_data=match_string_val('Missing data value',unit_in,unit_logfile,-999.)
+    no_of_timesteps=match_string_int('Number of timesteps within one hour',unit_in,unit_logfile,1)
+    timestep = 1./no_of_timesteps
     hours_between_init=match_string_int('Hours between saving init files',unit_in,unit_logfile,24)
     hours_between_init = int(hours_between_init/timestep)
 
@@ -423,6 +428,8 @@
     filename_meteo_obs_metadata=match_string_char('filename_meteo_obs_metadata',unit_in,unit_logfile,'')
     inpath_meteo_obs_data=match_string_char('inpath_meteo_obs_data',unit_in,unit_logfile,'')
     infile_meteo_obs_data=match_string_char('infile_meteo_obs_data',unit_in,unit_logfile,'')
+    inpath_meteo_obs_netcdf_data=match_string_char('inpath_meteo_obs_netcdf_data',unit_in,unit_logfile,'')
+    infile_meteo_obs_netcdf_data=match_string_char('infile_meteo_obs_netcdf_data',unit_in,unit_logfile,'')
     call match_string_multi_int('replace_which_meteo_with_obs',unit_in,unit_logfile,replace_which_meteo_with_obs_input(1:num_replace_meteo_with_obs_input),num_replace_meteo_with_obs_input)
     !pressure,temperature,relhumidity,cloudfraction,precip,shortwave_rad,longwave_rad,speed_wind,dir_wind,road_temperature
     if (replace_which_meteo_with_obs_input(1).ne.-999) then
@@ -651,6 +658,9 @@
         filename_meteo_obs_metadata=replace_string_char(city_str(i),trim(temp_str),filename_meteo_obs_metadata)
         inpath_meteo_obs_data=replace_string_char(city_str(i),trim(temp_str),inpath_meteo_obs_data)
         infile_meteo_obs_data=replace_string_char(city_str(i),trim(temp_str),infile_meteo_obs_data)
+
+        inpath_meteo_obs_netcdf_data=replace_string_char(city_str(i),trim(temp_str),inpath_meteo_obs_netcdf_data)
+        infile_meteo_obs_netcdf_data=replace_string_char(city_str(i),trim(temp_str),infile_meteo_obs_netcdf_data)
         
         !EF files
         inpath_region_EF=replace_string_char(city_str(i),trim(temp_str),inpath_region_EF)

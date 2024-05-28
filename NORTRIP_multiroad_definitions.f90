@@ -136,6 +136,7 @@
     !Declare netcdf files
     real, allocatable :: var1d_nc(:,:)
     double precision, allocatable :: var1d_time_nc(:)
+    double precision, allocatable :: var1d_time_nc_old(:)
     real, allocatable :: var2d_nc(:,:,:)
     real, allocatable :: var3d_nc(:,:,:,:)
     real angle_nc
@@ -381,6 +382,8 @@
     character(256) filename_meteo_obs_metadata
     character(256) inpath_meteo_obs_data
     character(256) infile_meteo_obs_data
+    character(256) inpath_meteo_obs_netcdf_data
+    character(256) infile_meteo_obs_netcdf_data
     !Regional EF and studded tyre data
     character(256) inpath_region_EF
     character(256) infile_region_EF
@@ -430,7 +433,8 @@
     integer end_time_index_meteo_obs,start_time_index_meteo_obs
     integer, dimension(num_date_index) :: start_date_meteo_obs
     integer, dimension(num_date_index) :: end_date_meteo_obs
-    real :: timestep= 1/6. !TODO: read this from config file. (Cannot be read as a fraction, so should read as "Time steps within an hour")
+    integer :: no_of_timesteps
+    real :: timestep
     
     !Input character arrays for time
     character(256) start_date_and_time
@@ -508,6 +512,8 @@
     integer :: replace_which_meteo_with_obs_input(num_replace_meteo_with_obs_input)=0
     integer :: replace_which_meteo_with_obs(num_var_meteo)=0
     integer, allocatable :: save_meteo_index(:)
+    logical :: read_obs_from_netcdf = .True.
+
 
     !Dimensions of the obs meteo file that is used
     integer end_dim_meteo_obs

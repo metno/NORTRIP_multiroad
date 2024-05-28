@@ -21,7 +21,6 @@ subroutine NORTRIP_read_metcoop_netcdf4
     integer, allocatable :: dim_start_metcoop_nc(:)
      
     character(256) dimname_temp
-    integer i,j,k
     integer i_grid_mid,j_grid_mid
     real dlat_nc
     integer exists
@@ -49,7 +48,7 @@ subroutine NORTRIP_read_metcoop_netcdf4
     character(10) :: time !for printing date and time
     
     integer var_id_nc_projection
-    integer :: j,h,t
+    integer :: j,h,t,i,k
     real :: TOC=273.15
     real :: RH_from_dewpoint_func
 
@@ -410,12 +409,15 @@ subroutine NORTRIP_read_metcoop_netcdf4
         if (allocated(var3d_nc)) deallocate(var3d_nc)
         allocate (var3d_nc(num_var_nc,dim_length_nc(x_index),dim_length_nc(y_index),nint(1 + (dim_length_nc(time_index)-1)/timestep)))
         allocate (var1d_nc(num_dims_nc,maxval(dim_length_nc)))
+        allocate (var1d_time_nc(nint(1 + (dim_length_nc(time_index)-1)/timestep)))
 
         call date_and_time(TIME=time)
         print*, "loop start: ", time
         do i = int(1/timestep), nint(dim_length_nc(time_index)/timestep)
 
             var3d_nc(:,:,:,i-int(1/timestep)+1) = var3d_nc_old(:,:,:,floor(i*timestep)) + ( var3d_nc_old(:,:,:,min(floor(i*timestep)+1,size(var3d_nc_old,dim=4))) - var3d_nc_old(:,:,:,floor(i*timestep)) ) * (i*timestep-floor(i*timestep)) !/1 
+
+            var1d_time_nc(i-int(1/timestep)+1) = var1d_time_nc_old(floor(i*timestep)) + ( var1d_time_nc_old(min(floor(i*timestep)+1,size(var1d_time_nc_old))) - var1d_time_nc_old(floor(i*timestep)) ) * (i*timestep-floor(i*timestep)) !/1 
 
         end do
         call date_and_time(TIME = time)
@@ -427,6 +429,7 @@ subroutine NORTRIP_read_metcoop_netcdf4
 
     else
         var1d_nc = var1d_nc_old
+        var1d_time_nc = var1d_time_nc_old
         var3d_nc = var3d_nc_old
     end if
 

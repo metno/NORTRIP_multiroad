@@ -301,7 +301,7 @@ subroutine NORTRIP_read_MET_Nordic_forecast_netcdf4
 
             allocate(var1d_nc_forecast(num_dims_nc_forecast,maxval(dim_length_nc_forecast)))
 
-            do i = int(1/timestep), nint(dim_length_nc_forecast(time_index)/timestep)
+            do i = int(1/timestep), nint(dim_length_nc_forecast(time_index_forecast)/timestep)
 
                 var3d_nc_forecast(:,:,:,i-int(1/timestep)+1) = var3d_nc_forecast_old(:,:,:,floor(i*timestep)) + ( var3d_nc_forecast_old(:,:,:,min(floor(i*timestep)+1,size(var3d_nc_forecast_old,dim=4))) - var3d_nc_forecast_old(:,:,:,floor(i*timestep))) * (i*timestep-floor(i*timestep)) !/1 
 
