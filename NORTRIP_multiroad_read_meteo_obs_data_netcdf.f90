@@ -27,6 +27,8 @@
 
     integer :: s,t
 
+    integer :: status
+
     logical start_time_index_meteo_obs_found,end_time_index_meteo_obs_found
 
     !If read obs data not specified then return without doing anything
@@ -35,29 +37,36 @@
         return
     endif
 
-    meteo_obs_data_available=.true. !TODO: This should be set depending on the available data
+    !TODO: Have an alternative to modify the observations to be on the same time resolution as the model.
+    if (timestep.eq.1) then
+        write(unit_logfile,'(a)') 'The model timestep is ', int(timestep), 'h, while the observations are on a 10 min resolution. Therefore, do not use the observations for this simulations.' 
+        return
+    endif
+
+
+    meteo_obs_data_available=.true.
 
     write(unit_logfile,'(A)') '================================================================'
 	write(unit_logfile,'(A)') 'Reading observed meteorological data (NORTRIP_multiroad_read_meteo_obs_data_netcdf)'
 	write(unit_logfile,'(A)') '================================================================'
 
     !Read in the meteo obs metadata file
-    !Test existence of the filename. If does not exist then use default
-    !filename = "/lustre/storeB/project/fou/kl/NORTRIP_Avinor/Runways_2/preprocess_frost_script/frost_meteo_20240507_T1510Z_to_20240507_T1600Z.nc" 
+    !Test existence of the filename.
     filename = trim(inpath_meteo_obs_netcdf_data)//trim(infile_meteo_obs_netcdf_data)
-    !stop
-    !NOTE: This is is hardcoded here for testing purposes. TODO: read filename from config.
+
     inquire(file=trim(filename),exist=exists)
 
-    !File with lat/lon for the stations (metadata)
+    !File with lat/lon for the stations (metadata):
     !/lustre/storeB/project/fou/kl/NORTRIP_Avinor/Runways_2/NORTRIP_measurements/avinor_stationlist_api_20230127_oldID.txt
 
     if (.not.exists) then
-        print*, "Obsfile not found. Filename: " !TODO: Update this message, maybe also specify what is being done.
-        print*, trim(filename)
+        write(unit_logfile,'(a)') "Obsfile not found. Filename: " 
+        write(unit_logfile,'(a)') trim(filename)
+        write(unit_logfile,'(a)') "Do not use observations in this simulation."
+        meteo_obs_data_available = .false.
     else
-        print*, "Opening obs file: "
-        print*, trim(filename)
+        write(unit_logfile,'(a)') "Opening obs file: "
+        write(unit_logfile,'(a)') trim(filename)
         call check(nf90_open(filename,NF90_NOWRITE,ncid))
         !Get number of stations from netcdf file with observations
         call check(nf90_inq_dimid(ncid, "station_id",dimid))
@@ -69,14 +78,13 @@
     
         allocate (meteo_obs_ID(n_meteo_obs_stations))
         allocate (meteo_obs_name(n_meteo_obs_stations))
+
+        !TODO: Setting meteo_obs_position (supposed to hold lat, lon and height data) to zero. 
+        !As far as I can tell, in the "old" setup the lat/lon values are transformed to utm coordinates, but not used any further. The height is used to adjust the lapse rates to estimate the temperature at the surface. 
         allocate (meteo_obs_position(num_meteo_obs_position,n_meteo_obs_stations))
-    
         meteo_obs_position(:,:)=0.
     
-        ! allocate (meteo_obs_ID_data(n_meteo_obs_date,n_meteo_obs_stations))
-        allocate (meteo_obs_date(num_date_index,n_meteo_obs_date))
-        ! allocate (meteo_obs_ID_temp(n_meteo_obs_stations))
-    
+        allocate (meteo_obs_date(num_date_index,n_meteo_obs_date))    
         allocate (meteo_obs_data(num_var_meteo,n_meteo_obs_date,n_meteo_obs_stations))
     
         
@@ -89,48 +97,120 @@
             write(meteo_obs_name(i), '(I6)') meteo_obs_ID(i) 
             meteo_obs_name(i) = trim(meteo_obs_name(i))
         end do
-    
+
         !TODO: Need to check if variable is there or not so the program dont stop if it fails to locate the variable name in the netcdf file.
         
-        call check(nf90_inq_varid(ncid,"year",varid))
-        call check(nf90_get_var(ncid,varid,meteo_obs_date(year_index,:)))
+        status = nf90_inq_varid(ncid,"year",varid)
+        if ( status == nf90_noerr ) then
+            call check(nf90_get_var(ncid,varid,meteo_obs_date(year_index,:)))
+        else
+            write(unit_logfile,'(a)') "Could not find variable 'year' in the netcdf file. Do not use obs data in this simulation."
+            return
+        end if
+
+        status = nf90_inq_varid(ncid,"month",varid)
+        if ( status == nf90_noerr ) then
+            call check(nf90_get_var(ncid,varid,meteo_obs_date(month_index,:)))
+        else
+            write(unit_logfile,'(a)') "Could not find variable 'month' in the netcdf file. Do not use obs data in this simulation."
+            return
+        end if
         
-        call check(nf90_inq_varid(ncid,"month",varid))
-        call check(nf90_get_var(ncid,varid,meteo_obs_date(month_index,:)))
+        status = nf90_inq_varid(ncid,"day",varid)
+        if ( status == nf90_noerr ) then
+            call check(nf90_get_var(ncid,varid,meteo_obs_date(day_index,:)))
+        else
+            write(unit_logfile,'(a)') "Could not find variable 'day' in the netcdf file. Do not use obs data in this simulation."
+            return
+        end if
         
-        call check(nf90_inq_varid(ncid,"day",varid))
-        call check(nf90_get_var(ncid,varid,meteo_obs_date(day_index,:)))
+        status = nf90_inq_varid(ncid,"hour",varid)
+        if ( status == nf90_noerr ) then
+            call check(nf90_get_var(ncid,varid,meteo_obs_date(hour_index,:)))
+        else
+            write(unit_logfile,'(a)') "Could not find variable 'hour' in the netcdf file. Do not use obs data in this simulation."
+            return
+        end if
         
-        call check(nf90_inq_varid(ncid,"hour",varid))
-        call check(nf90_get_var(ncid,varid,meteo_obs_date(hour_index,:)))
+        status = nf90_inq_varid(ncid,"minute",varid)
+        if ( status == nf90_noerr ) then
+            call check(nf90_get_var(ncid,varid,meteo_obs_date(minute_index,:)))
+        else
+            write(unit_logfile,'(a)') "Could not find variable 'minute' in the netcdf file. Do not use obs data in this simulation."
+            return
+        end if
         
-        call check(nf90_inq_varid(ncid,"minute",varid))
-        call check(nf90_get_var(ncid,varid,meteo_obs_date(minute_index,:)))
+        status = (nf90_inq_varid(ncid,"air_temperature",varid))
+        if ( status == nf90_noerr ) then
+            call check(nf90_get_var(ncid,varid,meteo_obs_data(temperature_index,:,:)))
+        else
+            write(unit_logfile,'(a)') "The variable air_temperature was not found in the netcdf file. Setting value to -99."
+            meteo_obs_data(pressure_index,:,:) = -99.
+        end if
+
+        status = (nf90_inq_varid(ncid,"relative_humidity",varid))
+        if ( status == nf90_noerr ) then
+            call check(nf90_get_var(ncid,varid,meteo_obs_data(relhumidity_index,:,:)))
+        else
+            write(unit_logfile,'(a)') "The variable relative_humidity was not found in the netcdf file. Setting value to -99."
+            meteo_obs_data(pressure_index,:,:) = -99.
+        end if
+
+        status = (nf90_inq_varid(ncid,"surface_air_pressure",varid))
+        if ( status == nf90_noerr ) then
+            call check(nf90_get_var(ncid,varid,meteo_obs_data(pressure_index,:,:)))
+        else
+            write(unit_logfile,'(a)') "The variable surface_air_pressure was not found in the netcdf file. Setting value to -99."
+            meteo_obs_data(pressure_index,:,:) = -99.
+        end if
+
+        status = (nf90_inq_varid(ncid,"wind_speed",varid))
+        if ( status == nf90_noerr ) then
+            call check(nf90_get_var(ncid,varid,meteo_obs_data(speed_wind_index,:,:)))
+        else
+            write(unit_logfile,'(a)') "The variable wind_speed was not found in the netcdf file. Setting value to -99."
+            meteo_obs_data(speed_wind_index,:,:) = -99.
+        end if
         
-        call check(nf90_inq_varid(ncid,"air_temperature",varid))
-        call check(nf90_get_var(ncid,varid,meteo_obs_data(temperature_index,:,:)))
+        status = (nf90_inq_varid(ncid,"wind_from_direction",varid))
+        if ( status == nf90_noerr ) then
+            call check(nf90_get_var(ncid,varid,meteo_obs_data(dir_wind_index,:,:)))
+        else
+            write(unit_logfile,'(a)') "The variable wind_from_direction was not found in the netcdf file. Setting value to -99."
+            meteo_obs_data(dir_wind_index,:,:) = -99.
+        end if
         
-        call check(nf90_inq_varid(ncid,"relative_humidity",varid))
-        call check(nf90_get_var(ncid,varid,meteo_obs_data(relhumidity_index,:,:)))
-        
-        call check(nf90_inq_varid(ncid,"surface_air_pressure",varid))
-        call check(nf90_get_var(ncid,varid,meteo_obs_data(pressure_index,:,:)))
-        
-        call check(nf90_inq_varid(ncid,"wind_speed",varid))
-        call check(nf90_get_var(ncid,varid,meteo_obs_data(speed_wind_index,:,:)))
-        
-        call check(nf90_inq_varid(ncid,"wind_from_direction",varid))
-        call check(nf90_get_var(ncid,varid,meteo_obs_data(dir_wind_index,:,:)))
-        
-        call check(nf90_inq_varid(ncid,"surface_downwelling_shortwave_flux_in_air",varid))
-        call check(nf90_get_var(ncid,varid,meteo_obs_data(shortwaveradiation_index,:,:)))
-        
-        call check(nf90_inq_varid(ncid,"surface_downwelling_longwave_flux_in_air",varid))
-        call check(nf90_get_var(ncid,varid,meteo_obs_data(longwaveradiation_index,:,:)))
-        
-        call check(nf90_inq_varid(ncid,"precipitation_amount",varid))
-        call check(nf90_get_var(ncid,varid,meteo_obs_data(precip_index,:,:)))
-    
+        status = (nf90_inq_varid(ncid,"surface_downwelling_shortwave_flux_in_air",varid))
+        if ( status == nf90_noerr ) then
+            call check(nf90_get_var(ncid,varid,meteo_obs_data(shortwaveradiation_index,:,:)))
+        else
+            write(unit_logfile,'(a)') "The variable surface_downwelling_shortwave_flux_in_air was not found in the netcdf file. Setting value to -99."
+            meteo_obs_data(shortwaveradiation_index,:,:) = -99.
+        end if
+
+        status = (nf90_inq_varid(ncid,"surface_downwelling_longwave_flux_in_air",varid))
+        if ( status == nf90_noerr ) then
+            call check(nf90_get_var(ncid,varid,meteo_obs_data(longwaveradiation_index,:,:)))
+        else
+            write(unit_logfile,'(a)') "The variable surface_downwelling_longwave_flux_in_air was not found in the netcdf file. Setting value to -99."
+            meteo_obs_data(longwaveradiation_index,:,:) = -99.
+        end if
+
+        status = (nf90_inq_varid(ncid,"precipitation_amount",varid))
+        if ( status == nf90_noerr ) then
+            call check(nf90_get_var(ncid,varid,meteo_obs_data(precip_index,:,:)))
+        else
+            write(unit_logfile,'(a)') "The variable precipitation_amount was not found in the netcdf file. Setting value to -99."
+            meteo_obs_data(precip_index,:,:) = -99.
+        end if
+
+        status = (nf90_inq_varid(ncid,"runway_temperature",varid))
+        if ( status == nf90_noerr ) then
+            call check(nf90_get_var(ncid,varid,meteo_obs_data(road_temperature_index,:,:)))
+        else
+            write(unit_logfile,'(a)') "The variable runway_temperature was not found in the netcdf file. Setting value to -99."
+            meteo_obs_data(road_temperature_index,:,:) = -99.
+        end if
     
         meteo_obs_date(second_index,:) = 0
         start_date_meteo_obs = meteo_obs_date(:,1)
@@ -155,5 +235,7 @@
         enddo
         
     end if
+
+    !TODO: Also need to read and store runway temperatures. 
 end subroutine NORTRIP_multiroad_read_meteo_obs_data_netcdf
 

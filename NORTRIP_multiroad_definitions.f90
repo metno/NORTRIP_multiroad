@@ -52,7 +52,7 @@
     !dimension netcdf fields
     integer x_index,y_index,time_index
     parameter (x_index=1,y_index=2,time_index=3)
-    !-------------------------------------------------------for MET Nordic analysis---------------------------------------------------------------------------------------
+    !-------------------------------------------------------for MET Nordic analysis-----------------------------------------------------------------
     !General variables.
     integer num_dims_nc2 
     parameter (num_dims_nc2=3)                  ! number of dimensions is 3 for all 2d fields used
@@ -84,8 +84,7 @@
     parameter (x_index2=1,y_index2=2,time_index2=3)
     !----------------------------------------------------------------------------------------------------------------------------------------------
 
-    !------------------------------------------for MET_Nordic forecast----------------------------------------------------------------------------------------------------
-    !General variables.
+    !------------------------------------------for MET_Nordic forecast-----------------------------------------------------------------------------
     integer num_dims_nc_forecast 
     parameter (num_dims_nc_forecast=3)                  ! number of dimensions is 3 for all 2d fields used
 

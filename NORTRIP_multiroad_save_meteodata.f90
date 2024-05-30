@@ -564,7 +564,7 @@ subroutine NORTRIP_multiroad_create_meteodata
                     endif
                 endif       
 
-                
+                not_shown_once=.false.
                 if (replace_meteo_with_met_forecast.eq.1) then
                     if (meteo_nc_forecast_available) then
                         if (not_shown_once) then 
@@ -593,9 +593,10 @@ subroutine NORTRIP_multiroad_create_meteodata
                         endif
                         
                         if (meteo_var_nc_forecast_available(t,precip_index_forecast)) then
-                            if ( t .ne. 1 ) then !Precip is accumulated during the previous hour, so the value in the file is zero.
+                            if ( t > int(no_of_timesteps) ) then !Precip is accumulated during the previous hour, so the values for the first hour is NaN.
                                 meteo_temp(precip_index)=max(0.,var3d_nc_forecast(precip_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),t))                
                             end if
+
                             wetbulb_temp=meteo_temp(temperature_index)
                             if (wetbulb_snow_rain_flag.eq.0) then
                                 if (meteo_temp(temperature_index).gt.0) then
@@ -758,7 +759,7 @@ subroutine NORTRIP_multiroad_create_meteodata
                         if (meteo_obs_data(longwaveradiation_index,datetime_match(2),ii).ne.missing_data.and.replace_which_meteo_with_obs(longwaveradiation_index).gt.0) meteo_temp(longwaveradiation_index)=meteo_obs_data(longwaveradiation_index,datetime_match(2),ii)
                         if (meteo_obs_data(cloudfraction_index,datetime_match(2),ii).ne.missing_data.and.replace_which_meteo_with_obs(cloudfraction_index).gt.0) meteo_temp(cloudfraction_index)=meteo_obs_data(cloudfraction_index,datetime_match(2),ii)
                         if (meteo_obs_data(pressure_index,datetime_match(2),ii).ne.missing_data.and.replace_which_meteo_with_obs(pressure_index).gt.0) meteo_temp(pressure_index)=meteo_obs_data(pressure_index,datetime_match(2),ii)
-                        !if (meteo_obs_data(road_temperature_index,datetime_match(2),ii).ne.missing_data.and.replace_which_meteo_with_obs(road_temperature_index).gt.0) meteo_temp(road_temperature_index)=meteo_obs_data(road_temperature_index,datetime_match(2),ii)
+                        if (meteo_obs_data(road_temperature_index,datetime_match(2),ii).ne.missing_data.and.replace_which_meteo_with_obs(road_temperature_index).gt.0) meteo_temp(road_temperature_index)=meteo_obs_data(road_temperature_index,datetime_match(2),ii)
                         !When replacing road surface temperature with obs then include the no data values. This is mostly for the forecast initialisation
                         if (replace_which_meteo_with_obs(road_temperature_index).gt.0) meteo_temp(road_temperature_index)=meteo_obs_data(road_temperature_index,datetime_match(2),ii)
     
@@ -788,7 +789,7 @@ subroutine NORTRIP_multiroad_create_meteodata
                 meteo_output(pressure_index,t,i)=meteo_temp(pressure_index)
                 meteo_output(road_temperature_index,t,i)=meteo_temp(road_temperature_index)
             enddo
-            not_shown_once=.true. !TODO: Might me useful to print this to log file for all runways?
+            not_shown_once=.true. 
             
         endif
         
