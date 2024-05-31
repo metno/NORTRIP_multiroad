@@ -184,6 +184,9 @@
     write(unit_logfile,'(A,3I)') ' Pos of dimensions (x,y,t): ',dim_id_nc
     write(unit_logfile,'(A,3I)') ' Size of dimensions (x,y,t): ',dim_length_nc
     
+    !Reducing x and y dimensions to save space
+    call NORTRIP_reduce_meteo_region(id_nc)
+ 
     if (number_of_time_steps.ne.0) then
         dim_length_nc(time_index)=number_of_time_steps
         write(unit_logfile,'(A,3I)') ' WARNING: Reducing dimensions of (t) to save space: ',dim_length_nc(time_index)

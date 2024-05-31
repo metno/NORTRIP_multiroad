@@ -113,6 +113,8 @@
     
     call NORTRIP_multiroad_read_region_scaling_data
 
+    call NORTRIP_multiroad_read_trend_scaling_data
+
     call NORTRIP_multiroad_read_region_activity_data
     
     call NORTRIP_multiroad_read_activity_data

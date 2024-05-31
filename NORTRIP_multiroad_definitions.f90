@@ -343,6 +343,9 @@
     character(256) inpath_region_population
     character(256) infile_region_population
     character(256) pathfilename_region_population
+    character(256) inpath_trend_scaling
+    character(256) infile_trend_scaling
+    character(256) pathfilename_trend_scaling
     !Replacemnet file name
     character(256) inpath_replace_road_data
     character(256) infile_replace_road_data
@@ -393,8 +396,9 @@
     integer :: end_stud_season(num_date_index)=0
     
     !Studded tyre season and EF regional data
-    integer n_region_max,n_region
+    integer n_region_max
     parameter (n_region_max=1000)
+    integer :: n_region=1
     integer :: region_id(n_region_max)=0
     integer :: max_stud_fraction_region(n_region_max,num_veh)=0.
     integer :: min_stud_fraction_region(n_region_max,num_veh)=0.
@@ -410,6 +414,23 @@
     real :: adt_region_scaling(n_region_max,num_veh)=1.
     integer :: population_region_scaling(n_region_max)=0
     integer :: population_region_id(n_region_max)=0
+
+    integer n_trend_max
+    parameter (n_trend_max=100)
+    integer :: n_trend=1
+    integer :: trend_id(n_trend_max)=0
+    integer :: max_stud_fraction_trend(n_trend_max,num_veh)=0.
+    integer :: min_stud_fraction_trend(n_trend_max,num_veh)=0.
+    integer :: start_stud_season_trend(n_trend_max,num_date_index)=0
+    integer :: start_full_stud_season_trend(n_trend_max,num_date_index)=0
+    integer :: end_full_stud_season_trend(n_trend_max,num_date_index)=0
+    integer :: end_stud_season_trend(n_trend_max,num_date_index)=0
+    real :: exhaust_EF_trend(n_trend_max,num_veh)=0.
+    real :: nox_EF_trend(n_trend_max,num_veh)=0.
+    real :: max_stud_fraction_trend_scaling(n_trend_max,num_veh)=1.
+    real :: exhaust_EF_trend_scaling(n_trend_max,num_veh)=1.
+    real :: nox_EF_trend_scaling(n_trend_max,num_veh)=1.
+    real :: adt_trend_scaling(n_trend_max,num_veh)=1.
 
     !Order is (date_type,time)
     integer, allocatable :: date_data(:,:)    
