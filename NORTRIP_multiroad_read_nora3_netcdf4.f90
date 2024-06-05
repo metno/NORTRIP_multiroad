@@ -63,6 +63,7 @@
     integer new_nora3_forecast_count
     
     integer a(num_date_index)
+    logical dim_read_flag
     
     allocate (nora3_date_data(num_date_index,n_hours_input))
     allocate (new_nora3_forecast(n_hours_input+1))
@@ -105,6 +106,8 @@
         !write(*,*) date_data(1:4,i)
         !write(*,*) (nora3_forecast_hour_dp-(dmod(nora3_forecast_hour_dp,6.)))/24.,nora3_forecast_hour_dp
     enddo
+    
+    dim_read_flag=.false.
     
     !i=0
     do jj=1,n_hours_input
@@ -151,26 +154,31 @@
                 meteo_nc_projection_type=LL_projection_index             
             endif
 
-
-    
+            !Only set dimmensions for the first file
+            if (.not.dim_read_flag) then
             !Find out the x,y and time dimmensions of the file by looking at pressure variable
             status_nc = NF90_INQ_DIMID (id_nc,dim_name_nc(x_index),dim_id_nc(x_index))
             status_nc = NF90_INQUIRE_DIMENSION (id_nc,dim_id_nc(x_index),dimname_temp,dim_length_nc(x_index))
             status_nc = NF90_INQ_DIMID (id_nc,dim_name_nc(y_index),dim_id_nc(y_index))
             status_nc = NF90_INQUIRE_DIMENSION (id_nc,dim_id_nc(y_index),dimname_temp,dim_length_nc(y_index))
             status_nc = NF90_INQ_DIMID (id_nc,dim_name_nc(time_index),dim_id_nc(time_index))
-            status_nc = NF90_INQUIRE_DIMENSION (id_nc,dim_id_nc(time_index),dimname_temp,dim_length_nc(time_index))
-            write(unit_logfile,'(A,3I)') ' Pos of dimensions (x,y,t): ',dim_id_nc
-            write(unit_logfile,'(A,3I)') ' Size of dimensions (x,y,t): ',dim_length_nc
     
             !Reducing x and y dimensions to save space
             call NORTRIP_reduce_meteo_region(id_nc)
             
+            dim_read_flag=.true.
+            
+            endif
+            
+            status_nc = NF90_INQUIRE_DIMENSION (id_nc,dim_id_nc(time_index),dimname_temp,dim_length_nc(time_index))
+            write(unit_logfile,'(A,3I)') ' Pos of dimensions (x,y,t): ',dim_id_nc
+            write(unit_logfile,'(A,3I)') ' Size of dimensions (x,y,t): ',dim_length_nc
             if (number_of_time_steps.ne.0) then
                 dim_length_nc(time_index)=number_of_time_steps
                 write(unit_logfile,'(A,3I)') ' WARNING: Reducing dimensions of (t) to save space: ',dim_length_nc(time_index)
             endif
      
+            
             !Allocate the nc arrays for reading
             if (.not.allocated(var1d_nc)) then
                 allocate (var1d_nc(num_dims_nc,max(maxval(dim_length_nc),n_hours_input))) !x and y and time maximum dimmensions
@@ -225,8 +233,8 @@
             dim_start_metcoop_nc(4)=dim_start_nc(time_index)
 
     
-            write(*,*) dim_start_metcoop_nc
-            write(*,*) dim_length_metcoop_nc
+           ! write(*,*) dim_start_metcoop_nc
+            !write(*,*) dim_length_metcoop_nc
    
             !Read through the variables in a loop
             do i=1,num_var_nc
@@ -392,11 +400,14 @@
     write(*,'(7i8,es16.8)') ii, a(1:6),var1d_time_nc(ii)!/3600./24.
     enddo
     
-    !deallocate (var3d_nc_dp)
-    deallocate (var2d_nc_dp)
-    !deallocate (var4d_nc_dp)
     if (allocated(var4d_nc)) deallocate(var4d_nc)
     if (allocated(var3d_nc_in)) deallocate(var3d_nc_in)
+    
+    if (allocated(var2d_nc_dp)) deallocate (var2d_nc_dp)
+    if (allocated(var1d_nc_dp)) deallocate(var1d_nc_dp)
+    if (allocated(var1d_nc_in)) deallocate (var1d_nc_in)
+    if (allocated(var1d_time_nc_in)) deallocate (var1d_time_nc_in)
+
     
     end subroutine NORTRIP_read_nora3_netcdf4
 
@@ -496,15 +507,15 @@
     !write(*,*) 'HERE1: ',dim_length_nc
     !write(*,*) 'HERE2: ',dim_start_nc
     !Read in the lat and lon positions in the meteo file
-    do i=lat_index,lon_index
-        status_nc = NF90_INQ_VARID (id_nc, trim(var_name_nc(i)), var_id_nc(i))
-        !write(*,*) status_nc,trim(var_name_nc(i)),var_id_nc(i)
-        if (status_nc.eq.NF90_NOERR) then
-            status_nc = NF90_GET_VAR (id_nc, var_id_nc(i), var2d_nc_dp,start=(/dim_start_nc(1:2)/), count=(/dim_length_nc(1:2)/));var2d_nc_temp(i,:,:)=var2d_nc_dp(:,:)
-        endif
+    !do i=lat_index,lon_index
+    !    status_nc = NF90_INQ_VARID (id_nc, trim(var_name_nc(i)), var_id_nc(i))
+    !    !write(*,*) status_nc,trim(var_name_nc(i)),var_id_nc(i)
+    !    if (status_nc.eq.NF90_NOERR) then
+    !        status_nc = NF90_GET_VAR (id_nc, var_id_nc(i), var2d_nc_dp,start=(/dim_start_nc(1:2)/), count=(/dim_length_nc(1:2)/));var2d_nc_temp(i,:,:)=real(var2d_nc_dp(:,:))
+    !    endif
         
-        write(unit_logfile,'(A,i3,A,2A,2f16.4)') ' ',status_nc,' ',trim(var_name_nc(i)),' (min, max): ',minval(var2d_nc_temp(i,:,:)),maxval(var2d_nc_temp(i,:,:)) 
-    enddo
+   !     write(unit_logfile,'(A,i3,A,2A,2f16.4)') ' ',status_nc,' ',trim(var_name_nc(i)),' (min, max): ',minval(var2d_nc_temp(i,:,:)),maxval(var2d_nc_temp(i,:,:)) 
+   ! enddo
     
             do i=x_index,y_index
                 status_nc = NF90_INQ_VARID (id_nc, trim(dim_name_nc(i)), var_id_nc(i))
@@ -537,26 +548,6 @@
         grid_val(k,2)=var1d_nc_in(y_index,corner_grid_dim(k,2))
     enddo
        
-            
-    do j=1,dim_length_nc(2)
-    do i=1,dim_length_nc(1)
-    do k=1,4        
-
-        !distance=(var2d_nc_temp(lat_index,i,j)-corner_link(k,2))**2+((var2d_nc_temp(lon_index,i,j)-corner_link(k,1))/cosd(var2d_nc_temp(lat_index,i,j)))**2
-        !if (distance.lt.min_distance(k)) then
-        !    corner_grid_dim(k,1)=i;corner_grid_dim(k,2)=j
-        !    min_distance(k)=distance
-        !    grid_val(k,1)=var2d_nc_temp(lon_index,i,j)
-        !    grid_val(k,2)=var2d_nc_temp(lat_index,i,j)
-        !endif
-    enddo
-    enddo
-    enddo
-    
-        !write(unit_logfile,'(A,i3,A,2A,2f16.4)') ' ',status_nc,' ',trim(var_name_nc(i)),' (min, max): ',minval(var2d_nc(i,:,:)),maxval(var2d_nc(i,:,:)) 
-    !do k=1,4
-    !write(*,*) 'corner_grid_dim ',k,corner_grid_dim(k,1),corner_grid_dim(k,2)
-    !enddo
 
     min_grid_val(1)=minval(grid_val(:,1));min_grid_val(2)=minval(grid_val(:,2))
     max_grid_val(1)=maxval(grid_val(:,1));max_grid_val(2)=maxval(grid_val(:,2))
@@ -580,34 +571,157 @@
     !write(*,*) 'min distance (km) ',sqrt(min_distance)*100
     !write(*,*) dim_length_nc(1:2)
     write(unit_logfile,'(A,7i5)') 'Reduced start (x,y), end (x,y) and size (x,y) dimensions after adding extra grids', dim_start_nc(1),dim_start_nc(2),dim_end_nc(1),dim_end_nc(2),dim_length_nc(1),dim_length_nc(2),extra_grids
-    
-    if (check_distance) then
-    min_distance(2)=0
-    do k=1,size(inputdata_rl,2)
-    min_distance(1)=1e36
-    do j=dim_start_nc(2),dim_end_nc(2)
-    do i=dim_start_nc(1),dim_end_nc(1)
         
-        distance=(var2d_nc_temp(lat_index,i,j)-inputdata_rl(lat0_rl_index,k))**2+((var2d_nc_temp(lon_index,i,j)-inputdata_rl(lon0_rl_index,k))/cosd(var2d_nc_temp(lat_index,i,j)))**2
-        if (distance.lt.min_distance(1)) then
-            min_distance(1)=distance
-        endif
-        
-    enddo
-    if (min_distance(1).gt.min_distance(2)) then
-        min_distance(2)=min_distance(1)
-        !write(*,*) k, min_distance(2)
-    endif
-    enddo
-    enddo
-    
-    write(unit_logfile,'(A,f12.1)') 'Check max distance of any road from a grid centre (km)',sqrt(min_distance(1))*100
-    
-    endif
-    
     !stop
     deallocate (var2d_nc_dp)
     deallocate (var2d_nc_temp)
     deallocate (var1d_nc_in)
 
     end subroutine NORTRIP_reduce_meteo_region
+
+    !-------------------------------------------------------------------------
+ 
+    subroutine NORTRIP_reduce_meteo_region2(id_nc2)
+    !Reduces the region to be read 
+    !Requires readingg of the dimensions and projection data pre calculation
+    !Requires finding max and min of the NORTRIP road files
+    
+    use NORTRIP_multiroad_index_definitions
+   
+    use netcdf
+
+    implicit none
+    
+    double precision, allocatable :: var2d_nc2_dp(:,:)
+    real, allocatable :: var2d_nc2_temp(:,:,:)
+    real, allocatable :: var1d_nc2_in(:,:)
+
+    real min_link_lat,min_link_lon,max_link_lat,max_link_lon
+    real min_link_y,min_link_x,max_link_y,max_link_x
+    real corner_link(4,2),grid_val(4,2)
+    integer corner_grid_dim(4,2)
+    integer min_grid_dim(2),max_grid_dim(2)
+    integer i,j,k
+    integer status_nc      !Error message
+    integer id_nc2
+    integer dim_id_nc2(num_dims_nc)
+    integer var_id_nc2(num_var_nc)
+    real min_distance(4)
+    real distance
+    integer :: extra_grids=1    !Extend the selected grid further to deal with the interpolation
+    real min_grid_val(2),max_grid_val(2)
+    integer dim_end_nc2(2)
+    logical :: check_distance=.false.
+    real x_temp,y_temp
+    integer i_grid_mid,j_grid_mid
+
+    write(unit_logfile,'(a,i)') 'Reducing meteorological region with nc file id: ',id_nc2
+
+    !Set to the initial value
+    dim_start_nc2=1
+     
+    !Find the max and in of the road link files in lat and lon
+    min_link_lat=minval(inputdata_rl(lat0_rl_index,:))
+    min_link_lon=minval(inputdata_rl(lon0_rl_index,:))
+    max_link_lat=maxval(inputdata_rl(lat0_rl_index,:))
+    max_link_lon=maxval(inputdata_rl(lon0_rl_index,:))
+    corner_link(1,1)=min_link_lon;corner_link(1,2)=min_link_lat
+    corner_link(2,1)=min_link_lon;corner_link(2,2)=max_link_lat
+    corner_link(3,1)=max_link_lon;corner_link(3,2)=max_link_lat
+    corner_link(4,1)=max_link_lon;corner_link(4,2)=min_link_lat
+
+    !Convert to meteo coordinates
+    min_link_x=1e36;min_link_y=1e36;max_link_x=-1e36;max_link_y=-1e36
+    do k=1,size(inputdata_rl,2)
+        call lb2lambert2_uEMEP(x_temp,y_temp,inputdata_rl(lon0_rl_index,k),inputdata_rl(lat0_rl_index,k),meteo_nc2_projection_attributes)
+        if (x_temp.lt.min_link_x) min_link_x=x_temp
+        if (y_temp.lt.min_link_y) min_link_y=y_temp
+        if (x_temp.gt.max_link_x) max_link_x=x_temp
+        if (y_temp.gt.max_link_y) max_link_y=y_temp    
+    enddo
+    corner_link(1,1)=min_link_x;corner_link(1,2)=min_link_y
+    corner_link(2,1)=min_link_x;corner_link(2,2)=max_link_y
+    corner_link(3,1)=max_link_x;corner_link(3,2)=max_link_y
+    corner_link(4,1)=max_link_x;corner_link(4,2)=min_link_y
+   
+    write(unit_logfile,'(A,4f12.5)') 'Road link min and max lat,lon', min_link_lon,max_link_lon,min_link_lat,max_link_lat
+  
+    
+    if (.not.allocated(var2d_nc2_dp)) allocate (var2d_nc2_dp(dim_length_nc2(x_index2),dim_length_nc2(y_index2))) !Lat and lon
+    if (.not.allocated(var2d_nc2_temp)) allocate (var2d_nc2_temp(2,dim_length_nc2(x_index2),dim_length_nc2(y_index2))) !Lat and lon
+    if (.not.allocated(var1d_nc2_in)) allocate (var1d_nc2_in(2,max(dim_length_nc2(x_index2),dim_length_nc2(y_index2)))) !Lat and lon
+
+    !write(*,*) 'HERE1: ',dim_length_nc2
+    !write(*,*) 'HERE2: ',dim_start_nc2
+    !Read in the lat and lon positions in the meteo file
+    !do i=lat_index2,lon_index2
+    !    status_nc = NF90_INQ_VARID (id_nc2, trim(var_name_nc2(i)), var_id_nc2(i))
+    !    !write(*,*) status_nc,trim(var_name_nc(i)),var_id_nc(i)
+    !    if (status_nc.eq.NF90_NOERR) then
+    !        status_nc = NF90_GET_VAR (id_nc2, var_id_nc2(i), var2d_nc2_dp,start=(/dim_start_nc2(1:2)/), count=(/dim_length_nc2(1:2)/));var2d_nc2_temp(i,:,:)=var2d_nc2_dp(:,:)
+    !    endif
+        
+     !   write(unit_logfile,'(A,i3,A,2A,2f16.4)') ' ',status_nc,' ',trim(var_name_nc2(i)),' (min, max): ',minval(var2d_nc2_temp(i,:,:)),maxval(var2d_nc2_temp(i,:,:)) 
+   ! enddo
+    
+            do i=x_index2,y_index2
+                status_nc = NF90_INQ_VARID (id_nc2, trim(dim_name_nc2(i)), var_id_nc2(i))
+                status_nc = NF90_GET_VAR (id_nc2, var_id_nc2(i), var1d_nc2_in(i,1:dim_length_nc2(i)), start=(/dim_start_nc2(i)/), count=(/dim_length_nc2(i)/))
+                    write(unit_logfile,'(3A,2f12.2)') ' ',trim(dim_name_nc2(i)),' (min, max in km): ' &
+                        ,minval(var1d_nc2_in(i,1:dim_length_nc2(i))),maxval(var1d_nc2_in(i,1:dim_length_nc2(i))) 
+            enddo
+
+    !Search the grid for the maximum and minimum values
+    grid_dim=1
+    min_distance=1.e36
+    
+    i_grid_mid=int(dim_length_nc(x_index2)/2)
+    j_grid_mid=int(dim_length_nc(y_index2)/2)
+    dgrid_nc2(x_index2)=var1d_nc2_in(x_index2,i_grid_mid)-var1d_nc2_in(x_index2,i_grid_mid-1)
+    dgrid_nc2(y_index)=var1d_nc2_in(y_index2,j_grid_mid)-var1d_nc2_in(y_index2,j_grid_mid-1)
+
+    do k=1,4        
+        
+        !Assumes lambert projection. Does not account for lat lon
+        !call lb2lambert2_uEMEP(x_temp,y_temp,corner_link(k,1),corner_link(k,2),meteo_nc_projection_attributes)
+        x_temp=corner_link(k,1);y_temp=corner_link(k,2);
+        corner_grid_dim(k,1)=1+floor((x_temp-var1d_nc2_in(x_index2,1))/dgrid_nc2(x_index2)+0.5)
+        corner_grid_dim(k,2)=1+floor((y_temp-var1d_nc2_in(y_index2,1))/dgrid_nc2(y_index2)+0.5)
+        ! write(*,*) ': ',k,corner_grid_dim(k,1),corner_grid_dim(k,2)
+        ! write(*,*) ':: ',x_temp,y_temp,var1d_nc_in(x_index2,1),var1d_nc_in(y_index,1)
+        ! write(*,*) '::: ',dgrid_nc2(x_index2),dgrid_nc2(y_index)
+       
+        grid_val(k,1)=var1d_nc2_in(x_index2,corner_grid_dim(k,1))
+        grid_val(k,2)=var1d_nc2_in(y_index2,corner_grid_dim(k,2))
+    enddo
+          
+ 
+    min_grid_val(1)=minval(grid_val(:,1));min_grid_val(2)=minval(grid_val(:,2))
+    max_grid_val(1)=maxval(grid_val(:,1));max_grid_val(2)=maxval(grid_val(:,2))
+    min_grid_dim(1)=minval(corner_grid_dim(:,1));min_grid_dim(2)=minval(corner_grid_dim(:,2))
+    max_grid_dim(1)=maxval(corner_grid_dim(:,1));max_grid_dim(2)=maxval(corner_grid_dim(:,2))
+    
+    write(unit_logfile,'(A,4i5)') 'Reduced start (x,y) and end (x,y) dimensions', min_grid_dim(1),min_grid_dim(2),max_grid_dim(1),max_grid_dim(2)
+    write(unit_logfile,'(A,4f16.1)') 'Reduced start (x,y) and end (x,y) ', min_grid_val(1),min_grid_val(2),max_grid_val(1),max_grid_val(2)
+
+    dim_start_nc2(2)=max(1,min_grid_dim(2)-extra_grids)
+    dim_start_nc2(1)=max(1,min_grid_dim(1)-extra_grids)
+    dim_end_nc2(2)=min(dim_length_nc2(2),max_grid_dim(2)+extra_grids)
+    dim_end_nc2(1)=min(dim_length_nc2(1),max_grid_dim(1)+extra_grids)
+    dim_length_nc2(2)=dim_end_nc2(2)-dim_start_nc2(2)+1
+    dim_length_nc2(1)=dim_end_nc2(1)-dim_start_nc2(1)+1
+    
+    !write(*,*) 'lon ll',dim_start_nc(1),var2d_nc2_temp(lon_index2, dim_start_nc(1),dim_start_nc(2))
+    !write(*,*) 'lon tr',dim_end_nc(1),var2d_nc2_temp(lon_index2, dim_end_nc(1),dim_end_nc(2))
+    !write(*,*) 'lat ll',dim_start_nc(2),var2d_nc2_temp(lat_index, dim_start_nc(1),dim_start_nc(2))
+    !write(*,*) 'lat tr',dim_end_nc(2),var2d_nc2_temp(lat_index, dim_end_nc(1),dim_end_nc(2))
+    !write(*,*) 'min distance (km) ',sqrt(min_distance)*100
+    !write(*,*) dim_length_nc(1:2)
+    write(unit_logfile,'(A,7i5)') 'Reduced start (x,y), end (x,y) and size (x,y) dimensions after adding extra grids', dim_start_nc2(1),dim_start_nc2(2),dim_end_nc2(1),dim_end_nc2(2),dim_length_nc2(1),dim_length_nc2(2),extra_grids
+        
+    !stop
+    deallocate (var2d_nc2_dp)
+    deallocate (var2d_nc2_temp)
+    deallocate (var1d_nc2_in)
+
+    end subroutine NORTRIP_reduce_meteo_region2

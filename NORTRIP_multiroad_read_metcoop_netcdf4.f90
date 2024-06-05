@@ -395,13 +395,13 @@
     end_dim_nc=dim_length_nc
     start_dim_nc=dim_start_nc
     
-    !deallocate (var3d_nc_dp)
-    deallocate (var2d_nc_dp)
-    !deallocate (var4d_nc_dp)
     if (allocated(var4d_nc)) deallocate(var4d_nc)
     if (allocated(var3d_emep)) deallocate(var3d_emep)
+    if (allocated(var1d_nc_dp)) deallocate(var1d_nc_dp)
+    if (allocated(var2d_nc_dp)) deallocate(var2d_nc_dp)
+    if (allocated(dim_length_metcoop_nc)) deallocate(dim_length_metcoop_nc)
+    if (allocated(dim_start_metcoop_nc)) deallocate(dim_start_metcoop_nc)
     
-
     end subroutine NORTRIP_read_metcoop_netcdf4
 
     
