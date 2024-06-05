@@ -947,7 +947,7 @@
                 
                 do v=1,num_veh
                     ty=st
-                    traffic_data(N_t_v_index(ty,v),1:n_hours_input,i)=traffic_data(N_v_index(v),1:n_hours_input,i)*(fraction_studded_tyres(v)*max_stud_fraction_region_scaling(k,v))
+                    traffic_data(N_t_v_index(ty,v),1:n_hours_input,i)=traffic_data(N_v_index(v),1:n_hours_input,i)*(fraction_studded_tyres(v)*max_stud_fraction_trend_scaling(k,v))
                     ty=wi
                     traffic_data(N_t_v_index(ty,v),1:n_hours_input,i)=traffic_data(N_v_index(v),1:n_hours_input,i)*(1.-fraction_summer_tyres(v)-fraction_studded_tyres(v)*max_stud_fraction_trend_scaling(k,v))
                     ty=su
