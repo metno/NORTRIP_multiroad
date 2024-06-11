@@ -652,7 +652,7 @@
                 fraction_studded_tyres(li)=sum(traffic_data(N_st_li_index,1:n_hours_input,i))/sum(traffic_data(N_li_index,1:n_hours_input,i))
                 !fraction_winter_tyres(li)=sum(traffic_data(N_wi_li_index,1:n_hours_input,i))/sum(traffic_data(N_li_index,1:n_hours_input,i))
                 fraction_summer_tyres(li)=sum(traffic_data(N_su_li_index,1:n_hours_input,i))/sum(traffic_data(N_li_index,1:n_hours_input,i))
-                fraction_winter_tyres(li)=1.-fraction_summer_tyres(li)-fraction_studded_tyres(li)*max_stud_fraction_region_scaling(k,li)
+                fraction_winter_tyres(li)=1.-fraction_summer_tyres(li)-min(1.-fraction_summer_tyres(li),fraction_studded_tyres(li)*max_stud_fraction_region_scaling(k,li))
                 else
                 fraction_studded_tyres(li)=0
                 fraction_winter_tyres(li)=0
@@ -662,7 +662,7 @@
                 fraction_studded_tyres(he)=sum(traffic_data(N_st_he_index,1:n_hours_input,i))/sum(traffic_data(N_he_index,1:n_hours_input,i))
                 !fraction_winter_tyres(he)=sum(traffic_data(N_wi_he_index,1:n_hours_input,i))/sum(traffic_data(N_he_index,1:n_hours_input,i))
                 fraction_summer_tyres(he)=sum(traffic_data(N_su_he_index,1:n_hours_input,i))/sum(traffic_data(N_he_index,1:n_hours_input,i))
-                fraction_winter_tyres(he)=1.-fraction_summer_tyres(he)-fraction_studded_tyres(he)*max_stud_fraction_region_scaling(k,he)
+                fraction_winter_tyres(he)=1.-fraction_summer_tyres(he)-min(1.-fraction_summer_tyres(he),fraction_studded_tyres(he)*max_stud_fraction_region_scaling(k,he))
                 else
                 fraction_studded_tyres(he)=0
                 fraction_winter_tyres(he)=0
@@ -671,9 +671,9 @@
                 
                 do v=1,num_veh
                     ty=st
-                    traffic_data(N_t_v_index(ty,v),1:n_hours_input,i)=traffic_data(N_v_index(v),1:n_hours_input,i)*(fraction_studded_tyres(v)*max_stud_fraction_region_scaling(k,v))
+                    traffic_data(N_t_v_index(ty,v),1:n_hours_input,i)=traffic_data(N_v_index(v),1:n_hours_input,i)*min(1.-fraction_summer_tyres(v),fraction_studded_tyres(v)*max_stud_fraction_region_scaling(k,v))
                     ty=wi
-                    traffic_data(N_t_v_index(ty,v),1:n_hours_input,i)=traffic_data(N_v_index(v),1:n_hours_input,i)*(1.-fraction_summer_tyres(v)-fraction_studded_tyres(v)*max_stud_fraction_region_scaling(k,v))
+                    traffic_data(N_t_v_index(ty,v),1:n_hours_input,i)=traffic_data(N_v_index(v),1:n_hours_input,i)*(1.-fraction_summer_tyres(v)-min(1.-fraction_summer_tyres(v),fraction_studded_tyres(v)*max_stud_fraction_region_scaling(k,v)))
                     ty=su
                     !traffic_data(N_t_v_index(ty,v),1:n_hours_input,i)=traffic_data(N_v_index(v),1:n_hours_input,i)*(1.-fraction_winter_tyres(v)-fraction_studded_tyres(v)*max_stud_fraction_region_scaling(k,v))
                 enddo
