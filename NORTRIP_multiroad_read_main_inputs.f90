@@ -51,8 +51,8 @@
    !Place the start date string into the start date array
     character_length = LEN_TRIM(start_date_and_time)
     if (character_length >= 10) then
-        read(start_date_and_time, *)  start_date_input(year_index),start_date_input(month_index),start_date_input(day_index),start_date_input(hour_index)
-        start_date_input(minute_index:second_index)=0
+        read(start_date_and_time, *)  start_date_input(year_index),start_date_input(month_index),start_date_input(day_index),start_date_input(hour_index),start_date_input(minute_index)
+        start_date_input(second_index)=0
     else
         write(unit_logfile,'(A)') ' WARNING: "start_date_and_time" is too short. Using default date'
         start_date_input=start_date_default
@@ -61,8 +61,8 @@
     !Place the end date string into the end date array
     character_length = LEN_TRIM(end_date_and_time)
     if (character_length >= 10) then
-        read(end_date_and_time, *)  end_date_input(year_index),end_date_input(month_index),end_date_input(day_index),end_date_input(hour_index)
-        end_date_input(minute_index:second_index)=0
+        read(end_date_and_time, *)  end_date_input(year_index),end_date_input(month_index),end_date_input(day_index),end_date_input(hour_index),end_date_input(minute_index)
+        end_date_input(second_index)=0
     else
         write(unit_logfile,'(A)') ' WARNING: "end_date_and_time" is too short. Using default date'
         end_date_input=end_date_default
@@ -77,31 +77,33 @@
     write(unit_logfile,'(A,4I5)') ' End date: ', end_date_input(year_index),end_date_input(month_index),end_date_input(day_index),end_date_input(hour_index)
     
     !Calculate the number of hours between end and start dates
-    n_hours_input=int((date_to_number(end_date_input)-date_to_number(start_date_input))*24.+.5)+1
+    n_hours_input=int((date_to_number(end_date_input)-date_to_number(start_date_input))*24./timestep+.5)
     if (n_hours_input.lt.1) then
         !n_hours_input=n_hours_default
         write(unit_logfile,'(A)') ' ERROR: Number of hours is 0 or less. Stopping'
         STOP 5
     endif
-    write(unit_logfile,'(A,4I5)') ' Number of hours: ', n_hours_input
+    write(unit_logfile,'(A,4I5)') ' Number of timesteps: ', n_hours_input
     
     !Allocate a time array to the input data
-    allocate (date_data(num_date_index,n_hours_input))
+    allocate (date_data(num_date_index,n_hours_input)) !TODO: Should this array still use hours to determine second dimension, or should it be determined by the timestep? Best option to rename n_hours_input? It is also unclear what this "input" refers to? The dates that have been given as input?
     date_data=0
     
-    !date_data(1,t)=start_date_input
-    do t=1,n_hours_input
-        a_temp=start_date_input
-        call incrtm(t-1,a_temp(1),a_temp(2),a_temp(3),a_temp(4))
-        date_data(:,t)=a_temp
-        !write(*,*) date_data(:,t)
-        !num_temp=date_to_number(a_temp)
-        !call number_to_date(num_temp,a_temp)
-        !write(*,*) a_temp
+    if ( timestep .eq. 1. ) then
+        do t=1,n_hours_input
+            a_temp=start_date_input
+            call incrtm(t-1,a_temp(1),a_temp(2),a_temp(3),a_temp(4))
+            date_data(:,t)=a_temp
+        enddo
+    else 
+        date_data(:,1) = start_date_input
+        do t=0,n_hours_input-1
+            a_temp=start_date_input
+            call minute_increment(int(minutes_in_hour*timestep)*t,a_temp(1),a_temp(2),a_temp(3),a_temp(4),a_temp(5)) 
+            date_data(:,t+1)=a_temp    
+        enddo
+    end if
 
-    enddo
-
-    
     !Fill in any time templates. Not in the NORTRIP paths as this must be set later
     !These meteo path names insert dates when reading the data, in case the paths need to be changed
     !call date_to_datestr_bracket(start_date_input,pathname_nc,pathname_nc)
@@ -113,6 +115,7 @@
     call date_to_datestr_bracket(start_date_input,filename_nc_template,filename_nc)
     call date_to_datestr_bracket(start_date_input,filename_alternative_nc_template,filename_alternative_nc)
     call date_to_datestr_bracket(start_date_input,filename_nc2_template,filename_nc2)
+    call date_to_datestr_bracket(start_date_input,filename_nc_forecast_template,filename_nc_forecast)
     call date_to_datestr_bracket(start_date_input,filename_rl(1),filename_rl(1))
     call date_to_datestr_bracket(start_date_input,filename_rl(2),filename_rl(2))
     call date_to_datestr_bracket(start_date_input,filename_traffic,filename_traffic)
@@ -125,8 +128,11 @@
     call date_to_datestr_bracket(start_date_input,filename_alternative_nc_template,filename_alternative_nc)
     call date_to_datestr_bracket(start_date_input,inpath_meteo_obs_data,inpath_meteo_obs_data)
     call date_to_datestr_bracket(start_date_input,infile_meteo_obs_data,infile_meteo_obs_data)
+    call date_to_datestr_bracket(start_date_input,inpath_meteo_obs_netcdf_data,inpath_meteo_obs_netcdf_data)
+    call date_to_datestr_bracket(start_date_input,infile_meteo_obs_netcdf_data,infile_meteo_obs_netcdf_data)
+    call date_to_datestr_bracket(start_date_input,infile_meteo_obs_netcdf_data,infile_meteo_obs_netcdf_data)
     call date_to_datestr_bracket(start_date_input,path_outputdata,path_outputdata)    
-    
+
     !Roadlink ID activity files
     call date_to_datestr_bracket(start_date_input,inpath_activity,inpath_activity)    
     call date_to_datestr_bracket(start_date_input,infile_activity,infile_activity)    
@@ -241,6 +247,7 @@
     city_str(2)=match_string_char('city_str2',unit_in,unit_logfile,'')
     pathname_nc=match_string_char('inpath_meteo_nc',unit_in,unit_logfile,'')
     pathname_nc2=match_string_char('inpath_meteo_nc2',unit_in,unit_logfile,'')
+    pathname_nc_forecast=match_string_char('inpath_meteo_nc_forecast',unit_in,unit_logfile,'')
     pathname_rl(1)=match_string_char('inpath_static_road_1',unit_in,unit_logfile,'')
     pathname_rl(2)=match_string_char('inpath_static_road_2',unit_in,unit_logfile,'')
     pathname_traffic=match_string_char('inpath_dynamic_road',unit_in,unit_logfile,'')
@@ -251,6 +258,7 @@
     filename_nc_template=match_string_char('infile_meteo_nc',unit_in,unit_logfile,'')
     filename_alternative_nc_template=match_string_char('infile_meteo_alternative_nc',unit_in,unit_logfile,'')
     filename_nc2_template=match_string_char('infile_meteo_nc2',unit_in,unit_logfile,'')
+    filename_nc_forecast_template=match_string_char('infile_meteo_nc_forecast',unit_in,unit_logfile,'')
     filename_rl(1)=match_string_char('infile_static_road_1',unit_in,unit_logfile,'')
     filename_rl(2)=match_string_char('infile_static_road_2',unit_in,unit_logfile,'')
     filename_traffic=match_string_char('infile_dynamic_road',unit_in,unit_logfile,'')
@@ -291,7 +299,11 @@
     DIFUTC_H=match_string_val('Time difference site',unit_in,unit_logfile,0.0)
     DIFUTC_H_traffic=match_string_val('Time difference traffic',unit_in,unit_logfile,0.0)
     missing_data=match_string_val('Missing data value',unit_in,unit_logfile,-999.)
+    no_of_timesteps=match_string_int('Number of timesteps within one hour',unit_in,unit_logfile,1)
+    timestep = 1./no_of_timesteps
     hours_between_init=match_string_int('Hours between saving init files',unit_in,unit_logfile,24)
+    hours_between_init = int(hours_between_init/timestep)
+
     calculation_type=match_string_char('Calculation type',unit_in,unit_logfile,'normal')                     	
     timevariation_type=match_string_char('Timevariation type',unit_in,unit_logfile,'normal')                     	
     ID_dynamic_emission(pm25_index)=match_string_char('Model output ID PM2.5',unit_in,unit_logfile,'{no-index-in-main-config-file}')                     	
@@ -411,10 +423,13 @@
     !Data for reading and replacing model data with observational data
     replace_meteo_with_obs=match_string_int('replace_meteo_with_obs',unit_in,unit_logfile,0)
     replace_meteo_with_yr=match_string_int('replace_meteo_with_yr',unit_in,unit_logfile,0)
+    replace_meteo_with_met_forecast=match_string_int('replace_meteo_with_met_forecast',unit_in,unit_logfile,0)
     wetbulb_snow_rain_flag=match_string_int('wetbulb_snow_rain_flag',unit_in,unit_logfile,wetbulb_snow_rain_flag)
     filename_meteo_obs_metadata=match_string_char('filename_meteo_obs_metadata',unit_in,unit_logfile,'')
     inpath_meteo_obs_data=match_string_char('inpath_meteo_obs_data',unit_in,unit_logfile,'')
     infile_meteo_obs_data=match_string_char('infile_meteo_obs_data',unit_in,unit_logfile,'')
+    inpath_meteo_obs_netcdf_data=match_string_char('inpath_meteo_obs_netcdf_data',unit_in,unit_logfile,'')
+    infile_meteo_obs_netcdf_data=match_string_char('infile_meteo_obs_netcdf_data',unit_in,unit_logfile,'')
     call match_string_multi_int('replace_which_meteo_with_obs',unit_in,unit_logfile,replace_which_meteo_with_obs_input(1:num_replace_meteo_with_obs_input),num_replace_meteo_with_obs_input)
     !pressure,temperature,relhumidity,cloudfraction,precip,shortwave_rad,longwave_rad,speed_wind,dir_wind,road_temperature
     if (replace_which_meteo_with_obs_input(1).ne.-999) then
@@ -643,6 +658,9 @@
         filename_meteo_obs_metadata=replace_string_char(city_str(i),trim(temp_str),filename_meteo_obs_metadata)
         inpath_meteo_obs_data=replace_string_char(city_str(i),trim(temp_str),inpath_meteo_obs_data)
         infile_meteo_obs_data=replace_string_char(city_str(i),trim(temp_str),infile_meteo_obs_data)
+
+        inpath_meteo_obs_netcdf_data=replace_string_char(city_str(i),trim(temp_str),inpath_meteo_obs_netcdf_data)
+        infile_meteo_obs_netcdf_data=replace_string_char(city_str(i),trim(temp_str),infile_meteo_obs_netcdf_data)
         
         !EF files
         inpath_region_EF=replace_string_char(city_str(i),trim(temp_str),inpath_region_EF)
@@ -833,10 +851,10 @@
             
         endif
     
-               !write(*,*) 'Here 3'
-     
+
+        !TODO: This should be fixed! Also, the "use_uEMEP_receptor_file" is used for avinor, even if does not involve uEMEP.
         !If api is in the receptor file name then read in a different way.
-        !This is not the best method for specifying file type and should be done differently
+        !This is not the best method for specifying file type and should be done differently 
         if (index(filename_NORTRIP_receptors,'api').gt.0) use_uEMEP_receptor_file=.true.
         if (index(filename_NORTRIP_receptors,'category').gt.0) read_receptor_type=.true.
         
@@ -846,11 +864,10 @@
             write(unit_logfile,'(a)') ' Opening receptor file '//trim(filename_NORTRIP_receptors)
     
             rewind(unit_in)
-            !call NXTDAT(unit_in,nxtdat_flag)
+
             !read the header to find out how many links there are
             read(unit_in,'(a)',ERR=19) temp_str1
             k=0
-            !write(*,*) trim(temp_str1)
             do while(.not.eof(unit_in))
                 k=k+1
                 if (read_receptor_type) then
@@ -905,7 +922,6 @@
                 save_road_receptor_type(i)=type_receptor(k)
                 save_road_name2(i)=name_receptor(k,2)
 
-                !write(unit_logfile,'(I12,I20,i20,A32,2f12.1,I32)') i,save_road_index(i),save_road_id(i),trim(save_road_name(i)),save_road_x(i),save_road_y(i),save_road_ospm_pos(i)
                 endif
             enddo
             n_save_road=i
@@ -1087,7 +1103,7 @@
         endif
 
     endif
-            
+
       ! if (use_only_special_links_flag.eq.2) then
       !      !Save all the road links
       !      write(unit_logfile,'(a,i)') ' Saving all road links: ',n_save_links

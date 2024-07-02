@@ -52,7 +52,7 @@
     !dimension netcdf fields
     integer x_index,y_index,time_index
     parameter (x_index=1,y_index=2,time_index=3)
-
+    !-------------------------------------------------------for MET Nordic analysis-----------------------------------------------------------------
     !General variables.
     integer num_dims_nc2 
     parameter (num_dims_nc2=3)                  ! number of dimensions is 3 for all 2d fields used
@@ -82,6 +82,40 @@
     !dimension netcdf fields
     integer x_index2,y_index2,time_index2
     parameter (x_index2=1,y_index2=2,time_index2=3)
+    !----------------------------------------------------------------------------------------------------------------------------------------------
+
+    !------------------------------------------for MET_Nordic forecast-----------------------------------------------------------------------------
+    integer num_dims_nc_forecast 
+    parameter (num_dims_nc_forecast=3)                  ! number of dimensions is 3 for all 2d fields used
+
+    !Dimensions of the netcdf files that are read
+    integer dim_length_nc_forecast(num_dims_nc_forecast)
+    integer dim_start_nc_forecast(num_dims_nc_forecast)
+    data dim_start_nc_forecast /1, 1, 1/                 ! start at first value
+
+    !Dimensions of the netcdf files that are used
+    integer end_dim_nc_forecast(num_dims_nc_forecast)
+    integer start_dim_nc_forecast(num_dims_nc_forecast)
+
+    !3d data. Reorganised for memory reduction
+    integer temperature_index_forecast,relhumidity_index_forecast,cloudfraction_index_forecast,precip_index_forecast,x_wind_index_forecast,y_wind_index_forecast,speed_wind_index_forecast,dir_wind_index_forecast,pressure_index_forecast,longwaveradiation_index_forecast,shortwaveradiation_index_forecast
+    parameter (temperature_index_forecast=1,relhumidity_index_forecast=2,cloudfraction_index_forecast=3,precip_index_forecast=4,speed_wind_index_forecast=5,dir_wind_index_forecast=6,pressure_index_forecast=7,longwaveradiation_index_forecast=8,shortwaveradiation_index_forecast=9)
+    !TODO: Might be ok to remove x_wind_index_forecast and y_wind_index_forecast
+
+    !2d data
+    integer lat_index_forecast,lon_index_forecast
+    parameter (lat_index_forecast=10,lon_index_forecast=11)
+    
+    integer num_var_nc_forecast
+    parameter (num_var_nc_forecast=11)                ! number of variables
+
+    character(256) var_name_nc_forecast(num_var_nc_forecast)
+    character(256) dim_name_nc_forecast(num_dims_nc_forecast)
+
+    !dimension netcdf fields
+    integer x_index_forecast,y_index_forecast,time_index_forecast
+    parameter (x_index_forecast=1,y_index_forecast=2,time_index_forecast=3)
+    !----------------------------------------------------------------------------------------------------------------------------------------------
 
     !Dimensions for terrain netcdf file
     integer terrain_index,num_var_terrain_nc,num_dims_terrain_nc
@@ -101,6 +135,7 @@
     !Declare netcdf files
     real, allocatable :: var1d_nc(:,:)
     double precision, allocatable :: var1d_time_nc(:)
+    double precision, allocatable :: var1d_time_nc_old(:)
     real, allocatable :: var2d_nc(:,:,:)
     real, allocatable :: var3d_nc(:,:,:,:)
     real angle_nc
@@ -110,6 +145,14 @@
     real, allocatable :: var2d_nc2(:,:,:)
     real, allocatable :: var3d_nc2(:,:,:,:)
     real dgrid_nc2(2)
+    
+    real, allocatable :: var1d_nc_forecast(:,:)
+    real, allocatable :: var2d_nc_forecast(:,:,:)
+    real, allocatable :: var3d_nc_forecast(:,:,:,:)
+    real dgrid_nc_forecast(2)
+
+    integer, allocatable :: date_nc(:,:)
+    integer, allocatable :: date_nc_forecast(:,:)
 
     !Road link (rl) indexes
     integer x1_rl_index,x2_rl_index,y1_rl_index,y2_rl_index,z1_rl_index,z2_rl_index,width_rl_index
@@ -145,8 +188,8 @@
     parameter (N_week_index=1,HDV_week_index=2,LDV_week_index=3,V_week_index=4)
     integer num_week_traffic
     parameter (num_week_traffic=4)
-    integer hours_in_week,days_in_week,hours_in_day,seconds_in_hour,months_in_year
-    parameter (hours_in_week=168,days_in_week=7,hours_in_day=24,seconds_in_hour=3600,months_in_year=12)
+    integer hours_in_week,days_in_week,hours_in_day,seconds_in_hour,months_in_year,minutes_in_hour
+    parameter (hours_in_week=168,days_in_week=7,hours_in_day=24,seconds_in_hour=3600,months_in_year=12,minutes_in_hour=60)
 
     integer dir1_index,dir2_index,dirall_index,num_week_emission
     parameter (dir1_index=1,dir2_index=2,dirall_index=3,num_week_emission=3)
@@ -242,6 +285,10 @@
     character(256) filename_nc2
     character(256) pathname_nc2
     character(256) pathfilename_nc2
+    character(256) filename_nc_forecast_template
+    character(256) filename_nc_forecast
+    character(256) pathname_nc_forecast
+    character(256) pathfilename_nc_forecast
     !Declare file and path names for input roadlink files
     character(256) filename_rl(2)
     character(256) pathname_rl(2)
@@ -278,6 +325,9 @@
     character(256) filename_init_in
     character(256) pathname_init_in
     character(256) pathfilename_init_in
+        !Declare file and path names for input initialisation file on netcdf format
+    character(256) filename_init_in_netcdf
+    character(256) pathfilename_init_in_netcdf
     !Declare file and path names for output initialisation file
     character(256) filename_init_out
     character(256) pathname_init_out
@@ -316,6 +366,7 @@
     character(256) filename_log_NORTRIP
     character(256) path_init
     character(256) filename_init
+    character(256) filename_init_netcdf
     character(256) path_init_out
     character(256) path_output_emis
     character(256) filename_output_emis
@@ -330,6 +381,8 @@
     character(256) filename_meteo_obs_metadata
     character(256) inpath_meteo_obs_data
     character(256) infile_meteo_obs_data
+    character(256) inpath_meteo_obs_netcdf_data
+    character(256) infile_meteo_obs_netcdf_data
     !Regional EF and studded tyre data
     character(256) inpath_region_EF
     character(256) infile_region_EF
@@ -377,7 +430,11 @@
     integer n_hours_input
     integer start_dayofweek_input
     integer end_time_index_meteo_obs,start_time_index_meteo_obs
-
+    integer, dimension(num_date_index) :: start_date_meteo_obs
+    integer, dimension(num_date_index) :: end_date_meteo_obs
+    integer :: no_of_timesteps
+    real :: timestep
+    
     !Input character arrays for time
     character(256) start_date_and_time
     character(256) end_date_and_time
@@ -450,17 +507,20 @@
     parameter (num_replace_meteo_with_obs_input=10)
     integer :: replace_meteo_with_obs=0
     integer :: replace_meteo_with_yr=0
+    integer :: replace_meteo_with_met_forecast=0
     integer :: replace_which_meteo_with_obs_input(num_replace_meteo_with_obs_input)=0
     integer :: replace_which_meteo_with_obs(num_var_meteo)=0
     integer, allocatable :: save_meteo_index(:)
+    logical :: read_obs_from_netcdf = .True.
+
 
     !Dimensions of the obs meteo file that is used
     integer end_dim_meteo_obs
     integer start_dim_meteo_obs
 
-    !Use the same indexes for the observed as for the modelled meteorology
+    !Use the same indexes for the observed as for the modelled meteorology !TODO: Need to check that indexes are indeed the same!
     character(256) var_name_meteo_obs(num_var_meteo)
-    integer n_meteo_obs_date
+    integer n_meteo_obs_date 
     
     real, allocatable :: meteo_obs_data(:,:,:)
     real, allocatable :: meteo_obs_data_final(:,:)
@@ -474,6 +534,9 @@
     character(256), allocatable :: meteo_obs_name(:)
     real, allocatable :: meteo_obs_position(:,:)
     logical :: meteo_obs_data_available=.false.
+
+    integer, allocatable :: obs_exist(:,:) !! store the corresponding date (and time) indexes of the given simulation date range and the dates with observations
+    
     
     integer meteo_obs_height_index,meteo_obs_lat_index,meteo_obs_lon_index,meteo_obs_x_index,meteo_obs_y_index,num_meteo_obs_position
     parameter (meteo_obs_height_index=1,meteo_obs_lat_index=2,meteo_obs_lon_index=3,meteo_obs_x_index=4,meteo_obs_y_index=5)
@@ -495,19 +558,24 @@
     character(1) slash
     character(8) delete_file_command
     
-    integer :: number_of_time_steps=0
+    integer :: number_of_time_steps=0 !Number of time steps to read from netcdf files. If 0 then reads all data in netcdf files. Can be modified in config file.
     
     double precision meteo_nc_projection_attributes(10)
     double precision meteo_nc2_projection_attributes(10)
+    double precision meteo_nc_forecast_projection_attributes(10)
     integer UTM_projection_index,RDM_projection_index,LCC_projection_index,LL_projection_index
     parameter (UTM_projection_index=1,RDM_projection_index=2,LCC_projection_index=3,LL_projection_index=4)
     integer :: meteo_nc_projection_type=LCC_projection_index
     integer :: meteo_nc2_projection_type=LCC_projection_index
+    integer :: meteo_nc_forecast_projection_type=LCC_projection_index
     logical, allocatable :: meteo_nc2_available(:)
     logical, allocatable :: meteo_var_nc2_available(:,:)
+
+    logical              :: meteo_nc_forecast_available
+    logical, allocatable :: meteo_var_nc_forecast_available(:,:)
     
-    character(256) projection_name_nc,projection_name_nc2
- 
+    character(256) projection_name_nc,projection_name_nc2,projection_name_nc_forecast
+
     !Auto activity data
     real, allocatable :: multi_salting_hour(:,:)
     real, allocatable :: multi_delay_salting_day(:)
@@ -605,7 +673,7 @@
 !==========================================================================
 !   set_constant_values
 !==========================================================================   
-    subroutine  set_constant_values   
+subroutine  set_constant_values   
     
     use NORTRIP_multiroad_index_definitions
 
@@ -626,12 +694,11 @@
     var_name_nc(elevation_index)='surface_elevation'
     var_name_nc(surface_temperature_index)='air_temperature_0m'
     var_name_nc(precip_snow_index)='snowfall_amount_acc'
-     
+
     var_name_nc2(lat_index2)='lat'
     var_name_nc2(lon_index2)='lon'
     var_name_nc2(elevation_index2)='altitude'
     var_name_nc2(temperature_index2)='air_temperature_2m'
-    
     var_name_nc2(relhumidity_index2)='relative_humidity_2m'
     var_name_nc2(dewpoint_index2)='dew_point_temperature_2m'
     var_name_nc2(cloudfraction_index2)='cloud_area_fraction'
@@ -640,6 +707,18 @@
     var_name_nc2(y_wind_index2)='y_wind_10m'
     var_name_nc2(speed_wind_index2)='wind_speed_10m'
     var_name_nc2(dir_wind_index2)='wind_direction_10m'
+
+    var_name_nc_forecast(lat_index_forecast)='latitude'
+    var_name_nc_forecast(lon_index_forecast)='longitude'
+    var_name_nc_forecast(pressure_index_forecast)='air_pressure_at_sea_level'
+    var_name_nc_forecast(temperature_index_forecast)='air_temperature_2m'
+    var_name_nc_forecast(relhumidity_index_forecast)='relative_humidity_2m'
+    var_name_nc_forecast(cloudfraction_index_forecast)='cloud_area_fraction'
+    var_name_nc_forecast(speed_wind_index_forecast)='wind_speed_10m'
+    var_name_nc_forecast(dir_wind_index_forecast)='wind_direction_10m'
+    var_name_nc_forecast(precip_index_forecast)='precipitation_amount'
+    var_name_nc_forecast(shortwaveradiation_index_forecast)='integral_of_surface_downwelling_shortwave_flux_in_air_wrt_time'
+    var_name_nc_forecast(longwaveradiation_index_forecast)='integral_of_surface_downwelling_longwave_flux_in_air_wrt_time'
 
     dim_name_nc(x_index)='x'
     dim_name_nc(y_index)='y'
@@ -651,6 +730,11 @@
     dim_name_nc2(time_index2)='time'
     projection_name_nc2='projection_lcc'
 
+    dim_name_nc_forecast(x_index_forecast)='x'
+    dim_name_nc_forecast(y_index_forecast)='y'
+    dim_name_nc_forecast(time_index_forecast)='time'
+    projection_name_nc_forecast='projection_lcc'
+
     dim_name_terrain_nc(x_index)='x'
     dim_name_terrain_nc(y_index)='y'
     var_name_terrain_nc(terrain_index)='Band1'
@@ -659,7 +743,7 @@
     n_roadlinks=1
     lapse_rate=-0.005 !(K/m)
     precip_cutoff=0.005 !Must be more than this to give precipitation (was 0.05 until 07.01.2021, increased to include fog droplet deposition)
- 
+
     !Stnr Year Month Day Time(NMT) UU PO TA RR_1 FF DD QSI NN TV
     var_name_meteo_obs(:)=''
     var_name_meteo_obs(pressure_index)='PO'
@@ -686,5 +770,5 @@
     endif
     
     
-    end subroutine set_constant_values
+end subroutine set_constant_values
     

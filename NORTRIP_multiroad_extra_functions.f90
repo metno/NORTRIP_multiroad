@@ -63,3 +63,25 @@
     end subroutine distribute_rain_snow
     
 ! ######################################################################	
+    function relax_meteo_variable(X_F, X_FO, X_O, t,dt)
+        !! Used to relax meteorological variables between model and observed values
+        !! Based on Crevier and Delage, 2001 and Karisto et al. 2016
+
+        !! Input
+        real, intent(in) :: X_F !! Model value
+        real, intent(in) :: X_FO !! Model value at the time of the last observation
+        real, intent(in) :: X_O !! The last observation value
+        integer, intent(in) :: t !! current timestep
+        real, intent(in) :: dt !! timestep size
+
+        !Local
+        real :: t_c  !! e-folding time [hours]
+
+        real :: relax_meteo_variable
+
+        t_c = 1/dt
+
+        relax_meteo_variable = X_F - (X_FO - X_O)*exp(-real(t/t_c))
+
+    end function relax_meteo_variable
+! ######################################################################	
