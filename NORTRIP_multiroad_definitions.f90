@@ -520,7 +520,7 @@
 
     !Use the same indexes for the observed as for the modelled meteorology !TODO: Need to check that indexes are indeed the same!
     character(256) var_name_meteo_obs(num_var_meteo)
-    integer n_meteo_obs_date
+    integer n_meteo_obs_date 
     
     real, allocatable :: meteo_obs_data(:,:,:)
     real, allocatable :: meteo_obs_data_final(:,:)
@@ -535,7 +535,7 @@
     real, allocatable :: meteo_obs_position(:,:)
     logical :: meteo_obs_data_available=.false.
 
-    integer, allocatable :: obs_exist(:,:) 
+    integer, allocatable :: obs_exist(:,:) !! store the corresponding date (and time) indexes of the given simulation date range and the dates with observations
     
     
     integer meteo_obs_height_index,meteo_obs_lat_index,meteo_obs_lon_index,meteo_obs_x_index,meteo_obs_y_index,num_meteo_obs_position
@@ -717,8 +717,8 @@ subroutine  set_constant_values
     var_name_nc_forecast(speed_wind_index_forecast)='wind_speed_10m'
     var_name_nc_forecast(dir_wind_index_forecast)='wind_direction_10m'
     var_name_nc_forecast(precip_index_forecast)='precipitation_amount'
-    var_name_nc_forecast(shortwaveradiation_index_forecast)='integral_of_surface_downwelling_longwave_flux_in_air_wrt_time'
-    var_name_nc_forecast(longwaveradiation_index_forecast)='integral_of_surface_downwelling_shortwave_flux_in_air_wrt_time'
+    var_name_nc_forecast(shortwaveradiation_index_forecast)='integral_of_surface_downwelling_shortwave_flux_in_air_wrt_time'
+    var_name_nc_forecast(longwaveradiation_index_forecast)='integral_of_surface_downwelling_longwave_flux_in_air_wrt_time'
 
     dim_name_nc(x_index)='x'
     dim_name_nc(y_index)='y'

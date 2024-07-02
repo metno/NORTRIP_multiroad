@@ -58,8 +58,11 @@ subroutine NORTRIP_read_MET_Nordic_forecast_netcdf4
 
     pathname_nc_in=pathname_nc_forecast
     filename_nc_in=filename_nc_forecast_template
-    call date_to_datestr_bracket(start_date_input,filename_nc_in,filename_nc)
-    call date_to_datestr_bracket(start_date_input,pathname_nc_in,pathname_nc)   
+    temp_date=date_to_number(start_date_input)
+    call number_to_date(temp_date+(-1)/dble(24.),new_start_date_input) !This opens the forecast file from the previous hour, as the precip and radiation is cumulative, and thus the first value is zero. !TODO: Make a fix for only precipitation and radiation, so that the other variables can be read from the most recent file. 
+
+    call date_to_datestr_bracket(new_start_date_input,filename_nc_in,filename_nc)
+    call date_to_datestr_bracket(new_start_date_input,pathname_nc_in,pathname_nc)   
     pathfilename_nc=trim(pathname_nc)//trim(filename_nc)    
     found_file = .True. !To capture the case when the file exist on the first try.
 

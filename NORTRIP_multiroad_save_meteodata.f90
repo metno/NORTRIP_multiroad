@@ -6,7 +6,7 @@ subroutine NORTRIP_multiroad_create_meteodata
     
     implicit none
     
-    integer i,j,t,jj,ii,j_obs,j_mod
+    integer i,j,t,jj,ii,j_obs,j_mod, road_with_obs, j_forecast
     integer unit_in
     integer, allocatable :: grid_index_rl(:,:)
     integer, allocatable :: grid_index_rl2(:,:)
@@ -25,6 +25,9 @@ subroutine NORTRIP_multiroad_create_meteodata
     integer out_of_range_count
     logical not_shown_once
     real adjust_lapse
+
+    real :: model_at_latest_observation !! Used for in function for relaxing meteo variable when we go from observed to modeled input data 
+    real :: latest_observation !! Used for in function for relaxing meteo variable when we go from observed to modeled input data 
     
     real dist,dist_min
     integer i_dist_min,j_dist_min
@@ -45,12 +48,18 @@ subroutine NORTRIP_multiroad_create_meteodata
     logical :: show_analysis=.false.
     logical some_meteo_nc2_available
     
+    integer :: latest_observation_index
+    integer :: latest_model_index
+    integer :: latest_forecast_index
+
     real wetbulb_temp
     
     !Functions
     real DIRECTION
     double precision date_to_number
     real wetbulb_temperature
+    real relax_meteo_variable
+   ! integer findloc
 
     integer, dimension(2) :: datetime_match !Used for matching dates with observations to the simulation date range.
 
@@ -273,8 +282,8 @@ subroutine NORTRIP_multiroad_create_meteodata
         !write(*,'(A,I)') 'Wrong nc start index. Stopping:   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!',start_time_index_nc
         !stop
     endif
-    
-   
+
+
     if (.not.start_time_index_nc_found.or..not.end_time_index_nc_found) then
         write(*,'(A)') ' ERROR: Input time start or stop date not found in meteo data. Stopping'
         write(unit_logfile,'(a32,6i6)') ' Start date input = ',start_date_input
@@ -307,7 +316,7 @@ subroutine NORTRIP_multiroad_create_meteodata
                     .and.local_date_nc_forecast(day_index,t).eq.date_data(day_index,1) &
                     .and.local_date_nc_forecast(hour_index,t).eq.date_data(hour_index,1) &
                     .and.local_date_nc_forecast(minute_index,t).eq.date_data(minute_index,1)) then
-                    print*, "start: ", local_date_nc_forecast(:,t)
+
                     start_time_index_nc_forecast=t
                     start_time_index_nc_forecast_found=.true.
             endif 
@@ -316,7 +325,7 @@ subroutine NORTRIP_multiroad_create_meteodata
                     .and.local_date_nc_forecast(day_index,t).eq.date_data(day_index,n_hours_input) &
                     .and.local_date_nc_forecast(hour_index,t).eq.date_data(hour_index,n_hours_input) &
                     .and.local_date_nc_forecast(minute_index,t).eq.date_data(minute_index,n_hours_input)) then
-                    print*, "end: ", local_date_nc_forecast(:,t)
+
                     
                     end_time_index_nc_forecast=t
                     end_time_index_nc_forecast_found=.true.
@@ -366,12 +375,13 @@ subroutine NORTRIP_multiroad_create_meteodata
         if ((inputdata_int_rl(savedata_rl_index,i).eq.1.and.use_only_special_links_flag.ge.1) &
         .or.(use_only_special_links_flag.eq.0).or.(use_only_special_links_flag.eq.2)) then
             
-                do t=1,hours_time_index_nc !TODO: Compare hours_time_index_nc w. n_hours_input
+            do t=1,hours_time_index_nc !TODO: Compare hours_time_index_nc w. n_hours_input
                 
                 !do t=start_time_index_nc,end_time_index_nc
                 j_mod=start_time_index_nc+t-1
                 j_obs=start_time_index_meteo_obs+t-1
                 j_obs=t  
+
                 time_temp=var1d_time_nc(j_mod)    !Not used here as this is the time stamp
                 meteo_temp(temperature_index)=var3d_nc(temperature_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i),j_mod)-273.15
                 meteo_temp(speed_wind_index)=sqrt(var3d_nc(x_wind_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i),j_mod)**2 &
@@ -566,6 +576,8 @@ subroutine NORTRIP_multiroad_create_meteodata
 
                 not_shown_once=.false.
                 if (replace_meteo_with_met_forecast.eq.1) then
+                    j_forecast = start_time_index_nc_forecast+t-1 !! Index counter for the array containing forecast meteo data
+
                     if (meteo_nc_forecast_available) then
                         if (not_shown_once) then 
                             write(unit_logfile,'(a,i,f10.3,f10.3)') 'Temperature:  ',t,meteo_temp(temperature_index),var3d_nc_forecast(temperature_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),t)-273.15
@@ -573,29 +585,41 @@ subroutine NORTRIP_multiroad_create_meteodata
                             write(unit_logfile,'(a,i,f10.3,f10.3)') 'Precipitation:',t,meteo_temp(precip_index),max(0.,var3d_nc_forecast(precip_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),t))
                             write(unit_logfile,'(a,i,f10.3,f10.3)') 'Wind speed:',t,meteo_temp(speed_wind_index),var3d_nc_forecast(speed_wind_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),t)
                             write(unit_logfile,'(a,i,f10.3,f10.3)') 'Wind direction:',t,meteo_temp(dir_wind_index),var3d_nc_forecast(dir_wind_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),t)
+                            write(unit_logfile,'(a,i,f10.3,f10.3)') 'Longwave: ',t,meteo_temp(longwaveradiation_index),var3d_nc_forecast(longwaveradiation_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),t)
+                            write(unit_logfile,'(a,i,f10.3,f10.3)') 'Shortwave: ',t,meteo_temp(shortwaveradiation_index),var3d_nc_forecast(shortwaveradiation_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),t)
                         endif
                         
                         if (meteo_var_nc_forecast_available(t,temperature_index_forecast)) then
-                            meteo_temp(temperature_index)=var3d_nc_forecast(temperature_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),t)-273.15
+                            meteo_temp(temperature_index)=var3d_nc_forecast(temperature_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),j_forecast)-273.15
                         endif
                         
                         if (meteo_var_nc_forecast_available(t,speed_wind_index_forecast).and.meteo_var_nc_forecast_available(t,speed_wind_index_forecast)) then
-                            meteo_temp(speed_wind_index)=var3d_nc_forecast(speed_wind_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),t)
+                            meteo_temp(speed_wind_index)=var3d_nc_forecast(speed_wind_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),j_forecast)
                         endif
 
                         if (meteo_var_nc_forecast_available(t,speed_wind_index_forecast).and.meteo_var_nc_forecast_available(t,dir_wind_index_forecast)) then
-                            meteo_temp(speed_wind_index)=var3d_nc_forecast(speed_wind_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),t) 
-                            meteo_temp(dir_wind_index)=var3d_nc_forecast(dir_wind_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),t) 
+                            meteo_temp(speed_wind_index)=var3d_nc_forecast(speed_wind_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),j_forecast) 
+                            meteo_temp(dir_wind_index)=var3d_nc_forecast(dir_wind_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),j_forecast) 
                         endif
                         
                         if (meteo_var_nc_forecast_available(t,relhumidity_index_forecast)) then
-                            meteo_temp(relhumidity_index)=var3d_nc_forecast(relhumidity_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),t)*100.
+                            meteo_temp(relhumidity_index)=var3d_nc_forecast(relhumidity_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),j_forecast)*100.
                         endif
                         
-                        if (meteo_var_nc_forecast_available(t,precip_index_forecast)) then
-                            if ( t > int(no_of_timesteps) ) then !Precip is accumulated during the previous hour, so the values for the first hour is NaN.
-                                meteo_temp(precip_index)=max(0.,var3d_nc_forecast(precip_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),t))                
-                            end if
+                        if (meteo_var_nc_forecast_available(t,longwaveradiation_index_forecast)) then
+                            meteo_temp(longwaveradiation_index)=var3d_nc_forecast(longwaveradiation_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),j_forecast)
+                        endif
+
+                        if (meteo_var_nc_forecast_available(t,shortwaveradiation_index_forecast)) then
+                            meteo_temp(shortwaveradiation_index)=var3d_nc_forecast(shortwaveradiation_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),j_forecast)
+                        endif
+
+                        
+                        
+                        if (meteo_var_nc_forecast_available(j_forecast,precip_index_forecast)) then
+                            ! if ( t > int(no_of_timesteps) ) then !Precip is accumulated during the previous hour, so the values for the first hour is NaN.
+                            !     meteo_temp(precip_index)=max(0.,var3d_nc_forecast(precip_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),j_forecast))                
+                            ! end if
 
                             wetbulb_temp=meteo_temp(temperature_index)
                             if (wetbulb_snow_rain_flag.eq.0) then
@@ -695,73 +719,71 @@ subroutine NORTRIP_multiroad_create_meteodata
 
                     ii=save_meteo_index(j) !Was jj
 
-
-                    ii = findloc(meteo_obs_name, trim(save_road_name(ii)),dim=1)
-
+                    road_with_obs = findloc(meteo_obs_name, trim(save_road_name(ii)),dim=1) !! Finds the indexes of matching road_links and observational stations
 
                     !Adjusts the model temperature according to lapse rate so it fits to the observation height. Only does this if replace_meteo_with_obs.eq.2
                     if (replace_meteo_with_yr.eq.1) then
-                        adjust_lapse=(var2d_nc2(elevation_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i))-meteo_obs_position(meteo_obs_height_index,ii))*lapse_rate                
+                        adjust_lapse=(var2d_nc2(elevation_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i))-meteo_obs_position(meteo_obs_height_index,road_with_obs))*lapse_rate                
                     else
-                        adjust_lapse=(var3d_nc(elevation_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i),j_mod)-meteo_obs_position(meteo_obs_height_index,ii))*lapse_rate                
-                    endif   
+                        adjust_lapse=(var3d_nc(elevation_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i),j_mod)-meteo_obs_position(meteo_obs_height_index,road_with_obs))*lapse_rate                
+                    endif
 
                     meteo_temp(temperature_index)=meteo_temp(temperature_index)+adjust_lapse
                     
                     !Check if there are observations available in the date range of the simulation. 
-                    if ( any(obs_exist(2,:) == t) ) then
-                        datetime_match = findloc(obs_exist,t)
-
+                    datetime_match = findloc(obs_exist,t)
+                    if ( datetime_match(2) .ne. 0 ) then 
 
                         if (.true.) then 
-                            write(unit_logfile,'(18f10.1,f10.3)') meteo_temp(temperature_index)+adjust_lapse,meteo_obs_data(temperature_index,datetime_match(2),ii) &
-                                    ,meteo_temp(speed_wind_index),meteo_obs_data(speed_wind_index,datetime_match(2),ii) & 
-                                    ,meteo_temp(dir_wind_index),meteo_obs_data(dir_wind_index,datetime_match(2),ii) & 
-                                    ,meteo_temp(relhumidity_index),meteo_obs_data(relhumidity_index,datetime_match(2),ii) & 
-                                    ,meteo_temp(precip_index),meteo_obs_data(precip_index,datetime_match(2),ii) &
-                                    ,meteo_temp(shortwaveradiation_index),meteo_obs_data(shortwaveradiation_index,datetime_match(2),ii) & 
-                                    ,meteo_temp(longwaveradiation_index),meteo_obs_data(longwaveradiation_index,datetime_match(2),ii) & 
-                                    ,meteo_temp(pressure_index),meteo_obs_data(pressure_index,datetime_match(2),ii) & 
-                                    ,meteo_temp(road_temperature_index),meteo_obs_data(road_temperature_index,datetime_match(2),ii) &
+                            write(unit_logfile,'(18f10.1,f10.3)') meteo_temp(temperature_index)+adjust_lapse,meteo_obs_data(temperature_index,datetime_match(2),road_with_obs) &
+                                    ,meteo_temp(speed_wind_index),meteo_obs_data(speed_wind_index,datetime_match(2),road_with_obs) & 
+                                    ,meteo_temp(dir_wind_index),meteo_obs_data(dir_wind_index,datetime_match(2),road_with_obs) & 
+                                    ,meteo_temp(relhumidity_index),meteo_obs_data(relhumidity_index,datetime_match(2),road_with_obs) & 
+                                    ,meteo_temp(precip_index),meteo_obs_data(precip_index,datetime_match(2),road_with_obs) &
+                                    ,meteo_temp(shortwaveradiation_index),meteo_obs_data(shortwaveradiation_index,datetime_match(2),road_with_obs) & 
+                                    ,meteo_temp(longwaveradiation_index),meteo_obs_data(longwaveradiation_index,datetime_match(2),road_with_obs) & 
+                                    ,meteo_temp(pressure_index),meteo_obs_data(pressure_index,datetime_match(2),road_with_obs) & 
+                                    ,meteo_temp(road_temperature_index),meteo_obs_data(road_temperature_index,datetime_match(2),road_with_obs) &
                                     ,adjust_lapse
                         endif
 
-                        if (meteo_obs_data(temperature_index,datetime_match(2),ii).ne.missing_data.and.replace_which_meteo_with_obs(temperature_index).gt.0) meteo_temp(temperature_index)=meteo_obs_data(temperature_index,datetime_match(2),ii)
-                        if (meteo_obs_data(dir_wind_index,datetime_match(2),ii).ne.missing_data.and.replace_which_meteo_with_obs(dir_wind_index).gt.0) meteo_temp(dir_wind_index)=meteo_obs_data(dir_wind_index,datetime_match(2),ii)
-                        if (meteo_obs_data(speed_wind_index,datetime_match(2),ii).ne.missing_data.and.replace_which_meteo_with_obs(speed_wind_index).gt.0) meteo_temp(speed_wind_index)=meteo_obs_data(speed_wind_index,datetime_match(2),ii)
-                        if (meteo_obs_data(relhumidity_index,datetime_match(2),ii).ne.missing_data.and.replace_which_meteo_with_obs(relhumidity_index).gt.0) meteo_temp(relhumidity_index)=meteo_obs_data(relhumidity_index,datetime_match(2),ii)
+
+                        if (meteo_obs_data(temperature_index,datetime_match(2),road_with_obs).ne.missing_data.and.replace_which_meteo_with_obs(temperature_index).gt.0) meteo_temp(temperature_index)=meteo_obs_data(temperature_index,datetime_match(2),road_with_obs)
+                        if (meteo_obs_data(dir_wind_index,datetime_match(2),road_with_obs).ne.missing_data.and.replace_which_meteo_with_obs(dir_wind_index).gt.0) meteo_temp(dir_wind_index)=meteo_obs_data(dir_wind_index,datetime_match(2),road_with_obs)
+                        if (meteo_obs_data(speed_wind_index,datetime_match(2),road_with_obs).ne.missing_data.and.replace_which_meteo_with_obs(speed_wind_index).gt.0) meteo_temp(speed_wind_index)=meteo_obs_data(speed_wind_index,datetime_match(2),road_with_obs)
+                        if (meteo_obs_data(relhumidity_index,datetime_match(2),road_with_obs).ne.missing_data.and.replace_which_meteo_with_obs(relhumidity_index).gt.0) meteo_temp(relhumidity_index)=meteo_obs_data(relhumidity_index,datetime_match(2),road_with_obs)
                         
-                        if (meteo_obs_data(precip_index,datetime_match(2),ii).ne.missing_data.and.replace_which_meteo_with_obs(precip_index).gt.0) then
+                        if (meteo_obs_data(precip_index,datetime_match(2),road_with_obs).ne.missing_data.and.replace_which_meteo_with_obs(precip_index).gt.0) then
                             
                             wetbulb_temp=meteo_temp(temperature_index)
                             if (wetbulb_snow_rain_flag.eq.0) then
                                 if (meteo_temp(temperature_index).gt.0) then
-                                    meteo_temp(rain_index)=meteo_obs_data(precip_index,datetime_match(2),ii)
+                                    meteo_temp(rain_index)=meteo_obs_data(precip_index,datetime_match(2),road_with_obs)
                                     meteo_temp(snow_index)=0
                                 else
                                     meteo_temp(rain_index)=0
-                                    meteo_temp(snow_index)=meteo_obs_data(precip_index,datetime_match(2),ii)
+                                    meteo_temp(snow_index)=meteo_obs_data(precip_index,datetime_match(2),road_with_obs)
                                 endif
                             elseif (wetbulb_snow_rain_flag.eq.1) then                       
-                                call distribute_rain_snow(wetbulb_temp,meteo_obs_data(precip_index,datetime_match(2),ii),wetbulb_snow_rain_flag,meteo_temp(rain_index),meteo_temp(snow_index))
+                                call distribute_rain_snow(wetbulb_temp,meteo_obs_data(precip_index,datetime_match(2),road_with_obs),wetbulb_snow_rain_flag,meteo_temp(rain_index),meteo_temp(snow_index))
                             else
                                 wetbulb_temp=wetbulb_temperature(meteo_temp(temperature_index),meteo_temp(pressure_index)*100.,meteo_temp(relhumidity_index))
-                                call distribute_rain_snow(wetbulb_temp,meteo_obs_data(precip_index,datetime_match(2),ii),wetbulb_snow_rain_flag,meteo_temp(rain_index),meteo_temp(snow_index))
+                                call distribute_rain_snow(wetbulb_temp,meteo_obs_data(precip_index,datetime_match(2),road_with_obs),wetbulb_snow_rain_flag,meteo_temp(rain_index),meteo_temp(snow_index))
                             endif
                             if (meteo_temp(precip_index).gt.0.and.1.eq.2) then
                                 write(*,*) wetbulb_temp,meteo_temp(temperature_index),meteo_temp(pressure_index),meteo_temp(relhumidity_index)
-                                write(*,*) wetbulb_temp,meteo_obs_data(precip_index,datetime_match(2),ii),meteo_temp(rain_index),meteo_temp(snow_index)
+                                write(*,*) wetbulb_temp,meteo_obs_data(precip_index,datetime_match(2),road_with_obs),meteo_temp(rain_index),meteo_temp(snow_index)
                             endif                       
     
                         endif
                                         
-                        if (meteo_obs_data(shortwaveradiation_index,datetime_match(2),ii).ne.missing_data.and.replace_which_meteo_with_obs(shortwaveradiation_index).gt.0) meteo_temp(shortwaveradiation_index)=meteo_obs_data(shortwaveradiation_index,datetime_match(2),ii)
-                        if (meteo_obs_data(longwaveradiation_index,datetime_match(2),ii).ne.missing_data.and.replace_which_meteo_with_obs(longwaveradiation_index).gt.0) meteo_temp(longwaveradiation_index)=meteo_obs_data(longwaveradiation_index,datetime_match(2),ii)
-                        if (meteo_obs_data(cloudfraction_index,datetime_match(2),ii).ne.missing_data.and.replace_which_meteo_with_obs(cloudfraction_index).gt.0) meteo_temp(cloudfraction_index)=meteo_obs_data(cloudfraction_index,datetime_match(2),ii)
-                        if (meteo_obs_data(pressure_index,datetime_match(2),ii).ne.missing_data.and.replace_which_meteo_with_obs(pressure_index).gt.0) meteo_temp(pressure_index)=meteo_obs_data(pressure_index,datetime_match(2),ii)
-                        if (meteo_obs_data(road_temperature_index,datetime_match(2),ii).ne.missing_data.and.replace_which_meteo_with_obs(road_temperature_index).gt.0) meteo_temp(road_temperature_index)=meteo_obs_data(road_temperature_index,datetime_match(2),ii)
+                        if (meteo_obs_data(shortwaveradiation_index,datetime_match(2),road_with_obs).ne.missing_data.and.replace_which_meteo_with_obs(shortwaveradiation_index).gt.0) meteo_temp(shortwaveradiation_index)=meteo_obs_data(shortwaveradiation_index,datetime_match(2),road_with_obs)
+                        if (meteo_obs_data(longwaveradiation_index,datetime_match(2),road_with_obs).ne.missing_data.and.replace_which_meteo_with_obs(longwaveradiation_index).gt.0) meteo_temp(longwaveradiation_index)=meteo_obs_data(longwaveradiation_index,datetime_match(2),road_with_obs)
+                        if (meteo_obs_data(cloudfraction_index,datetime_match(2),road_with_obs).ne.missing_data.and.replace_which_meteo_with_obs(cloudfraction_index).gt.0) meteo_temp(cloudfraction_index)=meteo_obs_data(cloudfraction_index,datetime_match(2),road_with_obs)
+                        if (meteo_obs_data(pressure_index,datetime_match(2),road_with_obs).ne.missing_data.and.replace_which_meteo_with_obs(pressure_index).gt.0) meteo_temp(pressure_index)=meteo_obs_data(pressure_index,datetime_match(2),road_with_obs)
+                        if (meteo_obs_data(road_temperature_index,datetime_match(2),road_with_obs).ne.missing_data.and.replace_which_meteo_with_obs(road_temperature_index).gt.0) meteo_temp(road_temperature_index)=meteo_obs_data(road_temperature_index,datetime_match(2),road_with_obs)
                         !When replacing road surface temperature with obs then include the no data values. This is mostly for the forecast initialisation
-                        if (replace_which_meteo_with_obs(road_temperature_index).gt.0) meteo_temp(road_temperature_index)=meteo_obs_data(road_temperature_index,datetime_match(2),ii)
+                        if (replace_which_meteo_with_obs(road_temperature_index).gt.0) meteo_temp(road_temperature_index)=meteo_obs_data(road_temperature_index,datetime_match(2),road_with_obs)
     
                         !Possible to remove these four data sources
                         if (replace_which_meteo_with_obs(shortwaveradiation_index).lt.0) meteo_temp(shortwaveradiation_index)=missing_data
@@ -771,9 +793,90 @@ subroutine NORTRIP_multiroad_create_meteodata
 
                     end if
 
+                    if ( t .eq. size(obs_exist, dim=2) ) then !If we are at the latest observational timestep, save the indicies to be used for the relaxation equation.
+                        latest_observation_index = t
+                        latest_model_index = j_mod
+                        latest_forecast_index = j_forecast
+                    end if
+
+                    ! !-------------- Relax meteo variables -------------------------------
+                    if ( replace_meteo_with_obs.eq.2 .and. t > size(obs_exist,dim=2) .and. replace_meteo_with_met_forecast.eq.1 ) then ! t is higher than the highest timestep with observations (This assumes that the obs array starts at the first timestep)!TODO: Consider making this into a subroutine with the possibility to also relax regular arome data
+
+                        !Temperature
+                        latest_observation = meteo_obs_data(temperature_index,latest_observation_index,road_with_obs)
+                        model_at_latest_observation = var3d_nc_forecast(temperature_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),latest_forecast_index)-273.15
+
+                        if ( latest_observation .ne. missing_data ) then
+                            meteo_temp(temperature_index)= relax_meteo_variable(meteo_temp(temperature_index), model_at_latest_observation, latest_observation,  t-size(meteo_obs_data,dim=2) ,timestep)
+                        end if 
+                        
+                        !Longwave
+                        latest_observation = meteo_obs_data(longwaveradiation_index, latest_observation_index, road_with_obs)
+                        model_at_latest_observation = var3d_nc_forecast(longwaveradiation_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),latest_forecast_index)
+
+                        if ( latest_observation .ne. missing_data ) then
+                            meteo_temp(longwaveradiation_index)= relax_meteo_variable(meteo_temp(longwaveradiation_index), model_at_latest_observation, latest_observation,  t-size(meteo_obs_data,dim=2) ,timestep)
+                       ! else
+                        !    print*, "Do not relax longwave bc. latest_observation is missing."
+                        end if
+
+                        !Shortwave
+                        latest_observation = meteo_obs_data(shortwaveradiation_index, latest_observation_index, road_with_obs)
+                        model_at_latest_observation = var3d_nc_forecast(shortwaveradiation_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),latest_forecast_index)
+
+                        if ( latest_observation .ne. missing_data ) then                        
+                            meteo_temp(shortwaveradiation_index)= relax_meteo_variable(meteo_temp(shortwaveradiation_index), model_at_latest_observation, latest_observation,  t-size(meteo_obs_data,dim=2) ,timestep)
+                        !else
+                        !    print*, "Do not relax shortwave bc. latest_observation is missing."
+                        end if
+
+                        !print*, meteo_temp(shortwaveradiation_index)
+
+                        !Relative Humidity
+                        latest_observation = meteo_obs_data(relhumidity_index, latest_observation_index, road_with_obs)
+                        model_at_latest_observation = var3d_nc_forecast(relhumidity_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),latest_forecast_index)*100
+                        if ( latest_observation .ne. missing_data ) then
+                            meteo_temp(relhumidity_index)= relax_meteo_variable(meteo_temp(relhumidity_index), model_at_latest_observation, latest_observation,  t-size(meteo_obs_data,dim=2) ,timestep)    
+
+                        else
+                            print*, "Do not relax humidity bc. latest_observation is missing."
+                        end if
+
+                        !Pressure
+                        latest_observation = meteo_obs_data(pressure_index, latest_observation_index, road_with_obs)
+                        
+                        model_at_latest_observation = var3d_nc_forecast(pressure_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),latest_forecast_index)/100.
+                
+                        if ( latest_observation .ne. missing_data ) then
+                            meteo_temp(pressure_index)= relax_meteo_variable(meteo_temp(pressure_index), model_at_latest_observation, latest_observation,  t-size(meteo_obs_data,dim=2) ,timestep)
+                        end if
+
+
+                        !wind direction
+                        latest_observation = meteo_obs_data(dir_wind_index, latest_observation_index, road_with_obs)
+                        
+                        model_at_latest_observation = var3d_nc_forecast(dir_wind_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),latest_forecast_index)
+                
+                        if ( latest_observation .ne. missing_data ) then
+                            meteo_temp(dir_wind_index)= relax_meteo_variable(meteo_temp(dir_wind_index), model_at_latest_observation, latest_observation,  t-size(meteo_obs_data,dim=2) ,timestep)
+                        end if
+
+
+                        !wind speed
+                        latest_observation = meteo_obs_data(speed_wind_index, latest_observation_index, road_with_obs)
+                        
+                        model_at_latest_observation = var3d_nc_forecast(speed_wind_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),latest_forecast_index)
+                
+                        if ( latest_observation .ne. missing_data ) then
+                            meteo_temp(speed_wind_index)= relax_meteo_variable(meteo_temp(speed_wind_index), model_at_latest_observation, latest_observation,  t-size(meteo_obs_data,dim=2) ,timestep)
+                        end if
+
+                    end if
+                    ! ! !--------------------------------------------------------------------
+
                 endif
                 if (meteo_obs_data_available) then
-                    meteo_obs_ID_output(i)=meteo_obs_ID(ii)
+                    meteo_obs_ID_output(i)=meteo_obs_ID(road_with_obs)
                 else
                     meteo_obs_ID_output(i)=0
                 endif
@@ -788,7 +891,8 @@ subroutine NORTRIP_multiroad_create_meteodata
                 meteo_output(cloudfraction_index,t,i)=meteo_temp(cloudfraction_index)
                 meteo_output(pressure_index,t,i)=meteo_temp(pressure_index)
                 meteo_output(road_temperature_index,t,i)=meteo_temp(road_temperature_index)
-            enddo
+
+            enddo !time
             not_shown_once=.true. 
             
         endif

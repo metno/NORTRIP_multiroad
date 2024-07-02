@@ -39,7 +39,7 @@
 
     !TODO: Have an alternative to modify the observations to be on the same time resolution as the model.
     if (timestep.eq.1) then
-        write(unit_logfile,'(a)') 'The model timestep is ', int(timestep), 'h, while the observations are on a 10 min resolution. Therefore, do not use the observations for this simulations.' 
+        write(unit_logfile,'(a)') 'The model timestep is ', timestep, 'h, while the observations are on a 10 min resolution. Therefore, do not use the observations for this simulations.' 
         return
     endif
 
@@ -211,13 +211,15 @@
             write(unit_logfile,'(a)') "The variable runway_temperature was not found in the netcdf file. Setting value to -99."
             meteo_obs_data(road_temperature_index,:,:) = -99.
         end if
-    
+        call check(nf90_close(ncid))
+
         meteo_obs_date(second_index,:) = 0
         start_date_meteo_obs = meteo_obs_date(:,1)
         end_date_meteo_obs = meteo_obs_date(:,n_meteo_obs_date)
         
-        allocate(obs_exist(2,n_meteo_obs_date))
+        allocate(obs_exist(2,n_meteo_obs_date)) !1: index of obs date, 2: index of date_data
     
+        !NOTE: The obs_exist pairs will be equal if the obs starting date is equal to the date_data starting date.
         do i = 1,size(date_data,dim=2)
             do t=1,size(meteo_obs_date, dim=2)
     
@@ -235,7 +237,6 @@
         enddo
         
     end if
-
-    !TODO: Also need to read and store runway temperatures. 
+ 
 end subroutine NORTRIP_multiroad_read_meteo_obs_data_netcdf
 
