@@ -299,8 +299,8 @@
     DIFUTC_H=match_string_val('Time difference site',unit_in,unit_logfile,0.0)
     DIFUTC_H_traffic=match_string_val('Time difference traffic',unit_in,unit_logfile,0.0)
     missing_data=match_string_val('Missing data value',unit_in,unit_logfile,-999.)
-    no_of_timesteps=match_string_int('Number of timesteps within one hour',unit_in,unit_logfile,1)
-    timestep = 1./no_of_timesteps
+    timesteps_in_hour=match_string_int('Number of timesteps within one hour',unit_in,unit_logfile,1)
+    timestep = 1./timesteps_in_hour
     hours_between_init=match_string_int('Hours between saving init files',unit_in,unit_logfile,24)
     hours_between_init = int(hours_between_init/timestep)
 

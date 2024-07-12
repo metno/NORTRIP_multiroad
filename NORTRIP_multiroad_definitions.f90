@@ -432,7 +432,7 @@
     integer end_time_index_meteo_obs,start_time_index_meteo_obs
     integer, dimension(num_date_index) :: start_date_meteo_obs
     integer, dimension(num_date_index) :: end_date_meteo_obs
-    integer :: no_of_timesteps
+    integer :: timesteps_in_hour
     real :: timestep
     
     !Input character arrays for time
