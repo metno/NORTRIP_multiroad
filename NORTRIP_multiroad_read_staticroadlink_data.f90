@@ -1,6 +1,6 @@
 !NORTRIP_multiroad_read_staticroadlink_data.f90
     
-    subroutine NORTRIP_multiroad_read_staticroadlink_data
+subroutine NORTRIP_multiroad_read_staticroadlink_data
     !Old routine for reading BB data
     
     use NORTRIP_multiroad_index_definitions
@@ -203,10 +203,10 @@
     !NOTE: Some links are very short (1 m) so question of whether to include these or not
     !NOTE: Question of whether to aggregate for common traffic ID?
     
-    end subroutine NORTRIP_multiroad_read_staticroadlink_data
+end subroutine NORTRIP_multiroad_read_staticroadlink_data
     
         
-    subroutine NORTRIP_multiroad_reorder_staticroadlink_data
+subroutine NORTRIP_multiroad_reorder_staticroadlink_data
     
     use NORTRIP_multiroad_index_definitions
     
@@ -435,10 +435,10 @@
     if (allocated(traffic_data_temp)) deallocate(traffic_data_temp)
     if (allocated(airquality_data_temp)) deallocate(airquality_data_temp)
     
-    end subroutine NORTRIP_multiroad_reorder_staticroadlink_data
+end subroutine NORTRIP_multiroad_reorder_staticroadlink_data
     
     
-    subroutine NORTRIP_multiroad_read_staticroadlink_data_ascii
+subroutine NORTRIP_multiroad_read_staticroadlink_data_ascii
     !New routine for reading static data
     
     use NORTRIP_multiroad_index_definitions
@@ -574,35 +574,33 @@
             !write(*,*) n_subnodes,inputdata_int_rl(n_subnodes_rl_index,counter),step_sublinks
         else
             
-        do j=1,n_subnodes-1
-            counter=counter+1
-            inputdata_int_rl(id_rl_index,counter)=temp_id
-            inputdata_rl(adt_rl_index,counter)=temp_adt
-            inputdata_rl(hdv_rl_index,counter)=temp_hdv
-            inputdata_int_rl(roadactivitytype_rl_index,counter)=temp_road_category !temp_road_activity_type
-            inputdata_rl(speed_rl_index,counter)=temp_speed
-            inputdata_rl(width_rl_index,counter)=temp_width
-            inputdata_rl(x1_rl_index,counter)=sub_nodes_x(j)
-            inputdata_rl(x2_rl_index,counter)=sub_nodes_x(j+1)
-            inputdata_int_rl(nlanes_rl_index,counter)=temp_nlanes
-            inputdata_rl(y1_rl_index,counter)=sub_nodes_y(j)
-            inputdata_rl(y2_rl_index,counter)=sub_nodes_y(j+1)
-            inputdata_rl(length_rl_index,counter)=sqrt((inputdata_rl(x1_rl_index,counter)-inputdata_rl(x2_rl_index,counter))**2+(inputdata_rl(y1_rl_index,counter)-inputdata_rl(y2_rl_index,counter))**2)
-            !write(*,*) inputdata_int_rl(id_rl_index,counter),inputdata_rl(x1_rl_index,counter),inputdata_rl(y2_rl_index,counter)
-            inputdata_int_rl(roadcategory_rl_index,counter)=temp_road_category !Not used in NORTRIP, see roadactivitytype_rl_index
-            inputdata_int_rl(region_id_rl_index,counter)=temp_region_id
-            inputdata_int_rl(roadstructuretype_rl_index,counter)=temp_road_structure_type
-            inputdata_int_rl(roadsurface_id_rl_index,counter)=temp_surface_id
-            !inputdata_int_rl(tunnel_length_rl_index,counter)=temp_tunnel_length
-            inputdata_rl_sub(x1_rl_index,1,counter)=inputdata_rl(x1_rl_index,counter)
-            inputdata_rl_sub(x2_rl_index,1,counter)=inputdata_rl(x2_rl_index,counter)
-            inputdata_rl_sub(y1_rl_index,1,counter)=inputdata_rl(y1_rl_index,counter)
-            inputdata_rl_sub(y2_rl_index,1,counter)=inputdata_rl(y2_rl_index,counter)
-
-        enddo
-        inputdata_int_rl(n_subnodes_rl_index,counter)=2
+            do j=1,n_subnodes-1
+                counter=counter+1
+                inputdata_int_rl(id_rl_index,counter)=temp_id
+                inputdata_rl(adt_rl_index,counter)=temp_adt
+                inputdata_rl(hdv_rl_index,counter)=temp_hdv
+                inputdata_int_rl(roadactivitytype_rl_index,counter)=temp_road_category !temp_road_activity_type
+                inputdata_rl(speed_rl_index,counter)=temp_speed
+                inputdata_rl(width_rl_index,counter)=temp_width
+                inputdata_rl(x1_rl_index,counter)=sub_nodes_x(j)
+                inputdata_rl(x2_rl_index,counter)=sub_nodes_x(j+1)
+                inputdata_int_rl(nlanes_rl_index,counter)=temp_nlanes
+                inputdata_rl(y1_rl_index,counter)=sub_nodes_y(j)
+                inputdata_rl(y2_rl_index,counter)=sub_nodes_y(j+1)
+                inputdata_rl(length_rl_index,counter)=sqrt((inputdata_rl(x1_rl_index,counter)-inputdata_rl(x2_rl_index,counter))**2+(inputdata_rl(y1_rl_index,counter)-inputdata_rl(y2_rl_index,counter))**2)
+                !write(*,*) inputdata_int_rl(id_rl_index,counter),inputdata_rl(x1_rl_index,counter),inputdata_rl(y2_rl_index,counter)
+                inputdata_int_rl(roadcategory_rl_index,counter)=temp_road_category !Not used in NORTRIP, see roadactivitytype_rl_index
+                inputdata_int_rl(region_id_rl_index,counter)=temp_region_id
+                inputdata_int_rl(roadstructuretype_rl_index,counter)=temp_road_structure_type
+                inputdata_int_rl(roadsurface_id_rl_index,counter)=temp_surface_id
+                !inputdata_int_rl(tunnel_length_rl_index,counter)=temp_tunnel_length
+                inputdata_rl_sub(x1_rl_index,1,counter)=inputdata_rl(x1_rl_index,counter)
+                inputdata_rl_sub(x2_rl_index,1,counter)=inputdata_rl(x2_rl_index,counter)
+                inputdata_rl_sub(y1_rl_index,1,counter)=inputdata_rl(y1_rl_index,counter)
+                inputdata_rl_sub(y2_rl_index,1,counter)=inputdata_rl(y2_rl_index,counter)
+            enddo
+            inputdata_int_rl(n_subnodes_rl_index,counter)=2
         endif
-        !endif
     enddo
     n_roadlinks=counter
     write(unit_logfile,'(a,i)') ' Number of road links used = ', n_roadlinks
@@ -704,11 +702,11 @@
     stop 17
     
     
-    end subroutine NORTRIP_multiroad_read_staticroadlink_data_ascii
+end subroutine NORTRIP_multiroad_read_staticroadlink_data_ascii
 !----------------------------------------------------------------------
 
 !----------------------------------------------------------------------
-    subroutine NORTRIP_multiroad_read_replace_road_data
+subroutine NORTRIP_multiroad_read_replace_road_data
 
     use NORTRIP_multiroad_index_definitions
     
@@ -990,5 +988,5 @@
     deallocate(inputdata_rl_replaced_flag)
     deallocate(inputdata_int_rl_replaced_flag)
 
-    end subroutine NORTRIP_multiroad_read_replace_road_data
+end subroutine NORTRIP_multiroad_read_replace_road_data
 !----------------------------------------------------------------------

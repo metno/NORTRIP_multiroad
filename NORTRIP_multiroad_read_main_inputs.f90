@@ -829,24 +829,16 @@
         if (use_only_special_links_flag.eq.2) then
             write(unit_logfile,'(a,i)') ' Using all road links in calculation. Saving only special links: ',n_save_links
             !Set the saving of links to all roads
-            !write(*,*) 'Here 1'
+
             do i=1,n_roadlinks
                 save_links(i)=i
             enddo      
-            !write(*,*) 'Here 2'
-            !write(*,*) shape(inputdata_int_rl),n_roadlinks,roadindex_rl_index
+
             n_save_links=n_roadlinks
-            !write(*,*) shape(save_links),n_save_links,savedata_rl_index
-            
-            !write(*,*) maxval(save_links),minval(save_links)
-            !write(*,*) 'Here min: ',inputdata_int_rl(roadindex_rl_index,minval(save_links))
-            !write(*,*) 'Here max: ',inputdata_int_rl(roadindex_rl_index,maxval(save_links))
-            !write(*,*) 'Here :',save_links(1),save_links(n_save_links)
-            !write(*,*) inputdata_int_rl(roadindex_rl_index,:)
+
             do i=1,n_save_links
                 inputdata_int_rl(roadindex_rl_index,save_links(i))=save_links(i)
                 inputdata_int_rl(savedata_rl_index,save_links(i))=0
-                !write(*,*) i,inputdata_int_rl(roadindex_rl_index,i)
             enddo
             
         endif
@@ -857,7 +849,6 @@
         !This is not the best method for specifying file type and should be done differently 
         if (index(filename_NORTRIP_receptors,'api').gt.0) use_uEMEP_receptor_file=.true.
         if (index(filename_NORTRIP_receptors,'category').gt.0) read_receptor_type=.true.
-        
         if (use_uEMEP_receptor_file) then
             unit_in=20
             open(unit_in,file=filename_NORTRIP_receptors,access='sequential',status='old',readonly)  
@@ -983,70 +974,65 @@
                 distance_to_link2=sqrt((inputdata_rl(x0_rl_index,i)-save_road_x(j))**2+(inputdata_rl(y0_rl_index,i)-save_road_y(j))**2)
                 !Do not look for roads more than 2500 m away or look for tunnel portal jets, defined as 6 in NORTRIP. Should be specified better as parameter
                 if (distance_to_link2.lt.distance_to_link_min2.and.inputdata_int_rl(roadstructuretype_rl_index,i).ne.tunnelportal_roadtype) then
-                do ii=1,inputdata_int_rl(n_subnodes_rl_index,i)-1
- 
-                    call distrl(save_road_x(j),save_road_y(j),inputdata_rl_sub(x1_rl_index,ii,i),inputdata_rl_sub(y1_rl_index,ii,i),inputdata_rl_sub(x2_rl_index,ii,i),inputdata_rl_sub(y2_rl_index,ii,i),temp_val,temp_val2,distance_to_link)!(X0,Y0,X1,Y1,X2,Y2,XM,YM,DM)
-                    !call distrl(save_road_x(j),save_road_y(j),inputdata_rl(x1_rl_index,i),inputdata_rl(y1_rl_index,i),inputdata_rl(x2_rl_index,i),inputdata_rl(y2_rl_index,i),temp_val,temp_val2,distance_to_link)!(X0,Y0,X1,Y1,X2,Y2,XM,YM,DM)
-                    !write(*,'(i8,i8,f12.0,f12.0,f12.0,f12.0,f12.0,f12.0,f12.0,f12.0,f12.0)') j,i,save_road_x(j),save_road_y(j),inputdata_rl(x1_rl_index,i),inputdata_rl(y1_rl_index,i),temp_val,temp_val2,distance_to_link,distance_to_link2,distance_to_link_min
-                    !if (distance_to_link.lt.distance_to_link_min) then
-                    !    distance_to_link_min=distance_to_link
-                    !    i_link_distance_min=i
-                    !endif
-                    adt_of_link=inputdata_rl(adt_rl_index,i)
-                    !if (inputdata_int_rl(roadstructuretype_rl_index,i).eq.runway_roadtype) then
-                    !    !Set artificially high for runways so it will always be selected if it is within min_search_distance
-                    !    adt_of_link=1e12
-                    !endif
-                    
-                    !Find the AQ stations, largest ADT within 100 m, when the same ADT then the closest
-                    if (save_road_receptor_type(j).eq.receptor_aq_index) then
-                    !If the ADT is equal to or higher and the distance is less than the maximum allowed
-                    if (adt_of_link.ge.adt_of_link_max.and.distance_to_link.lt.min_search_distance) then
-                    !if the ADT is higher or if it is the same and the ditance is less than the shortest current
-                    if (adt_of_link.gt.adt_of_link_max.or.(adt_of_link.ge.adt_of_link_max.and.distance_to_link.lt.distance_to_link_min)) then
-                        adt_of_link_max=adt_of_link
-                        i_link_adt_max=i
-                        distance_to_link_min=distance_to_link
-                        i_link_distance_min=i
-                        !write(*,*) i_link_adt_max,adt_of_link_max,distance_to_link_min
-                    endif
-                    endif
-                    endif
-                    
-                    !Find the SVV and custom stations, closest road link
-                    if (save_road_receptor_type(j).eq.receptor_svv_index.or.save_road_receptor_type(j).eq.receptor_custom_index.or.save_road_receptor_type(j).eq.receptor_camera_index) then
-                    if (distance_to_link.lt.distance_to_link_min) then
-                        adt_of_link_max=adt_of_link
-                        i_link_adt_max=i
-                        distance_to_link_min=distance_to_link
-                        i_link_distance_min=i
-                    endif
-                    endif
+                    do ii=1,inputdata_int_rl(n_subnodes_rl_index,i)-1
+    
+                        call distrl(save_road_x(j),save_road_y(j),inputdata_rl_sub(x1_rl_index,ii,i),inputdata_rl_sub(y1_rl_index,ii,i),inputdata_rl_sub(x2_rl_index,ii,i),inputdata_rl_sub(y2_rl_index,ii,i),temp_val,temp_val2,distance_to_link)!(X0,Y0,X1,Y1,X2,Y2,XM,YM,DM)
 
-                    !if (j.eq.1247) then
-                    !    write(*,'(5i,2f12.1)') save_road_receptor_type(j),type_receptor(j),receptor_custom_index,i,ii,i_link_distance_min,distance_to_link,distance_to_link_min
-                    !endif
+                        adt_of_link=inputdata_rl(adt_rl_index,i)
+                        if (inputdata_int_rl(roadstructuretype_rl_index,i).eq.runway_roadtype) then
+                            !Set artificially high for runways so it will always be selected if it is within min_search_distance
+                            adt_of_link=1e12
+                        endif
+                        
+                        !Find the AQ stations, largest ADT within 100 m, when the same ADT then the closest
+                        if (save_road_receptor_type(j).eq.receptor_aq_index) then
+                            !If the ADT is equal to or higher and the distance is less than the maximum allowed
+                            if (adt_of_link.ge.adt_of_link_max.and.distance_to_link.lt.min_search_distance) then
+                                !if the ADT is higher or if it is the same and the ditance is less than the shortest current
+                                if (adt_of_link.gt.adt_of_link_max.or.(adt_of_link.ge.adt_of_link_max.and.distance_to_link.lt.distance_to_link_min)) then
+                                    adt_of_link_max=adt_of_link
+                                    i_link_adt_max=i
+                                    distance_to_link_min=distance_to_link
+                                    i_link_distance_min=i
+                                endif
+                            endif
+                        endif
+                        
+                        !Find the SVV and custom stations, closest road link
+                        if (save_road_receptor_type(j).eq.receptor_svv_index.or.save_road_receptor_type(j).eq.receptor_custom_index.or.save_road_receptor_type(j).eq.receptor_camera_index) then
+                            if (distance_to_link.lt.distance_to_link_min) then
+                                adt_of_link_max=adt_of_link
+                                i_link_adt_max=i
+                                distance_to_link_min=distance_to_link
+                                i_link_distance_min=i
+                            endif
+                        endif
 
-                    !Find the Runway stations, closest road link and the link must be a runway
-                    if (save_road_receptor_type(j).eq.receptor_runway_index.and.inputdata_int_rl(roadstructuretype_rl_index,i).eq.runway_roadtype) then
-                    if (distance_to_link.lt.distance_to_link_min) then
-                        adt_of_link_max=adt_of_link
-                        i_link_adt_max=i
-                        distance_to_link_min=distance_to_link
-                        i_link_distance_min=i
-                    endif
-                    endif
+                        !if (j.eq.1247) then
+                        !    write(*,'(5i,2f12.1)') save_road_receptor_type(j),type_receptor(j),receptor_custom_index,i,ii,i_link_distance_min,distance_to_link,distance_to_link_min
+                        !endif
 
-                enddo
+                        !Find the Runway stations, closest road link and the link must be a runway
+                        if (save_road_receptor_type(j).eq.receptor_runway_index.and.inputdata_int_rl(roadstructuretype_rl_index,i).eq.runway_roadtype) then
+                            if (distance_to_link.lt.distance_to_link_min) then
+                                adt_of_link_max=adt_of_link
+                                i_link_adt_max=i
+                                distance_to_link_min=distance_to_link
+                                i_link_distance_min=i
+                            endif
+                        endif
+
+                    enddo
                 endif
-                !write(*,*) j,i,distance_to_link_min !save_road_x(j),save_road_y(j),inputdata_int_rl(id_rl_index,i),inputdata_rl(x1_rl_index,i),inputdata_rl(y2_rl_index,i)
+
             enddo
                 !write(*,'(2i,3f12.1)') j,i_link_distance_min,distance_to_link_min,save_road_x(j),save_road_y(j)
-            !if (i_link_distance_min.gt.0.and.distance_to_link_min.lt.100.) then
+
             if (i_link_distance_min.gt.0.and.i_link_adt_max.gt.0.and.distance_to_link_min.le.min_search_distance &
                 .or.(distance_to_link_min.lt.min_save_distance_custom.and.save_road_receptor_type(j).eq.receptor_custom_index) &
                 .or.(distance_to_link_min.lt.min_save_distance_camera.and.save_road_receptor_type(j).eq.receptor_camera_index) &
                 .or.(distance_to_link_min.lt.min_save_distance_runway.and.save_road_receptor_type(j).eq.receptor_runway_index)) then
+
                 jj=jj+1
                 !i_link_distance_min=i_link_adt_max
                 inputdata_int_rl(savedata_rl_index,i_link_distance_min)=1
@@ -1055,13 +1041,11 @@
                 !inputdata_int_rl(id_rl_index,i_link_distance_min)=save_road_id(j)
                 save_road_index(jj)=i_link_distance_min
                 save_meteo_index(jj)=j
-                !write(*,*) ':::',jj,i_link_distance_min,distance_to_link_min,inputdata_rl(x1_rl_index,i_link_distance_min),inputdata_rl(y1_rl_index,i_link_distance_min)
                 write(unit_logfile,'(a,i8,a24,f12.2,i12,i12,f12.0,i12,i12,a48)') 'Special links (i,name,dist,index,ID,ADT,linktype,rectype,recname): ',jj,trim(inputdata_char_rl(roadname_rl_index,i_link_distance_min)) &
                     ,distance_to_link_min,save_road_index(jj),inputdata_int_rl(id_rl_index,save_road_index(jj)),inputdata_rl(adt_rl_index,save_road_index(jj)),inputdata_int_rl(roadstructuretype_rl_index,save_road_index(jj)) &
                     ,save_road_receptor_type(j),trim(adjustl(save_road_name2(j)))
             else
                 write(unit_logfile,'(a,i8,a24,i8,a48,f12.2)') 'No links found (i,name,rectype,recname,dist): ',j,trim(adjustl(save_road_name(j))),save_road_receptor_type(j),trim(adjustl(save_road_name2(j))),distance_to_link_min
-            
             endif
         enddo
         write(unit_logfile,'(a,i)') ' Number of roads found near (<100 m) of receptor points  = ', jj
@@ -1073,7 +1057,6 @@
             n_save_links=jj
             save_links(1:n_save_links)=save_road_index(1:n_save_links)     
             write(unit_logfile,'(a,<n_save_links>i12)') ' Calculating and saving only selected link index: ',save_links(1:n_save_links)
-            !write(unit_logfile,'(a,<n_save_links>i12)') ' Saving only selected roadlink index: ',inputdata_int_rl(roadindex_rl_index,save_links(1:n_save_road))
             write(unit_logfile,'(a,<n_save_links>i12)') ' Saving only selected link ID: ',inputdata_int_rl(id_rl_index,save_links(1:n_save_links)) 
             write(unit_logfile,'(a,<n_save_links>a24)') ' Saving only selected link name: ',inputdata_char_rl(roadname_rl_index,save_links(1:n_save_links))
         elseif (use_only_special_links_flag.eq.2) then
@@ -1103,19 +1086,6 @@
         endif
 
     endif
-
-      ! if (use_only_special_links_flag.eq.2) then
-      !      !Save all the road links
-      !      write(unit_logfile,'(a,i)') ' Saving all road links: ',n_save_links
-      !      do i=1,n_roadlinks
-      !          save_links(i)=i
-      !      enddo      
-      !      n_save_links=n_roadlinks
-      !      inputdata_int_rl(savedata_rl_index,save_links(1:n_save_links))=1
-      !  endif
- 
-
-    !inputdata_int_rl(roadindex_rl_index,save_links(1:n_save_links))=save_links(1:n_save_links)
 
     return
 10  write(unit_logfile,'(2A)') 'ERROR reading road receptor link file: ',trim(filename_NORTRIP_receptors)
