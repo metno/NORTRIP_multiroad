@@ -88,8 +88,8 @@
         allocate (meteo_obs_data(num_var_meteo,n_meteo_obs_date,n_meteo_obs_stations))
     
         
-        ! !Put name of the stations as integers into meteo_obs_ID array. (Reading as string directly is apparently difficult from netcdf file.)
-        call check(nf90_inq_varid(ncid,"stations",varid))
+        ! !Put name of the stations as integers into meteo_obs_ID array.
+        call check(nf90_inq_varid(ncid,"station_id",varid))
         call check(nf90_get_var(ncid,varid,meteo_obs_ID(:)))
     
         ! Fill meteo_obs_name with string versions of the station names for comparison with receptor links. 
