@@ -518,7 +518,7 @@
     integer end_dim_meteo_obs
     integer start_dim_meteo_obs
 
-    !Use the same indexes for the observed as for the modelled meteorology !TODO: Need to check that indexes are indeed the same!
+    !Use the same indexes for the observed as for the modelled meteorology
     character(256) var_name_meteo_obs(num_var_meteo)
     integer n_meteo_obs_date 
     

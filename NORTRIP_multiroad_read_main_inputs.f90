@@ -73,11 +73,11 @@
         open(unit_logfile,file=filename_log,status='old',position='append')
     endif
     
-    write(unit_logfile,'(A,4I5)') ' Start date: ', start_date_input(year_index),start_date_input(month_index),start_date_input(day_index),start_date_input(hour_index)
-    write(unit_logfile,'(A,4I5)') ' End date: ', end_date_input(year_index),end_date_input(month_index),end_date_input(day_index),end_date_input(hour_index)
+    write(unit_logfile,'(A,5I5)') ' Start date: ', start_date_input(year_index),start_date_input(month_index),start_date_input(day_index),start_date_input(hour_index),start_date_input(minute_index)
+    write(unit_logfile,'(A,5I5)') ' End date: ', end_date_input(year_index),end_date_input(month_index),end_date_input(day_index),end_date_input(hour_index),end_date_input(minute_index)
     
     !Calculate the number of hours between end and start dates
-    n_hours_input=int((date_to_number(end_date_input)-date_to_number(start_date_input))*24./timestep+.5)
+    n_hours_input=int((date_to_number(end_date_input)-date_to_number(start_date_input))*24./timestep+.5)+1
     if (n_hours_input.lt.1) then
         !n_hours_input=n_hours_default
         write(unit_logfile,'(A)') ' ERROR: Number of hours is 0 or less. Stopping'
@@ -867,7 +867,7 @@
                 else             
                     read(unit_in,*,ERR=19) name_receptor(k,1),lon_receptor(k),lat_receptor(k)!,h_receptor(k),name_receptor(k,2)
                     h_receptor(k)=0 !0 height
-                    type_receptor(k)=1 !AQ type
+                    type_receptor(k)=3 !runway type 
                     name_receptor(k,2)=name_receptor(k,1) !Name
                 endif
             enddo
@@ -910,7 +910,7 @@
                 save_road_name(i)=name_receptor(k,1)
                 call LL2UTM(1,utm_zone,lat_receptor(k),lon_receptor(k),save_road_y(i),save_road_x(i))
                 save_road_ospm_pos(i)=3
-                save_road_receptor_type(i)=type_receptor(k)
+                save_road_receptor_type(i)=type_receptor(k) !TODO: type_receptor(k) was hardcoded to 1 further up, which means that save_road_receptor_type was not 3 for runways, which it should be(?). I've now changed it to 3, but this needs some more thought
                 save_road_name2(i)=name_receptor(k,2)
 
                 endif
@@ -971,11 +971,11 @@
             i_link_adt_max=0
             do i=1,n_roadlinks
                 !Only look in the correct ID
-                distance_to_link2=sqrt((inputdata_rl(x0_rl_index,i)-save_road_x(j))**2+(inputdata_rl(y0_rl_index,i)-save_road_y(j))**2)
+                distance_to_link2=sqrt((inputdata_rl(x0_rl_index,i)-save_road_x(j))**2+(inputdata_rl(y0_rl_index,i)-save_road_y(j))**2) !TODO: Why is this called 2??
+
                 !Do not look for roads more than 2500 m away or look for tunnel portal jets, defined as 6 in NORTRIP. Should be specified better as parameter
                 if (distance_to_link2.lt.distance_to_link_min2.and.inputdata_int_rl(roadstructuretype_rl_index,i).ne.tunnelportal_roadtype) then
                     do ii=1,inputdata_int_rl(n_subnodes_rl_index,i)-1
-    
                         call distrl(save_road_x(j),save_road_y(j),inputdata_rl_sub(x1_rl_index,ii,i),inputdata_rl_sub(y1_rl_index,ii,i),inputdata_rl_sub(x2_rl_index,ii,i),inputdata_rl_sub(y2_rl_index,ii,i),temp_val,temp_val2,distance_to_link)!(X0,Y0,X1,Y1,X2,Y2,XM,YM,DM)
 
                         adt_of_link=inputdata_rl(adt_rl_index,i)

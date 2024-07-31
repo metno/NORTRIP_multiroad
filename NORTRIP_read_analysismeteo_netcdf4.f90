@@ -50,8 +50,8 @@
     if (.not.allocated(meteo_var_nc2_available)) allocate (meteo_var_nc2_available(n_hours_input,num_var_nc2)) 
     meteo_var_nc2_available=.true.
     
-    !Loop through the number of time steps nad read in data when available
-    do t=1,n_hours_input
+    !Loop through the number of time steps and read in data when available
+    do t=1,int(n_hours_input/timesteps_in_hour)
         temp_date=date_to_number(start_date_input)
         call number_to_date(temp_date+(t-1)/dble(24.),new_start_date_input)
         write(unit_logfile,'(a,7i)') 'Date array: ',t,new_start_date_input(1:6)
