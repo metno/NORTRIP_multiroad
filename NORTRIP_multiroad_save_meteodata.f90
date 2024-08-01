@@ -648,7 +648,9 @@ subroutine NORTRIP_multiroad_create_meteodata
                         
                         ! if (meteo_var_nc2_available(t,cloudfraction_index2)) then
                         !     meteo_temp(cloudfraction_index)=var3d_nc2(cloudfraction_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t)
-                        ! endif                    
+                        ! endif
+                    else 
+                        write(*,*) "Warning: Forecast meteorology is not available. Do not replace default meteorology even if the flag replace_meteo_with_met_forecast = 1."                    
                     endif
                 endif       
 
