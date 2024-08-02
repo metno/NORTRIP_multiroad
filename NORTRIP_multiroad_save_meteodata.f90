@@ -121,7 +121,7 @@ subroutine NORTRIP_multiroad_create_meteodata
                 /dgrid_nc(y_index))
             !write(unit_logfile,'(a12,4i12)') ' Index (i,j) = ',i,rl_id(i),grid_index_rl(x_index,i),grid_index_rl(y_index,i)
             if (grid_index_rl(x_index,i).ge.dim_length_nc(x_index).or.grid_index_rl(x_index,i).le.dim_start_nc(x_index).or. &
-                grid_index_rl(y_index,i).ge.dim_length_nc(y_index).or.grid_index_rl(y_index,i).le.start_dim_nc(y_index)) then
+                grid_index_rl(y_index,i).ge.dim_length_nc(y_index).or.grid_index_rl(y_index,i).le.1) then
                 out_of_range_count=out_of_range_count+1
                 write(unit_logfile,'(a,6i)') 'WARNING: Road outside meteo grid (link_n,link_ID,grid_i,grid_j,maxgrid_i,maxgrid_j)',i,inputdata_int_rl(id_rl_index,i),grid_index_rl(x_index,i),grid_index_rl(y_index,i),dim_length_nc(x_index),dim_length_nc(y_index)                
             endif
@@ -132,7 +132,7 @@ subroutine NORTRIP_multiroad_create_meteodata
                 grid_index_rl(x_index,i)=min(grid_index_rl(x_index,i),dim_length_nc(x_index))
                 grid_index_rl(x_index,i)=max(grid_index_rl(x_index,i),dim_start_nc(x_index))            
             endif
-            if (grid_index_rl(y_index,i).gt.dim_length_nc(y_index).or.grid_index_rl(y_index,i).lt.start_dim_nc(y_index)) then
+            if (grid_index_rl(y_index,i).gt.dim_length_nc(y_index).or.grid_index_rl(y_index,i).lt.1) then
                 !write(unit_logfile,'(a,4i12)') ' WARNING: Index out of range (i,j) = ',i,inputdata_int_rl(id_rl_index,i),grid_index_rl(x_index,i),grid_index_rl(y_index,i)
                 grid_index_rl(y_index,i)=min(grid_index_rl(y_index,i),dim_length_nc(y_index))
                 grid_index_rl(y_index,i)=max(grid_index_rl(y_index,i),dim_start_nc(y_index))            
@@ -146,28 +146,29 @@ subroutine NORTRIP_multiroad_create_meteodata
             !It estimates the lat-lon grid spacing at the lat lon position with two iterations
             !Better would have been to do the projection but this is considered good enough and more general
             !Estimate the grid size of the meteo grid in lat lon by taking the central position
-            dgrid_lat=(var2d_nc(lat_index,dim_length_nc(x_index)/2,dim_length_nc(y_index))-var2d_nc(lat_index,dim_length_nc(x_index)/2,start_dim_nc(y_index)))/(dim_length_nc(y_index)-1)
-            dgrid_lon=(var2d_nc(lon_index,dim_length_nc(x_index),dim_length_nc(y_index)/2)-var2d_nc(lon_index,start_dim_nc(x_index),dim_length_nc(y_index)/2))/(dim_length_nc(x_index)-1)
+            dgrid_lat=(var2d_nc(lat_index,dim_length_nc(x_index)/2,dim_length_nc(y_index))-var2d_nc(lat_index,dim_length_nc(x_index)/2,1))/(dim_length_nc(y_index)-1)
+            dgrid_lon=(var2d_nc(lon_index,dim_length_nc(x_index),dim_length_nc(y_index)/2)-var2d_nc(lon_index,1,dim_length_nc(y_index)/2))/(dim_length_nc(x_index)-1)
             
-            grid_index_rl(x_index,i)=min(dim_length_nc(x_index),max(1,1+floor((inputdata_rl(lon0_rl_index,i)-var2d_nc(lon_index,start_dim_nc(x_index),dim_length_nc(y_index)/2))/dgrid_lon+0.5)))
-            grid_index_rl(y_index,i)=min(dim_length_nc(y_index),max(1,1+floor((inputdata_rl(lat0_rl_index,i)-var2d_nc(lat_index,grid_index_rl(x_index,i),start_dim_nc(y_index)))/dgrid_lat+0.5)))
-            grid_index_rl(x_index,i)=min(dim_length_nc(x_index),max(1,1+floor((inputdata_rl(lon0_rl_index,i)-var2d_nc(lon_index,start_dim_nc(x_index),grid_index_rl(y_index,i)))/dgrid_lon+0.5)))
-            
-            !Reestimate the lat lon grid size for the given position in the grid
-            dgrid_lat=(var2d_nc(lat_index,grid_index_rl(x_index,i),dim_length_nc(y_index))-var2d_nc(lat_index,grid_index_rl(x_index,i),start_dim_nc(y_index)))/(dim_length_nc(y_index)-1)
-            dgrid_lon=(var2d_nc(lon_index,dim_length_nc(x_index),grid_index_rl(y_index,i))-var2d_nc(lon_index,start_dim_nc(x_index),grid_index_rl(y_index,i)))/(dim_length_nc(x_index)-1)
-            
-            !Recalculate position at that point
-            grid_index_rl(x_index,i)=min(dim_length_nc(x_index),max(1,1+floor((inputdata_rl(lon0_rl_index,i)-var2d_nc(lon_index,start_dim_nc(x_index),grid_index_rl(y_index,i)))/dgrid_lon+0.5)))
-            grid_index_rl(y_index,i)=min(dim_length_nc(y_index),max(1,1+floor((inputdata_rl(lat0_rl_index,i)-var2d_nc(lat_index,grid_index_rl(x_index,i),start_dim_nc(y_index)))/dgrid_lat+0.5)))
+            grid_index_rl(x_index,i)=min(dim_length_nc(x_index),max(1,1+floor((inputdata_rl(lon0_rl_index,i)-var2d_nc(lon_index,1,dim_length_nc(y_index)/2))/dgrid_lon+0.5)))
+            grid_index_rl(y_index,i)=min(dim_length_nc(y_index),max(1,1+floor((inputdata_rl(lat0_rl_index,i)-var2d_nc(lat_index,grid_index_rl(x_index,i),1))/dgrid_lat+0.5)))
+            grid_index_rl(x_index,i)=min(dim_length_nc(x_index),max(1,1+floor((inputdata_rl(lon0_rl_index,i)-var2d_nc(lon_index,1,grid_index_rl(y_index,i)))/dgrid_lon+0.5)))
             
             !Reestimate the lat lon grid size for the given position in the grid
-            dgrid_lat=(var2d_nc(lat_index,grid_index_rl(x_index,i),dim_length_nc(y_index))-var2d_nc(lat_index,grid_index_rl(x_index,i),start_dim_nc(y_index)))/(dim_length_nc(y_index)-1)
-            dgrid_lon=(var2d_nc(lon_index,dim_length_nc(x_index),grid_index_rl(y_index,i))-var2d_nc(lon_index,start_dim_nc(x_index),grid_index_rl(y_index,i)))/(dim_length_nc(x_index)-1)
+            dgrid_lat=(var2d_nc(lat_index,grid_index_rl(x_index,i),dim_length_nc(y_index))-var2d_nc(lat_index,grid_index_rl(x_index,i),1))/(dim_length_nc(y_index)-1)
+            dgrid_lon=(var2d_nc(lon_index,dim_length_nc(x_index),grid_index_rl(y_index,i))-var2d_nc(lon_index,1,grid_index_rl(y_index,i)))/(dim_length_nc(x_index)-1)
 
             !Recalculate position at that point
-            x_index_temp=min(dim_length_nc(x_index),max(1,1+floor((inputdata_rl(lon0_rl_index,i)-var2d_nc(lon_index,start_dim_nc(x_index),grid_index_rl(y_index,i)))/dgrid_lon+0.5)))
-            y_index_temp=min(dim_length_nc(y_index),max(1,1+floor((inputdata_rl(lat0_rl_index,i)-var2d_nc(lat_index,grid_index_rl(x_index,i),start_dim_nc(y_index)))/dgrid_lat+0.5)))
+            grid_index_rl(x_index,i)=min(dim_length_nc(x_index),max(1,1+floor((inputdata_rl(lon0_rl_index,i)-var2d_nc(lon_index,1,grid_index_rl(y_index,i)))/dgrid_lon+0.5)))
+            grid_index_rl(y_index,i)=min(dim_length_nc(y_index),max(1,1+floor((inputdata_rl(lat0_rl_index,i)-var2d_nc(lat_index,grid_index_rl(x_index,i),1))/dgrid_lat+0.5)))
+
+            !write(*,*) i,grid_index_rl(x_index,i),grid_index_rl(y_index,i),dgrid_lon,dgrid_lat
+            !Reestimate the lat lon grid size for the given position in the grid
+            dgrid_lat=(var2d_nc(lat_index,grid_index_rl(x_index,i),dim_length_nc(y_index))-var2d_nc(lat_index,grid_index_rl(x_index,i),1))/(dim_length_nc(y_index)-1)
+            dgrid_lon=(var2d_nc(lon_index,dim_length_nc(x_index),grid_index_rl(y_index,i))-var2d_nc(lon_index,1,grid_index_rl(y_index,i)))/(dim_length_nc(x_index)-1)
+
+            !Recalculate position at that point
+            x_index_temp=min(dim_length_nc(x_index),max(1,1+floor((inputdata_rl(lon0_rl_index,i)-var2d_nc(lon_index,1,grid_index_rl(y_index,i)))/dgrid_lon+0.5)))
+            y_index_temp=min(dim_length_nc(y_index),max(1,1+floor((inputdata_rl(lat0_rl_index,i)-var2d_nc(lat_index,grid_index_rl(x_index,i),1))/dgrid_lat+0.5)))
 
             !grid_index_rl(x_index:y_index,i)=minloc((var2d_nc(lat_index,:,:)-inputdata_rl(lat0_rl_index,i))**2+(var2d_nc(lon_index,:,:)/cos(var2d_nc(lat_index,:,:)/180.*3.14159)-inputdata_rl(lon0_rl_index,i)/cos(inputdata_rl(lat0_rl_index,i)/180.*3.14159))**2)
             !write(*,*) 'OLD: ',i,grid_index_rl(x_index,i),grid_index_rl(y_index,i)
@@ -177,11 +178,11 @@ subroutine NORTRIP_multiroad_create_meteodata
             grid_index_rl(x_index,i)=1+floor((x_temp-var1d_nc(x_index,1))/dgrid_nc(x_index)+0.5)
             grid_index_rl(y_index,i)=1+floor((y_temp-var1d_nc(y_index,1))/dgrid_nc(y_index)+0.5)
             
-            if (grid_index_rl(x_index,i).ge.dim_length_nc(x_index).or.grid_index_rl(x_index,i).le.dim_start_nc(x_index).or. &
-                grid_index_rl(y_index,i).ge.dim_length_nc(y_index).or.grid_index_rl(y_index,i).le.start_dim_nc(y_index)) then
-                    out_of_range_count=out_of_range_count+1
-                    write(unit_logfile,'(a,6i)') 'WARNING: Road outside meteo grid (link_n,link_ID,grid_i,grid_j,maxgrid_i,maxgrid_j)',i,inputdata_int_rl(id_rl_index,i),grid_index_rl(x_index,i),grid_index_rl(y_index,i),dim_length_nc(x_index),dim_length_nc(y_index)                
-                endif
+            if (grid_index_rl(x_index,i).ge.dim_length_nc(x_index).or.grid_index_rl(x_index,i).le.1.or. &
+                grid_index_rl(y_index,i).ge.dim_length_nc(y_index).or.grid_index_rl(y_index,i).le.1) then
+                out_of_range_count=out_of_range_count+1
+                write(unit_logfile,'(a,6i)') 'WARNING: Road outside meteo grid (link_n,link_ID,grid_i,grid_j,maxgrid_i,maxgrid_j)',i,inputdata_int_rl(id_rl_index,i),grid_index_rl(x_index,i),grid_index_rl(y_index,i),dim_length_nc(x_index),dim_length_nc(y_index)                
+            endif
 
             !Limit it to the meteo grid -1 because of the interpolation later
             grid_index_rl(x_index,i)=min(dim_length_nc(x_index)-1,max(2,grid_index_rl(x_index,i)))

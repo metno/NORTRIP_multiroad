@@ -36,6 +36,7 @@
     double precision, allocatable :: var2d_nc2_dp(:,:)
     double precision, allocatable :: var3d_nc2_dp(:,:)
 
+    logical dim_read_flag
     
 	write(unit_logfile,'(A)') '================================================================'
 	write(unit_logfile,'(A)') 'Reading additional meteorological data (NORTRIP_read_analysismeteo_netcdf4)'
@@ -49,6 +50,8 @@
     if (.not.allocated(meteo_nc2_available)) allocate (meteo_nc2_available(n_hours_input)) 
     if (.not.allocated(meteo_var_nc2_available)) allocate (meteo_var_nc2_available(n_hours_input,num_var_nc2)) 
     meteo_var_nc2_available=.true.
+    
+    dim_read_flag=.false.
     
     !Loop through the number of time steps and read in data when available
     do t=1,int(n_hours_input/timesteps_in_hour)
@@ -92,11 +95,16 @@
                 meteo_nc2_projection_type=LL_projection_index             
             endif
 
-            !Find out the x,y and time dimmensions of the file
-            status_nc2 = NF90_INQ_DIMID (id_nc2,dim_name_nc2(x_index2),dim_id_nc2(x_index2))
-            status_nc2 = NF90_INQUIRE_DIMENSION (id_nc2,dim_id_nc2(x_index2),dimname_temp,dim_length_nc2(x_index2))
-            status_nc2 = NF90_INQ_DIMID (id_nc2,dim_name_nc2(y_index2),dim_id_nc2(y_index2))
-            status_nc2 = NF90_INQUIRE_DIMENSION (id_nc2,dim_id_nc2(y_index2),dimname_temp,dim_length_nc2(y_index2))
+            if (.not.dim_read_flag) then
+                !Find out the x,y and time dimmensions of the file
+                status_nc2 = NF90_INQ_DIMID (id_nc2,dim_name_nc2(x_index2),dim_id_nc2(x_index2))
+                status_nc2 = NF90_INQUIRE_DIMENSION (id_nc2,dim_id_nc2(x_index2),dimname_temp,dim_length_nc2(x_index2))
+                status_nc2 = NF90_INQ_DIMID (id_nc2,dim_name_nc2(y_index2),dim_id_nc2(y_index2))
+                status_nc2 = NF90_INQUIRE_DIMENSION (id_nc2,dim_id_nc2(y_index2),dimname_temp,dim_length_nc2(y_index2))
+        
+                call NORTRIP_reduce_meteo_region2(id_nc2)
+                dim_read_flag=.true.
+            end if 
             status_nc2 = NF90_INQ_DIMID (id_nc2,dim_name_nc2(time_index2),dim_id_nc2(time_index2))
             status_nc2 = NF90_INQUIRE_DIMENSION (id_nc2,dim_id_nc2(time_index2),dimname_temp,dim_length_nc2(time_index2))
             write(unit_logfile,'(A,3I)') ' Size of dimensions (x,y,t): ',dim_length_nc2

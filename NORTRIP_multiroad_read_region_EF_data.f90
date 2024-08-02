@@ -577,11 +577,13 @@
         return
     endif
         
-    !Initialise seasonal data
+    !Initialise regional data as it may be used in trend scaling. It is initialised in the definition file
     max_stud_fraction_region_scaling=1.
     exhaust_EF_region_scaling=1.
     nox_EF_region_scaling=1.
     adt_region_scaling=1.
+    region_id=0
+    n_region=1
         
     !Open the file for reading
     unit_in=20
@@ -650,7 +652,7 @@
                 fraction_studded_tyres(li)=sum(traffic_data(N_st_li_index,1:n_hours_input,i))/sum(traffic_data(N_li_index,1:n_hours_input,i))
                 !fraction_winter_tyres(li)=sum(traffic_data(N_wi_li_index,1:n_hours_input,i))/sum(traffic_data(N_li_index,1:n_hours_input,i))
                 fraction_summer_tyres(li)=sum(traffic_data(N_su_li_index,1:n_hours_input,i))/sum(traffic_data(N_li_index,1:n_hours_input,i))
-                fraction_winter_tyres(li)=1.-fraction_summer_tyres(li)-fraction_studded_tyres(li)*max_stud_fraction_region_scaling(k,li)
+                fraction_winter_tyres(li)=1.-fraction_summer_tyres(li)-min(1.-fraction_summer_tyres(li),fraction_studded_tyres(li)*max_stud_fraction_region_scaling(k,li))
                 else
                 fraction_studded_tyres(li)=0
                 fraction_winter_tyres(li)=0
@@ -660,7 +662,7 @@
                 fraction_studded_tyres(he)=sum(traffic_data(N_st_he_index,1:n_hours_input,i))/sum(traffic_data(N_he_index,1:n_hours_input,i))
                 !fraction_winter_tyres(he)=sum(traffic_data(N_wi_he_index,1:n_hours_input,i))/sum(traffic_data(N_he_index,1:n_hours_input,i))
                 fraction_summer_tyres(he)=sum(traffic_data(N_su_he_index,1:n_hours_input,i))/sum(traffic_data(N_he_index,1:n_hours_input,i))
-                fraction_winter_tyres(he)=1.-fraction_summer_tyres(he)-fraction_studded_tyres(he)*max_stud_fraction_region_scaling(k,he)
+                fraction_winter_tyres(he)=1.-fraction_summer_tyres(he)-min(1.-fraction_summer_tyres(he),fraction_studded_tyres(he)*max_stud_fraction_region_scaling(k,he))
                 else
                 fraction_studded_tyres(he)=0
                 fraction_winter_tyres(he)=0
@@ -669,9 +671,9 @@
                 
                 do v=1,num_veh
                     ty=st
-                    traffic_data(N_t_v_index(ty,v),1:n_hours_input,i)=traffic_data(N_v_index(v),1:n_hours_input,i)*(fraction_studded_tyres(v)*max_stud_fraction_region_scaling(k,v))
+                    traffic_data(N_t_v_index(ty,v),1:n_hours_input,i)=traffic_data(N_v_index(v),1:n_hours_input,i)*min(1.-fraction_summer_tyres(v),fraction_studded_tyres(v)*max_stud_fraction_region_scaling(k,v))
                     ty=wi
-                    traffic_data(N_t_v_index(ty,v),1:n_hours_input,i)=traffic_data(N_v_index(v),1:n_hours_input,i)*(1.-fraction_summer_tyres(v)-fraction_studded_tyres(v)*max_stud_fraction_region_scaling(k,v))
+                    traffic_data(N_t_v_index(ty,v),1:n_hours_input,i)=traffic_data(N_v_index(v),1:n_hours_input,i)*(1.-fraction_summer_tyres(v)-min(1.-fraction_summer_tyres(v),fraction_studded_tyres(v)*max_stud_fraction_region_scaling(k,v)))
                     ty=su
                     !traffic_data(N_t_v_index(ty,v),1:n_hours_input,i)=traffic_data(N_v_index(v),1:n_hours_input,i)*(1.-fraction_winter_tyres(v)-fraction_studded_tyres(v)*max_stud_fraction_region_scaling(k,v))
                 enddo
@@ -767,7 +769,263 @@
     return
 10  write(unit_logfile,'(A)') 'ERROR reading population file'
     stop 10
-
     
     end subroutine NORTRIP_multiroad_read_region_population_data    
  
+    
+    subroutine NORTRIP_multiroad_read_trend_scaling_data
+    !Reads scaling of traffic data for trens
+    !Would have been better perhaps to read this before the regional scaling data and multiply the regional scaling data with the trend scaling data
+    !See if this works anyway
+    
+    use NORTRIP_multiroad_index_definitions
+    
+    implicit none
+    
+    character(256) search_str,temp_str
+    real temp
+    integer temp_id
+    integer unit_in
+    integer i,t,d,h,v,ty,j,jj
+    integer rl_length_short
+    integer exists
+    logical nxtdat_flag
+    integer week_day_temp,hour_temp
+    real tyre_fraction(num_veh,num_tyre)
+    real factor_temp
+    integer n_roadlinks_read
+    integer k,k_index
+    real fraction_winter_tyres(1:num_veh)
+    real fraction_summer_tyres(1:num_veh)
+    real fraction_studded_tyres(1:num_veh)
+    integer trend_year_index
+    real total_in,light_in,heavy_in,light_st_in,heavy_st_in
+    real ratio_st_outin(num_veh)
+    integer scale_loop
+    
+    !Functions
+    integer day_of_week
+    double precision date_to_number
+        
+	write(unit_logfile,'(A)') '================================================================'
+	write(unit_logfile,'(A)') 'Reading trend traffic scaling data (NORTRIP_multiroad_read_trend_scaling_data)'
+	write(unit_logfile,'(A)') '================================================================'
+
+    pathfilename_trend_scaling=trim(inpath_trend_scaling)//trim(infile_trend_scaling)
+
+    !Test existence of the filename. If does not exist then use default
+    inquire(file=trim(pathfilename_trend_scaling),exist=exists)
+    if (.not.exists) then
+        write(unit_logfile,'(A,A)') ' WARNING: Trend traffic scaling data file does not exist: ', trim(pathfilename_trend_scaling)
+        write(unit_logfile,'(A)') ' WARNING: No trend scaling will occur: '
+        return
+    endif
+        
+    !Initialise seasonal data
+    max_stud_fraction_trend_scaling=1.
+    exhaust_EF_trend_scaling=1.
+    nox_EF_trend_scaling=1.
+    adt_trend_scaling=1.
+        
+    !Open the file for reading
+    unit_in=20
+    open(unit_in,file=pathfilename_trend_scaling,access='sequential',status='old',readonly)  
+        write(unit_logfile,'(a)') ' Opening trend scaling traffic file: '//trim(pathfilename_trend_scaling)
+    
+        !Skip over header lines starting with *
+        rewind(unit_in)
+        call NXTDAT(unit_in,nxtdat_flag)
+       
+        !Read the data
+        read(unit_in,*,ERR=10) n_trend
+        write(unit_logfile,'(a,i)') ' Number of trend years read: ',n_trend
+        call NXTDAT(unit_in,nxtdat_flag)
+        
+            do k=1,n_trend          
+                read(unit_in,*,ERR=10) &
+                    k_index,trend_id(k), &
+                    adt_trend_scaling(k,li),adt_trend_scaling(k,he), &
+                    max_stud_fraction_trend_scaling(k,li),max_stud_fraction_trend_scaling(k,he), &
+                    exhaust_EF_trend_scaling(k,li),exhaust_EF_trend_scaling(k,he), &
+                    nox_EF_trend_scaling(k,li),nox_EF_trend_scaling(k,he)
+                !write(*,'(2i,8f10.3)')  &
+                !    k_index,trend_id(k), &
+                !    adt_trend_scaling(k,li),adt_trend_scaling(k,he), &
+                !    max_stud_fraction_trend_scaling(k,li),max_stud_fraction_trend_scaling(k,he), &
+                !    exhaust_EF_trend_scaling(k,li),exhaust_EF_trend_scaling(k,he), &
+                !    nox_EF_trend_scaling(k,li),nox_EF_trend_scaling(k,he)
+            enddo
+    
+    close(unit_in,status='keep')
+   
+    !Find the correct year index based on start date
+    trend_year_index=0
+    t=1
+    do k=1,n_trend
+        if (trend_id(k).eq.date_data(year_index,t)) then
+            trend_year_index=k
+        endif   
+    enddo
+    
+    if (trend_year_index.ne.0) then
+        k=trend_year_index
+        write(unit_logfile,'(a,i)') ' Trend year found : ',trend_id(trend_year_index)
+                write(*,'(a,2i,8f10.3)') 'Scaling: ', &
+                    trend_year_index,trend_id(k), &
+                    adt_trend_scaling(k,li),adt_trend_scaling(k,he), &
+                    max_stud_fraction_trend_scaling(k,li),max_stud_fraction_trend_scaling(k,he), &
+                    exhaust_EF_trend_scaling(k,li),exhaust_EF_trend_scaling(k,he), &
+                    nox_EF_trend_scaling(k,li),nox_EF_trend_scaling(k,he)
+
+    else
+        write(unit_logfile,'(a)') 'WARNING:  Trend year not found. Will not scale year : '
+        return
+    endif
+
+    !write(*,*) 'Before :',airquality_data(NOX_emis_index,2,1),traffic_data(N_total_index,2,1),traffic_data(N_t_v_index(st,1),2,1)
+    write(unit_logfile,'(a,2f12.3)') 'Ratio studded tyres in (li,he) = ',sum(traffic_data(N_st_li_index,:,:))/sum(traffic_data(N_li_index,:,:)),sum(traffic_data(N_st_he_index,:,:))/sum(traffic_data(N_he_index,:,:))
+    !write(*,'(a,3f12.0)') 'Traffic in (tot,li,he) = ',sum(traffic_data(N_total_index,:,:)),sum(traffic_data(N_li_index,:,:)),sum(traffic_data(N_he_index,:,:))
+    total_in=sum(traffic_data(N_total_index,:,:))
+    light_in=sum(traffic_data(N_li_index,:,:))
+    heavy_in=sum(traffic_data(N_he_index,:,:))
+    light_st_in=sum(traffic_data(N_st_li_index,:,:))/sum(traffic_data(N_li_index,:,:))
+    heavy_st_in=sum(traffic_data(N_st_he_index,:,:))/sum(traffic_data(N_he_index,:,:))
+ 
+    ratio_st_outin=1.
+
+    !In order to get the right scaled ratio we iterate the procedure
+    !Cannot due this just once as it is not possible to have more than 100% studded tyres, so it gets saturated so to speak.
+    do scale_loop=1,5
+    
+        k=trend_year_index
+        !Do not scale traffic twice
+        if (scale_loop.gt.1) then
+            adt_trend_scaling(k,:)=1.
+        endif
+        
+        
+    do i=1,n_roadlinks
+        !Find the corresponding trend_id and attribute the studded tyre and emission factor data to it
+        !ID's in roadlink data are kommune, first two numbers are fylke
+
+        !if (int(inputdata_int_rl(trend_id_rl_index,i)/100).eq.trend_id(k)) then
+            !write(*,*) inputdata_int_rl(trend_id_rl_index,i),trend_id(k)
+                
+                !write(*,*) 'Before Light:',sum(traffic_data(N_t_v_index(:,li),1:n_hours_input,i)),sum(traffic_data(N_li_index,1:n_hours_input,i))
+                !write(*,*) 'Before Heavy:',sum(traffic_data(N_t_v_index(:,he),1:n_hours_input,i)),sum(traffic_data(N_he_index,1:n_hours_input,i))
+                !adt_trend_scaling(k,:)=1.
+            !j=inputdata_int_rl(region_id_rl_index,i)
+            !Find the region index
+            !This routine requiresd that a regional scaling file has been already read
+            !write(*,'(i,<num_traffic_index>f12.0)') i,sum(traffic_data(:,:,i),DIM=2)
+            
+            j=0
+            do jj=1,n_region                
+                if (inputdata_int_rl(region_id_rl_index,i).eq.region_id(jj)) then
+                    j=jj
+                endif
+            enddo
+            
+            if (j.gt.0) then
+          
+                !Scale all the traffic
+                do v=1,num_veh
+                    traffic_data(N_v_index(v),1:n_hours_input,i)=traffic_data(N_v_index(v),1:n_hours_input,i)*adt_trend_scaling(k,v)
+                    do ty=1,num_tyre
+                        traffic_data(N_t_v_index(ty,v),1:n_hours_input,i)=traffic_data(N_t_v_index(ty,v),1:n_hours_input,i)*adt_trend_scaling(k,v)
+                    enddo
+                enddo
+                
+                !Update the total traffic
+                traffic_data(N_total_index,1:n_hours_input,i)=traffic_data(N_li_index,1:n_hours_input,i)+traffic_data(N_he_index,1:n_hours_input,i)
+                
+                !Update the studded tyre share
+                !do v=1,num_veh
+                !    ty=st
+                    !traffic_data(N_t_v_index(ty,v),1:n_hours_input,i)=traffic_data(N_t_v_index(ty,v),1:n_hours_input,i)*max_stud_fraction_trend_scaling(k,v)
+                !enddo
+                
+                !Determine the fraction of winter and summer tyres minus the studded ones in light and heavy
+                !This averages over the period which could create a mistake over longer periods?
+                !Keep the summer tyre ratio fixed and only adjust the winter tyre
+                if (sum(traffic_data(N_li_index,1:n_hours_input,i)).gt.0) then
+                fraction_studded_tyres(li)=sum(traffic_data(N_st_li_index,1:n_hours_input,i))/sum(traffic_data(N_li_index,1:n_hours_input,i))
+                !fraction_winter_tyres(li)=sum(traffic_data(N_wi_li_index,1:n_hours_input,i))/sum(traffic_data(N_li_index,1:n_hours_input,i))
+                fraction_summer_tyres(li)=sum(traffic_data(N_su_li_index,1:n_hours_input,i))/sum(traffic_data(N_li_index,1:n_hours_input,i))
+                fraction_winter_tyres(li)=1.-fraction_summer_tyres(li)-min(1.-fraction_summer_tyres(li),fraction_studded_tyres(li)*max_stud_fraction_trend_scaling(k,li)*ratio_st_outin(li))
+                else
+                fraction_studded_tyres(li)=0
+                fraction_winter_tyres(li)=0
+                fraction_summer_tyres(li)=0
+                endif                
+                if (sum(traffic_data(N_he_index,1:n_hours_input,i)).gt.0) then
+                fraction_studded_tyres(he)=sum(traffic_data(N_st_he_index,1:n_hours_input,i))/sum(traffic_data(N_he_index,1:n_hours_input,i))
+                !fraction_winter_tyres(he)=sum(traffic_data(N_wi_he_index,1:n_hours_input,i))/sum(traffic_data(N_he_index,1:n_hours_input,i))
+                fraction_summer_tyres(he)=sum(traffic_data(N_su_he_index,1:n_hours_input,i))/sum(traffic_data(N_he_index,1:n_hours_input,i))
+                fraction_winter_tyres(he)=1.-fraction_summer_tyres(he)-min(1.-fraction_summer_tyres(he),fraction_studded_tyres(he)*max_stud_fraction_trend_scaling(k,he)*ratio_st_outin(he))
+                else
+                fraction_studded_tyres(he)=0
+                fraction_winter_tyres(he)=0
+                fraction_summer_tyres(he)=0
+                endif
+                
+                do v=1,num_veh
+                    ty=st
+                    traffic_data(N_t_v_index(ty,v),1:n_hours_input,i)=traffic_data(N_v_index(v),1:n_hours_input,i)*min(1.-fraction_summer_tyres(v),fraction_studded_tyres(v)*max_stud_fraction_trend_scaling(k,v)*ratio_st_outin(v))
+                    ty=wi
+                    traffic_data(N_t_v_index(ty,v),1:n_hours_input,i)=traffic_data(N_v_index(v),1:n_hours_input,i)*(1.-fraction_summer_tyres(v)-min(1.-fraction_summer_tyres(v),fraction_studded_tyres(v)*max_stud_fraction_trend_scaling(k,v)*ratio_st_outin(v)))
+                    ty=su
+                    !traffic_data(N_t_v_index(ty,v),1:n_hours_input,i)=traffic_data(N_v_index(v),1:n_hours_input,i)*(1.-fraction_winter_tyres(v)-fraction_studded_tyres(v)*max_stud_fraction_trend_scaling(k,v))
+                enddo
+                
+                !Check the sum is still correct
+                !write(*,*) adt_trend_scaling(k,li),adt_trend_scaling(k,he)
+                !write(*,*) max_stud_fraction_trend_scaling(k,li),max_stud_fraction_trend_scaling(k,he)
+                !write(*,*) fraction_winter_tyres(li),fraction_summer_tyres(li),fraction_studded_tyres(li),fraction_winter_tyres(li)+fraction_summer_tyres(li)+fraction_studded_tyres(li)*max_stud_fraction_trend_scaling(k,li)
+                !write(*,*) fraction_winter_tyres(he),fraction_summer_tyres(he),fraction_studded_tyres(he),fraction_winter_tyres(he)+fraction_summer_tyres(he)+fraction_studded_tyres(he)*max_stud_fraction_trend_scaling(k,li)
+                !write(*,*) 'After Light:',sum(traffic_data(N_t_v_index(:,li),1:n_hours_input,i)),sum(traffic_data(N_li_index,1:n_hours_input,i))
+                !write(*,*) 'After Heavy:',sum(traffic_data(N_t_v_index(:,he),1:n_hours_input,i)),sum(traffic_data(N_he_index,1:n_hours_input,i))
+                !write(*,*) 'After all:',sum(traffic_data(N_t_v_index(:,li),1:n_hours_input,i))+sum(traffic_data(N_t_v_index(:,he),1:n_hours_input,i)),sum(traffic_data(N_total_index,1:n_hours_input,i))
+                
+                !Update the emissions. These are total emissions so must be scaled with both the adt and the emission factor scaling
+                !write(*,*) 'Before EP, NOX:',sum(airquality_data(EP_emis_index,1:n_hours_input,i)),sum(airquality_data(NOX_emis_index,1:n_hours_input,i))
+
+                !This needs to include the regional scaling as well since it starts from scratch
+                airquality_data(EP_emis_index,1:n_hours_input,i)=0
+                airquality_data(NOX_emis_index,1:n_hours_input,i)=0
+                do v=1,num_veh
+                    airquality_data(EP_emis_index,1:n_hours_input,i)=airquality_data(EP_emis_index,1:n_hours_input,i)+traffic_data(N_v_index(v),1:n_hours_input,i)*exhaust_EF_region(j,v)*exhaust_EF_region_scaling(j,v)*exhaust_EF_trend_scaling(k,v)
+                    airquality_data(NOX_emis_index,1:n_hours_input,i)=airquality_data(NOX_emis_index,1:n_hours_input,i)+traffic_data(N_v_index(v),1:n_hours_input,i)*nox_EF_region(j,v)*nox_EF_region_scaling(j,v)*exhaust_EF_trend_scaling(k,v)
+                enddo     
+                !write(*,*) 'After EP, NOX:',sum(airquality_data(EP_emis_index,1:n_hours_input,i)),sum(airquality_data(NOX_emis_index,1:n_hours_input,i))
+            elseif (inputdata_int_rl(roadstructuretype_rl_index,i).ne.runway_roadtype) then
+                write(unit_logfile,'(a,i)') ' WARNING: Road has no region index and exhaust emissions will not be trend scaled: Road index = ',i
+            endif
+                
+            !write(*,'(i,<num_traffic_index>f12.0)') i,sum(traffic_data(:,:,i),DIM=2)
+            
+            
+    enddo
+    !write(*,*) 'After  :',airquality_data(NOX_emis_index,2,1),traffic_data(N_total_index,2,1),traffic_data(N_t_v_index(st,1),2,1)
+    write(unit_logfile,'(a,i)') 'Scaling loop iteration = ',scale_loop
+    write(unit_logfile,'(a,2f12.3)') 'Ratio studded tyres out (li,he) = ',sum(traffic_data(N_st_li_index,:,:))/sum(traffic_data(N_li_index,:,:)),sum(traffic_data(N_st_he_index,:,:))/sum(traffic_data(N_he_index,:,:))
+    !write(*,'(a,3f12.0)') 'Traffic out (tot,li,he) = ',sum(traffic_data(N_total_index,:,:)),sum(traffic_data(N_li_index,:,:)),sum(traffic_data(N_he_index,:,:))
+    write(unit_logfile,'(a,3f12.3)') 'Ratio traffic out/in (tot,li,he) = ',sum(traffic_data(N_total_index,:,:))/total_in,sum(traffic_data(N_li_index,:,:))/light_in,sum(traffic_data(N_he_index,:,:))/heavy_in
+    write(unit_logfile,'(a,2f12.3)') 'Ratio studded tyres out/in (li,he) = ',sum(traffic_data(N_st_li_index,:,:))/sum(traffic_data(N_li_index,:,:))/light_st_in,sum(traffic_data(N_st_he_index,:,:))/sum(traffic_data(N_he_index,:,:))/heavy_st_in
+    !write(*,'(a,2f12.3)') 'Effective scaling out/in (li,he) = ',sum(traffic_data(N_st_li_index,:,:))/sum(traffic_data(N_li_index,:,:))/light_st_in*sum(traffic_data(N_li_index,:,:))/light_in,sum(traffic_data(N_st_he_index,:,:))/sum(traffic_data(N_he_index,:,:))/heavy_st_in*sum(traffic_data(N_he_index,:,:))/heavy_in
+    ratio_st_outin(li)=1./(sum(traffic_data(N_st_li_index,:,:))/sum(traffic_data(N_li_index,:,:))/light_st_in)
+    ratio_st_outin(he)=1./(sum(traffic_data(N_st_he_index,:,:))/sum(traffic_data(N_he_index,:,:))/heavy_st_in)
+    write(unit_logfile,'(a,2f12.3)') 'Rescaling ratio, should be 1, out/in (li,he) = ',ratio_st_outin(li)*max_stud_fraction_trend_scaling(k,li),ratio_st_outin(li)*max_stud_fraction_trend_scaling(k,he)
+    
+    enddo !Scaling loop
+    
+    
+    write(unit_logfile,'(a)') ' Finished scaling road data with trend: '
+     
+    return
+10  write(unit_logfile,'(A)') 'ERROR reading scaling traffic file'
+    stop 10
+
+    
+    end subroutine NORTRIP_multiroad_read_trend_scaling_data    
+    

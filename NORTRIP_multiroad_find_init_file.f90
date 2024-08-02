@@ -78,12 +78,12 @@
 
     if (init_found) then
         if (init_counter.eq.1) then
-            write(unit_logfile,'(A,A)') ' Found correct NORTRIP initialisation file: ',trim(filename_init_in)
+            write(unit_logfile,'(A,A)') ' Found correct NORTRIP initialisation file: ',trim(pathfilename_init_in)
         else
-            write(unit_logfile,'(A,A,A,I4,A)') ' Found previous NORTRIP initialisation file ',trim(filename_init_in),' from ',init_counter-1,' hours before'
+            write(unit_logfile,'(A,A,A,I4,A)') ' Found previous NORTRIP initialisation file ',trim(pathfilename_init_in),' from ',init_counter-1,' hours before'
         endif      
     else
-        write(unit_logfile,'(A,A)') ' WARNING: No initialisation file found in the last 30 days ',trim(filename_init_start)
+        write(unit_logfile,'(A,A)') ' WARNING: No initialisation file found in the last 30 days ',trim(pathfilename_init_in)
         filename_init_in=''
     endif
     !==========================================================================================================================

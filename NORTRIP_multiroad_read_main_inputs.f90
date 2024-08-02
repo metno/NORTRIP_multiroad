@@ -144,6 +144,8 @@
     call date_to_datestr_bracket(start_date_input,infile_region_scaling,infile_region_scaling)    
     call date_to_datestr_bracket(start_date_input,inpath_region_EF,inpath_region_EF)    
     call date_to_datestr_bracket(start_date_input,infile_region_EF,infile_region_EF)    
+    call date_to_datestr_bracket(start_date_input,inpath_trend_scaling,inpath_trend_scaling)    
+    call date_to_datestr_bracket(start_date_input,infile_trend_scaling,infile_trend_scaling)    
     
     !Do not fill in the date here. This is done when looking for the init file
     !call date_to_datestr_bracket(start_date_input,path_init_for_NORTRIP,path_init_for_NORTRIP)
@@ -288,6 +290,9 @@
 
     inpath_region_scaling=match_string_char('inpath_region_scaling',unit_in,unit_logfile,'')
     infile_region_scaling=match_string_char('infile_region_scaling',unit_in,unit_logfile,'')
+
+    inpath_trend_scaling=match_string_char('inpath_trend_scaling',unit_in,unit_logfile,'')
+    infile_trend_scaling=match_string_char('infile_trend_scaling',unit_in,unit_logfile,'')
 
     inpath_region_population=match_string_char('inpath_region_population',unit_in,unit_logfile,'')
     infile_region_population=match_string_char('infile_region_population',unit_in,unit_logfile,'')
@@ -679,6 +684,8 @@
         !Scaling files
         inpath_region_scaling=replace_string_char(city_str(i),trim(temp_str),inpath_region_scaling)
         infile_region_scaling=replace_string_char(city_str(i),trim(temp_str),infile_region_scaling)
+        inpath_trend_scaling=replace_string_char(city_str(i),trim(temp_str),inpath_trend_scaling)
+        infile_trend_scaling=replace_string_char(city_str(i),trim(temp_str),infile_trend_scaling)
 
         !Population files
         inpath_region_population=replace_string_char(city_str(i),trim(temp_str),inpath_region_population)
