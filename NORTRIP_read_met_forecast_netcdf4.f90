@@ -168,10 +168,10 @@ subroutine NORTRIP_read_MET_Nordic_forecast_netcdf4
         !Read the x, y and time values
         do i=1,num_dims_nc_forecast
             status_nc = NF90_INQ_VARID (id_nc, trim(dim_name_nc(i)), var_id_nc(i))
-            status_nc = NF90_GET_VAR (id_nc, var_id_nc(i), var1d_nc_forecast_old(i,1:dim_length_nc_forecast(i)), start=(/dim_start_nc(i)/), count=(/dim_length_nc_forecast(i)/))
+            status_nc = NF90_GET_VAR (id_nc, var_id_nc(i), var1d_nc_forecast_old(i,1:dim_length_nc_forecast(i)), start=(/dim_start_nc_forecast(i)/), count=(/dim_length_nc_forecast(i)/))
 
             if (i.eq.time_index_forecast) then
-                status_nc = NF90_GET_VAR (id_nc, var_id_nc(i), var1d_nc_forecast_dp(1:dim_length_nc_forecast(i)), start=(/dim_start_nc(i)/), count=(/dim_length_nc_forecast(i)/))
+                status_nc = NF90_GET_VAR (id_nc, var_id_nc(i), var1d_nc_forecast_dp(1:dim_length_nc_forecast(i)), start=(/dim_start_nc_forecast(i)/), count=(/dim_length_nc_forecast(i)/))
 
                 var1d_nc_forecast_old(i,:)=real(var1d_nc_forecast_dp(:))
                 write(unit_logfile,'(3A,2i14)') ' ',trim(dim_name_nc(i)),' (min, max in hours): ' &
