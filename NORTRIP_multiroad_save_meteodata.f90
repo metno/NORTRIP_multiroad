@@ -6,7 +6,7 @@ subroutine NORTRIP_multiroad_create_meteodata
     
     implicit none
     
-    integer i,j,t,jj,ii,r, j_obs,j_mod, road_index,surface_index, j_forecast
+    integer i,j,t,jj,ii,r, j_obs,j_mod, road_index,surface_index, rad_index, j_forecast
     integer unit_in
     integer, allocatable :: grid_index_rl(:,:)
     integer, allocatable :: grid_index_rl2(:,:)
@@ -737,20 +737,23 @@ subroutine NORTRIP_multiroad_create_meteodata
                             if ( road_name(1:5) == road_with_obs(1:5) ) then
 
                                 road_index = findloc(meteo_obs_name, road_name(1:5)//"0",dim=1) !! Replace meteorology with data from the default station ("0")
-
+                                rad_index = road_index
                                 if ( road_name(6:7) == "1" ) then
                                     surface_index = findloc(meteo_obs_name, road_name(1:5)//"1",dim=1)
+                                    
+                                    if ( road_name(1:5) =="50500" ) then !Fix to read radiation from station 50500:1 for Flesland
+                                        rad_index = surface_index    
+                                    end if
 
                                 else if ( road_name(6:7) == "2" ) then
                                     surface_index = findloc(meteo_obs_name, road_name(1:5)//"2",dim=1)
                                 else
                                     surface_index = road_index
                                 end if
-                                exit
+
                             end if
                             !NOTE: if surface_index or road_index is 0, it means that there is no observational data for that station. In that case, the values are not replaced.
                         end do
-
                         !Adjusts the model temperature according to lapse rate so it fits to the observation height. Only does this if replace_meteo_with_obs.eq.2
                         if (replace_meteo_with_yr.eq.1) then
                             adjust_lapse=(var2d_nc2(elevation_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i))-meteo_obs_position(meteo_obs_height_index,road_index))*lapse_rate                
@@ -767,56 +770,56 @@ subroutine NORTRIP_multiroad_create_meteodata
                                     ,meteo_temp(dir_wind_index),meteo_obs_data(dir_wind_index,datetime_match(2),road_index) & 
                                     ,meteo_temp(relhumidity_index),meteo_obs_data(relhumidity_index,datetime_match(2),road_index) & 
                                     ,meteo_temp(precip_index),meteo_obs_data(precip_index,datetime_match(2),road_index) &
-                                    ,meteo_temp(shortwaveradiation_index),meteo_obs_data(shortwaveradiation_index,datetime_match(2),surface_index) & 
-                                    ,meteo_temp(longwaveradiation_index),meteo_obs_data(longwaveradiation_index,datetime_match(2),surface_index) & 
+                                    ,meteo_temp(shortwaveradiation_index),meteo_obs_data(shortwaveradiation_index,datetime_match(2),rad_index) & 
+                                    ,meteo_temp(longwaveradiation_index),meteo_obs_data(longwaveradiation_index,datetime_match(2),rad_index) & 
                                     ,meteo_temp(pressure_index),meteo_obs_data(pressure_index,datetime_match(2),road_index) & 
                                     ,meteo_temp(road_temperature_index),meteo_obs_data(road_temperature_index,datetime_match(2),surface_index) &
                                     ,adjust_lapse
                         endif
 
 
-                            if (meteo_obs_data(temperature_index,datetime_match(2),road_index).ne.missing_data.and.replace_which_meteo_with_obs(temperature_index).gt.0.and.road_index.ne.0) meteo_temp(temperature_index)=meteo_obs_data(temperature_index,datetime_match(2),road_index)
-                            if (meteo_obs_data(dir_wind_index,datetime_match(2),road_index).ne.missing_data.and.replace_which_meteo_with_obs(dir_wind_index).gt.0.and.road_index.ne.0) meteo_temp(dir_wind_index)=meteo_obs_data(dir_wind_index,datetime_match(2),road_index)
-                            if (meteo_obs_data(speed_wind_index,datetime_match(2),road_index).ne.missing_data.and.replace_which_meteo_with_obs(speed_wind_index).gt.0.and.road_index.ne.0) meteo_temp(speed_wind_index)=meteo_obs_data(speed_wind_index,datetime_match(2),road_index)
-                            if (meteo_obs_data(relhumidity_index,datetime_match(2),road_index).ne.missing_data.and.replace_which_meteo_with_obs(relhumidity_index).gt.0.and.road_index.ne.0) meteo_temp(relhumidity_index)=meteo_obs_data(relhumidity_index,datetime_match(2),road_index)
+                        if (meteo_obs_data(temperature_index,datetime_match(2),road_index).ne.missing_data.and.replace_which_meteo_with_obs(temperature_index).gt.0.and.road_index.ne.0) meteo_temp(temperature_index)=meteo_obs_data(temperature_index,datetime_match(2),road_index)
+                        if (meteo_obs_data(dir_wind_index,datetime_match(2),road_index).ne.missing_data.and.replace_which_meteo_with_obs(dir_wind_index).gt.0.and.road_index.ne.0) meteo_temp(dir_wind_index)=meteo_obs_data(dir_wind_index,datetime_match(2),road_index)
+                        if (meteo_obs_data(speed_wind_index,datetime_match(2),road_index).ne.missing_data.and.replace_which_meteo_with_obs(speed_wind_index).gt.0.and.road_index.ne.0) meteo_temp(speed_wind_index)=meteo_obs_data(speed_wind_index,datetime_match(2),road_index)
+                        if (meteo_obs_data(relhumidity_index,datetime_match(2),road_index).ne.missing_data.and.replace_which_meteo_with_obs(relhumidity_index).gt.0.and.road_index.ne.0) meteo_temp(relhumidity_index)=meteo_obs_data(relhumidity_index,datetime_match(2),road_index)
+                        
+                        if (meteo_obs_data(precip_index,datetime_match(2),road_index).ne.missing_data.and.replace_which_meteo_with_obs(precip_index).gt.0.and.road_index.ne.0) then
                             
-                            if (meteo_obs_data(precip_index,datetime_match(2),road_index).ne.missing_data.and.replace_which_meteo_with_obs(precip_index).gt.0.and.road_index.ne.0) then
-                                
-                                wetbulb_temp=meteo_temp(temperature_index)
-                                if (wetbulb_snow_rain_flag.eq.0) then
-                                    if (meteo_temp(temperature_index).gt.0) then
-                                        meteo_temp(rain_index)=meteo_obs_data(precip_index,datetime_match(2),road_index)
-                                        meteo_temp(snow_index)=0
-                                    else
-                                        meteo_temp(rain_index)=0
-                                        meteo_temp(snow_index)=meteo_obs_data(precip_index,datetime_match(2),road_index)
-                                    endif
-                                elseif (wetbulb_snow_rain_flag.eq.1) then                       
-                                    call distribute_rain_snow(wetbulb_temp,meteo_obs_data(precip_index,datetime_match(2),road_index),wetbulb_snow_rain_flag,meteo_temp(rain_index),meteo_temp(snow_index))
+                            wetbulb_temp=meteo_temp(temperature_index)
+                            if (wetbulb_snow_rain_flag.eq.0) then
+                                if (meteo_temp(temperature_index).gt.0) then
+                                    meteo_temp(rain_index)=meteo_obs_data(precip_index,datetime_match(2),road_index)
+                                    meteo_temp(snow_index)=0
                                 else
-                                    wetbulb_temp=wetbulb_temperature(meteo_temp(temperature_index),meteo_temp(pressure_index)*100.,meteo_temp(relhumidity_index))
-                                    call distribute_rain_snow(wetbulb_temp,meteo_obs_data(precip_index,datetime_match(2),road_index),wetbulb_snow_rain_flag,meteo_temp(rain_index),meteo_temp(snow_index))
+                                    meteo_temp(rain_index)=0
+                                    meteo_temp(snow_index)=meteo_obs_data(precip_index,datetime_match(2),road_index)
                                 endif
-                                if (meteo_temp(precip_index).gt.0.and.1.eq.2) then
-                                    write(*,*) wetbulb_temp,meteo_temp(temperature_index),meteo_temp(pressure_index),meteo_temp(relhumidity_index)
-                                    write(*,*) wetbulb_temp,meteo_obs_data(precip_index,datetime_match(2),road_index),meteo_temp(rain_index),meteo_temp(snow_index)
-                                endif                       
-
+                            elseif (wetbulb_snow_rain_flag.eq.1) then                       
+                                call distribute_rain_snow(wetbulb_temp,meteo_obs_data(precip_index,datetime_match(2),road_index),wetbulb_snow_rain_flag,meteo_temp(rain_index),meteo_temp(snow_index))
+                            else
+                                wetbulb_temp=wetbulb_temperature(meteo_temp(temperature_index),meteo_temp(pressure_index)*100.,meteo_temp(relhumidity_index))
+                                call distribute_rain_snow(wetbulb_temp,meteo_obs_data(precip_index,datetime_match(2),road_index),wetbulb_snow_rain_flag,meteo_temp(rain_index),meteo_temp(snow_index))
                             endif
-                                            
-                            if (meteo_obs_data(shortwaveradiation_index,datetime_match(2),surface_index).ne.missing_data.and.replace_which_meteo_with_obs(shortwaveradiation_index).gt.0 .and. surface_index.ne.0) meteo_temp(shortwaveradiation_index)=meteo_obs_data(shortwaveradiation_index,datetime_match(2),surface_index)
-                            if (meteo_obs_data(longwaveradiation_index,datetime_match(2),surface_index).ne.missing_data.and.replace_which_meteo_with_obs(longwaveradiation_index).gt.0  .and. surface_index.ne.0) meteo_temp(longwaveradiation_index)=meteo_obs_data(longwaveradiation_index,datetime_match(2),surface_index)
-                            if (meteo_obs_data(cloudfraction_index,datetime_match(2),road_index).ne.missing_data.and.replace_which_meteo_with_obs(cloudfraction_index).gt.0 .and.road_index.ne.0) meteo_temp(cloudfraction_index)=meteo_obs_data(cloudfraction_index,datetime_match(2),road_index)
-                            if (meteo_obs_data(pressure_index,datetime_match(2),road_index).ne.missing_data.and.replace_which_meteo_with_obs(pressure_index).gt.0 .and.road_index.ne.0) meteo_temp(pressure_index)=meteo_obs_data(pressure_index,datetime_match(2),road_index)
-                            if (meteo_obs_data(road_temperature_index,datetime_match(2),surface_index).ne.missing_data.and.replace_which_meteo_with_obs(road_temperature_index).gt.0 .and. surface_index.ne.0) meteo_temp(road_temperature_index)=meteo_obs_data(road_temperature_index,datetime_match(2),surface_index)
-                            !When replacing road surface temperature with obs then include the no data values. This is mostly for the forecast initialisation
-                            ! if (replace_which_meteo_with_obs(road_temperature_index).gt.0) meteo_temp(road_temperature_index)=meteo_obs_data(road_temperature_index,datetime_match(2),road_index)
-        
-                            !Possible to remove these four data sources
-                            if (replace_which_meteo_with_obs(shortwaveradiation_index).lt.0) meteo_temp(shortwaveradiation_index)=missing_data
-                            if (replace_which_meteo_with_obs(longwaveradiation_index).lt.0) meteo_temp(longwaveradiation_index)=missing_data
-                            if (replace_which_meteo_with_obs(cloudfraction_index).lt.0) meteo_temp(cloudfraction_index)=missing_data
-                            if (replace_which_meteo_with_obs(road_temperature_index).lt.0) meteo_temp(road_temperature_index)=missing_data
+                            if (meteo_temp(precip_index).gt.0.and.1.eq.2) then
+                                write(*,*) wetbulb_temp,meteo_temp(temperature_index),meteo_temp(pressure_index),meteo_temp(relhumidity_index)
+                                write(*,*) wetbulb_temp,meteo_obs_data(precip_index,datetime_match(2),road_index),meteo_temp(rain_index),meteo_temp(snow_index)
+                            endif                       
+
+                        endif
+                        
+                        if (meteo_obs_data(shortwaveradiation_index,datetime_match(2),rad_index).ne.missing_data.and.replace_which_meteo_with_obs(shortwaveradiation_index).gt.0 .and. rad_index.ne.0) meteo_temp(shortwaveradiation_index)=meteo_obs_data(shortwaveradiation_index,datetime_match(2),rad_index)
+                        if (meteo_obs_data(longwaveradiation_index,datetime_match(2),rad_index).ne.missing_data.and.replace_which_meteo_with_obs(longwaveradiation_index).gt.0  .and. rad_index.ne.0) meteo_temp(longwaveradiation_index)=meteo_obs_data(longwaveradiation_index,datetime_match(2),rad_index)
+                        if (meteo_obs_data(cloudfraction_index,datetime_match(2),road_index).ne.missing_data.and.replace_which_meteo_with_obs(cloudfraction_index).gt.0 .and.road_index.ne.0) meteo_temp(cloudfraction_index)=meteo_obs_data(cloudfraction_index,datetime_match(2),road_index)
+                        if (meteo_obs_data(pressure_index,datetime_match(2),road_index).ne.missing_data.and.replace_which_meteo_with_obs(pressure_index).gt.0 .and.road_index.ne.0) meteo_temp(pressure_index)=meteo_obs_data(pressure_index,datetime_match(2),road_index)
+                        if (meteo_obs_data(road_temperature_index,datetime_match(2),surface_index).ne.missing_data.and.replace_which_meteo_with_obs(road_temperature_index).gt.0 .and. surface_index.ne.0) meteo_temp(road_temperature_index)=meteo_obs_data(road_temperature_index,datetime_match(2),surface_index)
+                        !When replacing road surface temperature with obs then include the no data values. This is mostly for the forecast initialisation
+                        ! if (replace_which_meteo_with_obs(road_temperature_index).gt.0) meteo_temp(road_temperature_index)=meteo_obs_data(road_temperature_index,datetime_match(2),road_index)
+    
+                        !Possible to remove these four data sources
+                        if (replace_which_meteo_with_obs(shortwaveradiation_index).lt.0) meteo_temp(shortwaveradiation_index)=missing_data
+                        if (replace_which_meteo_with_obs(longwaveradiation_index).lt.0) meteo_temp(longwaveradiation_index)=missing_data
+                        if (replace_which_meteo_with_obs(cloudfraction_index).lt.0) meteo_temp(cloudfraction_index)=missing_data
+                        if (replace_which_meteo_with_obs(road_temperature_index).lt.0) meteo_temp(road_temperature_index)=missing_data
 
                     end if
 
@@ -854,18 +857,14 @@ subroutine NORTRIP_multiroad_create_meteodata
                             meteo_temp(shortwaveradiation_index)= relax_meteo_variable(meteo_temp(shortwaveradiation_index), model_at_latest_observation, latest_observation,  t-size(meteo_obs_data,dim=2) ,timestep)
                         end if
 
-                        !print*, meteo_temp(shortwaveradiation_index)
+
 
                         !Relative Humidity
                         latest_observation = meteo_obs_data(relhumidity_index, latest_observation_index, road_index)
                         model_at_latest_observation = var3d_nc_forecast(relhumidity_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),latest_forecast_index)*100
                         if ( latest_observation .ne. missing_data ) then
                             meteo_temp(relhumidity_index)= relax_meteo_variable(meteo_temp(relhumidity_index), model_at_latest_observation, latest_observation,  t-size(meteo_obs_data,dim=2) ,timestep)    
-
-                        else
-                            print*, "Do not relax humidity bc. latest_observation is missing."
                         end if
-
                         !Pressure
                         latest_observation = meteo_obs_data(pressure_index, latest_observation_index, road_index)
                         
