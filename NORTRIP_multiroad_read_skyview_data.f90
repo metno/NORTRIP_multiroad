@@ -71,7 +71,10 @@
         enddo
 
     else
-        write(unit_logfile,'(a)') ' WARNING: Road link, skyview and canyon parameters incompatable. Not reading these parameters'
+        write(unit_logfile,'(a)') ' WARNING: Road link, skyview and canyon parameters incompatable. Not reading these parameters. Setting canyon width to 20.'
+        !To avoid a divide by 0
+        inputdata_rl(canyondist_north_rl_index,:)=10.
+        inputdata_rl(canyondist_south_rl_index,:)=10.  
     endif
         
     close (unit_in)
