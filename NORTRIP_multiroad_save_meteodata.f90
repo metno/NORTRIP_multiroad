@@ -66,8 +66,6 @@ subroutine NORTRIP_multiroad_create_meteodata
 
     integer, dimension(2) :: datetime_match !Used for matching dates with observations to the simulation date range.
 
-    logical :: relax_meteo_variables
-
     !zip line commands
     !To extract
     !C:\Users\brucerd\Downloads\7za e -aoa NORTRIP_ALLROADS_2014110301_meteorology.zip
@@ -307,10 +305,10 @@ subroutine NORTRIP_multiroad_create_meteodata
         
         local_date_nc_forecast=date_nc_forecast
 
-        write(unit_logfile,'(a32,6i6)') ' Start date forecast meteo netcdf = ',date_nc_forecast(:,start_dim_nc_forecast(time_index))
-        write(unit_logfile,'(a32,6i6)') ' End date forecast meteo netcdf = ',date_nc_forecast(:,end_dim_nc_forecast(time_index))
-        write(unit_logfile,'(a32,6i6)') ' Start date forecast meteo local = ',local_date_nc_forecast(:,start_dim_nc_forecast(time_index))
-        write(unit_logfile,'(a32,6i6)') ' End date forecast meteo local = ',local_date_nc_forecast(:,end_dim_nc_forecast(time_index))
+        write(unit_logfile,'(a40,6i6)') ' Start date forecast meteo netcdf = ',date_nc_forecast(:,start_dim_nc_forecast(time_index))
+        write(unit_logfile,'(a40,6i6)') ' End date forecast meteo netcdf = '  ,date_nc_forecast(:,end_dim_nc_forecast(time_index))
+        write(unit_logfile,'(a40,6i6)') ' Start date forecast meteo local = ' ,local_date_nc_forecast(:,start_dim_nc_forecast(time_index))
+        write(unit_logfile,'(a40,6i6)') ' End date forecast meteo local = '   ,local_date_nc_forecast(:,end_dim_nc_forecast(time_index))
     
         !Find starting and finishing index 
         
@@ -729,9 +727,15 @@ subroutine NORTRIP_multiroad_create_meteodata
                     if ( datetime_match(2) .ne. 0 ) then 
 
                         road_name = trim(inputdata_char_rl(roadname_rl_index,i)) !Model road name
-
+                        if ( t .eq. obs_exist(1,1) ) then
+                            write(*,*) "Replace modeled with observed meteorology for road: ",road_name 
+                            if ( e_folding_for_relaxation .ne. 0 ) then
+                                write(*,*) "Relaxing variables from observed to modeled values, with an e folding time of ",int(e_folding_for_relaxation),"hours."
+                            else 
+                                write(*,*) "WARNING: Do not relax variables when jumping from observations to modeled meteorology."
+                            end if
+                        end if
                         do r = 1, size(meteo_obs_name) !! Loop through the roads with observations to find matches between road links and observations
-                            
                             road_with_obs = trim(meteo_obs_name(r))
 
                             if ( road_name(1:5) == road_with_obs(1:5) ) then
@@ -828,17 +832,15 @@ subroutine NORTRIP_multiroad_create_meteodata
                         latest_model_index = j_mod
                         latest_forecast_index = j_forecast
                     end if
-
                     ! !-------------- Relax meteo variables -------------------------------
-                    relax_meteo_variables = .true. !TODO: Find out where it is best to define this option (config, parameters, definitions?)
-                    if ( replace_meteo_with_obs.eq.2 .and. t > size(obs_exist,dim=2) .and. replace_meteo_with_met_forecast.eq.1 .and. relax_meteo_variables ) then ! t is higher than the highest timestep with observations (This assumes that the obs array starts at the first timestep)!TODO: Consider making this into a subroutine with the possibility to also relax regular arome data
+                    if (e_folding_for_relaxation .ne. 0 .and. replace_meteo_with_obs.eq.2 .and. t > size(obs_exist,dim=2) .and. replace_meteo_with_met_forecast.eq.1 ) then ! t is higher than the highest timestep with observations (This assumes that the obs array starts at the first timestep)!TODO: Consider making this into a subroutine with the possibility to also relax regular arome data
 
                         !Temperature
                         latest_observation = meteo_obs_data(temperature_index,latest_observation_index,road_index)
                         model_at_latest_observation = var3d_nc_forecast(temperature_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),latest_forecast_index)-273.15
 
                         if ( latest_observation .ne. missing_data ) then
-                            meteo_temp(temperature_index)= relax_meteo_variable(meteo_temp(temperature_index), model_at_latest_observation, latest_observation,  t-size(meteo_obs_data,dim=2) ,timestep)
+                            meteo_temp(temperature_index)= relax_meteo_variable(meteo_temp(temperature_index), model_at_latest_observation, latest_observation,  t-size(meteo_obs_data,dim=2) ,timestep,e_folding_for_relaxation)
                         end if 
                         
                         !Longwave
@@ -846,7 +848,7 @@ subroutine NORTRIP_multiroad_create_meteodata
                         model_at_latest_observation = var3d_nc_forecast(longwaveradiation_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),latest_forecast_index)
 
                         if ( latest_observation .ne. missing_data ) then
-                            meteo_temp(longwaveradiation_index)= relax_meteo_variable(meteo_temp(longwaveradiation_index), model_at_latest_observation, latest_observation,  t-size(meteo_obs_data,dim=2) ,timestep)
+                            meteo_temp(longwaveradiation_index)= relax_meteo_variable(meteo_temp(longwaveradiation_index), model_at_latest_observation, latest_observation,  t-size(meteo_obs_data,dim=2) ,timestep,e_folding_for_relaxation)
                         end if
 
                         !Shortwave
@@ -854,7 +856,7 @@ subroutine NORTRIP_multiroad_create_meteodata
                         model_at_latest_observation = var3d_nc_forecast(shortwaveradiation_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),latest_forecast_index)
 
                         if ( latest_observation .ne. missing_data ) then                        
-                            meteo_temp(shortwaveradiation_index)= relax_meteo_variable(meteo_temp(shortwaveradiation_index), model_at_latest_observation, latest_observation,  t-size(meteo_obs_data,dim=2) ,timestep)
+                            meteo_temp(shortwaveradiation_index)= relax_meteo_variable(meteo_temp(shortwaveradiation_index), model_at_latest_observation, latest_observation,  t-size(meteo_obs_data,dim=2) ,timestep,e_folding_for_relaxation)
                         end if
 
 
@@ -863,7 +865,7 @@ subroutine NORTRIP_multiroad_create_meteodata
                         latest_observation = meteo_obs_data(relhumidity_index, latest_observation_index, road_index)
                         model_at_latest_observation = var3d_nc_forecast(relhumidity_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),latest_forecast_index)*100
                         if ( latest_observation .ne. missing_data ) then
-                            meteo_temp(relhumidity_index)= relax_meteo_variable(meteo_temp(relhumidity_index), model_at_latest_observation, latest_observation,  t-size(meteo_obs_data,dim=2) ,timestep)    
+                            meteo_temp(relhumidity_index)= relax_meteo_variable(meteo_temp(relhumidity_index), model_at_latest_observation, latest_observation,  t-size(meteo_obs_data,dim=2) ,timestep,e_folding_for_relaxation)    
                         end if
                         !Pressure
                         latest_observation = meteo_obs_data(pressure_index, latest_observation_index, road_index)
@@ -871,7 +873,7 @@ subroutine NORTRIP_multiroad_create_meteodata
                         model_at_latest_observation = var3d_nc_forecast(pressure_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),latest_forecast_index)/100.
                 
                         if ( latest_observation .ne. missing_data ) then
-                            meteo_temp(pressure_index)= relax_meteo_variable(meteo_temp(pressure_index), model_at_latest_observation, latest_observation,  t-size(meteo_obs_data,dim=2) ,timestep)
+                            meteo_temp(pressure_index)= relax_meteo_variable(meteo_temp(pressure_index), model_at_latest_observation, latest_observation,  t-size(meteo_obs_data,dim=2) ,timestep,e_folding_for_relaxation)
                         end if
 
 
@@ -915,7 +917,7 @@ subroutine NORTRIP_multiroad_create_meteodata
                 meteo_output(road_temperature_index,t,i)=meteo_temp(road_temperature_index)
 
             enddo !time
-            not_shown_once=.true. 
+            not_shown_once=.false. 
             
         endif
         

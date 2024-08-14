@@ -50,21 +50,21 @@
     
    !Place the start date string into the start date array
     character_length = LEN_TRIM(start_date_and_time)
-    if (character_length >= 10) then
+    if (character_length >= 16) then
         read(start_date_and_time, *)  start_date_input(year_index),start_date_input(month_index),start_date_input(day_index),start_date_input(hour_index),start_date_input(minute_index)
         start_date_input(second_index)=0
     else
-        write(unit_logfile,'(A)') ' WARNING: "start_date_and_time" is too short. Using default date'
+        write(unit_logfile,'(A)') ' WARNING: "start_date_and_time" is too short, should be on the form yyyy,mm,dd,HH,MM. Using default date'
         start_date_input=start_date_default
     endif
 
     !Place the end date string into the end date array
     character_length = LEN_TRIM(end_date_and_time)
-    if (character_length >= 10) then
+    if (character_length >= 16) then
         read(end_date_and_time, *)  end_date_input(year_index),end_date_input(month_index),end_date_input(day_index),end_date_input(hour_index),end_date_input(minute_index)
         end_date_input(second_index)=0
     else
-        write(unit_logfile,'(A)') ' WARNING: "end_date_and_time" is too short. Using default date'
+        write(unit_logfile,'(A)') ' WARNING: "end_date_and_time" is too short, should be on the form yyyy,mm,dd,HH,MM. Using default date'
         end_date_input=end_date_default
     endif  
 
@@ -551,7 +551,7 @@
     if (temp_int.eq.1) only_use_major_roadlinks=.true. 
     
     number_of_time_steps=match_string_int('number_of_time_steps',unit_in,unit_logfile,0)
-    
+    e_folding_for_relaxation=match_string_val('e_folding_time',unit_in,unit_logfile,0)
     if (unit_logfile.gt.0) then
         close(unit_logfile,status='keep')
     endif
@@ -874,7 +874,11 @@
                 else             
                     read(unit_in,*,ERR=19) name_receptor(k,1),lon_receptor(k),lat_receptor(k)!,h_receptor(k),name_receptor(k,2)
                     h_receptor(k)=0 !0 height
-                    type_receptor(k)=3 !runway type 
+                    if ( calculation_type == "Avinor" ) then                  
+                        type_receptor(k)=3 !runway type 
+                    else
+                        type_receptor(k)=1 !AQ type 
+                    end if
                     name_receptor(k,2)=name_receptor(k,1) !Name
                 endif
             enddo

@@ -147,34 +147,34 @@
                 status_nc2 = NF90_INQ_VARID (id_nc2, trim(var_name_nc2(i)), var_id_nc2(i))
 
                 if (status_nc2.eq.NF90_NOERR) then
-                if (i.eq.lat_index2.or.i.eq.lon_index2) then
+                    if (i.eq.lat_index2.or.i.eq.lon_index2) then
 
-                    status_nc2 = NF90_GET_VAR (id_nc2, var_id_nc2(i), var2d_nc2_dp(:,:), start=(/dim_start_nc2/), count=(/dim_length_nc2/));
-                    var2d_nc2(i,:,:)=real(var2d_nc2_dp)
-                    write(unit_logfile,'(A,i3,2A,2f16.4)') ' ',status_nc2,trim(var_name_nc2(i)),' (min, max): ' &
-                        ,minval(var2d_nc2(i,:,:)),maxval(var2d_nc2(i,:,:)) 
-                
-                elseif (i.eq.elevation_index2) then
+                        status_nc2 = NF90_GET_VAR (id_nc2, var_id_nc2(i), var2d_nc2_dp(:,:), start=(/dim_start_nc2/), count=(/dim_length_nc2/));
+                        var2d_nc2(i,:,:)=real(var2d_nc2_dp)
+                        write(unit_logfile,'(A,i3,2A,2f16.4)') ' ',status_nc2,trim(var_name_nc2(i)),' (min, max): ' &
+                            ,minval(var2d_nc2(i,:,:)),maxval(var2d_nc2(i,:,:)) 
                     
-                    status_nc2 = NF90_GET_VAR (id_nc2, var_id_nc2(i), var2d_nc2_dp(:,:), start=(/dim_start_nc2/), count=(/dim_length_nc2/));
-                    var2d_nc2(i,:,:)=real(var2d_nc2_dp)
-                    write(unit_logfile,'(A,i3,2A,2f16.4)') ' ',status_nc2,trim(var_name_nc2(i)),' (min, max): ' &
-                        ,minval(var2d_nc2(i,:,:)),maxval(var2d_nc2(i,:,:)) 
-                    
-                else
-                    !Due to memory problems must loop through time on this variable
-                    !do t=1,dim_length_nc2(time_index2)
-                        dim_start_nc2(time_index2)=1
-                        dim_length_nc2(time_index2)=1
-                        status_nc2 = NF90_GET_VAR (id_nc2, var_id_nc2(i), var3d_nc2_dp(:,:), start=(/dim_start_nc2/), count=(/dim_length_nc2/));
-                        var3d_nc2(i,:,:,t)=real(var3d_nc2_dp)
-                    !enddo
-                        dim_start_nc2(time_index2)=1
-                        dim_length_nc2(time_index2)=dim_length_nc2(time_index2)
-                        write(unit_logfile,'(A,i3,2A,2f16.2)') ' ',status_nc2,trim(var_name_nc2(i)),' (min, max): ' &
-                        ,minval(var3d_nc2(i,:,:,t)),maxval(var3d_nc2(i,:,:,t)) 
+                    elseif (i.eq.elevation_index2) then
+                        
+                        status_nc2 = NF90_GET_VAR (id_nc2, var_id_nc2(i), var2d_nc2_dp(:,:), start=(/dim_start_nc2/), count=(/dim_length_nc2/));
+                        var2d_nc2(i,:,:)=real(var2d_nc2_dp)
+                        write(unit_logfile,'(A,i3,2A,2f16.4)') ' ',status_nc2,trim(var_name_nc2(i)),' (min, max): ' &
+                            ,minval(var2d_nc2(i,:,:)),maxval(var2d_nc2(i,:,:)) 
+                        
+                    else
+                        !Due to memory problems must loop through time on this variable
+                        !do t=1,dim_length_nc2(time_index2)
+                            dim_start_nc2(time_index2)=1
+                            dim_length_nc2(time_index2)=1
+                            status_nc2 = NF90_GET_VAR (id_nc2, var_id_nc2(i), var3d_nc2_dp(:,:), start=(/dim_start_nc2/), count=(/dim_length_nc2/));
+                            var3d_nc2(i,:,:,t)=real(var3d_nc2_dp)
+                        !enddo
+                            dim_start_nc2(time_index2)=1
+                            dim_length_nc2(time_index2)=dim_length_nc2(time_index2)
+                            write(unit_logfile,'(A,i3,2A,2f16.2)') ' ',status_nc2,trim(var_name_nc2(i)),' (min, max): ' &
+                            ,minval(var3d_nc2(i,:,:,t)),maxval(var3d_nc2(i,:,:,t)) 
 
-                endif
+                    endif
                 else
                     write(unit_logfile,'(8A,8A)') ' Cannot read ',trim(var_name_nc2(i))
                     meteo_var_nc2_available(t,i)=.false.

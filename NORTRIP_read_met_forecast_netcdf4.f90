@@ -98,12 +98,12 @@ subroutine NORTRIP_read_MET_Nordic_forecast_netcdf4
         enddo
         
         if (.not.found_file) then
-            write(unit_logfile,'(A,A)') ' WARNING: Meteo netcdf file still does not exist: ', trim(pathfilename_nc)
+            write(unit_logfile,'(A,A)') ' WARNING: Forecast meteo netcdf file still does not exist: ', trim(pathfilename_nc)
             meteo_nc_forecast_available=.False.
 
             !stop 8
         else
-            write(unit_logfile,'(A,A)') ' Found earlier meteo netcdf file: ', trim(pathfilename_nc)
+            write(unit_logfile,'(A,A)') ' Found earlier forecast meteo netcdf file: ', trim(pathfilename_nc)
         endif
         
     endif
@@ -111,10 +111,10 @@ subroutine NORTRIP_read_MET_Nordic_forecast_netcdf4
     if ( found_file ) then
             
         !Open the netcdf file for reading
-        write(unit_logfile,'(2A)') ' Opening netcdf meteo file: ',trim(pathfilename_nc)
+        write(unit_logfile,'(2A)') ' Opening netcdf forecast meteo file: ',trim(pathfilename_nc)
         status_nc = NF90_OPEN (pathfilename_nc, NF90_NOWRITE, id_nc)
         if (status_nc .NE. NF90_NOERR) then
-            write(unit_logfile,'(A,I)') 'ERROR opening netcdf file: ',status_nc
+            write(unit_logfile,'(A,I)') 'ERROR opening forecast netcdf file: ',status_nc
             !stop 38
         endif
         
@@ -163,7 +163,6 @@ subroutine NORTRIP_read_MET_Nordic_forecast_netcdf4
             allocate (var3d_nc_short(dim_length_nc_forecast(x_index_forecast),dim_length_nc_forecast(y_index_forecast),dim_length_nc_forecast(time_index_forecast)))
         endif
         
-        !Set the number of hours to be read
         
         !Read the x, y and time values
         do i=1,num_dims_nc_forecast
@@ -209,13 +208,11 @@ subroutine NORTRIP_read_MET_Nordic_forecast_netcdf4
                     endif
                 
                     !Make appropriate changes, going backwards so as to overwrite the existing data
-                    ! if (i.eq.precip_index_forecast) then
-                    !     !do tt=dim_length_nc_forecast(time_index_forecast),2,-1
-                    !     var3d_nc_forecast_old(i,:,:,1)=nodata
-                    !     !enddo
-                    !     !Don't allow precip below the cutoff value
-                    !     where (var3d_nc_forecast_old(i,:,:,:).lt.precip_cutoff) var3d_nc_forecast_old(i,:,:,:)=0.                    
-                    ! endif
+                    if (i.eq.precip_index_forecast) then
+
+                        !Don't allow precip below the cutoff value
+                        where (var3d_nc_forecast_old(i,:,:,:).lt.precip_cutoff) var3d_nc_forecast_old(i,:,:,:)=0.                    
+                    endif
 
                     if (i.eq.shortwaveradiation_index_forecast) then
                         do tt=dim_length_nc_forecast(time_index_forecast),2,-1
@@ -239,11 +236,9 @@ subroutine NORTRIP_read_MET_Nordic_forecast_netcdf4
             endif        
         enddo
         
-        !NOTE: round off errors in precipitation. Need to include a 0 minimum.
-        
         status_nc = NF90_CLOSE (id_nc)
 
-        !Put in some basic data checks to see if file is corrupt
+        !Put in some basic data checks to see if file is corrupt !TODO: Don't stop the whole thing, just abort reading the forecast data (or that particular variable from forecast?)
         ! if (abs(maxval(var3d_nc_forecast_old(temperature_index_forecast,:,:,:))).gt.500) then
         !     write(unit_logfile,'(A,e12.2)') ' ERROR: out of bounds temperature: ', maxval(var3d_nc_forecast_old(temperature_index_forecast,:,:,:))
         !     write(unit_logfile,'(A)') ' STOPPING'
@@ -263,8 +258,6 @@ subroutine NORTRIP_read_MET_Nordic_forecast_netcdf4
 
         dgrid_nc_forecast(x_index_forecast)=var1d_nc_forecast_old(x_index_forecast,i_grid_mid)-var1d_nc_forecast_old(x_index_forecast,i_grid_mid-1)
         dgrid_nc_forecast(y_index_forecast)=var1d_nc_forecast_old(y_index_forecast,j_grid_mid)-var1d_nc_forecast_old(y_index_forecast,j_grid_mid-1)
-
-        !dlat_nc=var2d_nc_forecast(lat_index,i_grid_mid,j_grid_mid)-var2d_nc_forecast(lat_index,i_grid_mid,j_grid_mid-1)
         
         !If the coordinates are in km instead of metres then change to metres (assuming the difference is not going to be > 100 km
         if (dgrid_nc_forecast(x_index_forecast).lt.100) then
@@ -275,11 +268,10 @@ subroutine NORTRIP_read_MET_Nordic_forecast_netcdf4
 
         !angle_nc=180./3.14159*acos(dlat_nc*3.14159/180.*6.37e6/dgrid_nc_forecast(x_index_forecast))
         write(unit_logfile,'(A,2f12.1)') ' Grid spacing X and Y (m): ', dgrid_nc_forecast(x_index_forecast),dgrid_nc_forecast(y_index_forecast)
-        !write(unit_logfile,'(A,2i,f12.4)') ' Angle difference between grid and geo North (i,j,deg): ', i_grid_mid,j_grid_mid,angle_nc
 
         meteo_nc_timesteps_forecast = nint(1 + (dim_length_nc_forecast(time_index_forecast)-1)/timestep)
 
-        !Fill date_nc_forecast array that is used to match meteo dates to the date range specified in the simulaiton call.
+        !Fill date_nc_forecast array that is used to match meteo dates to the date range specified in the simulation call.
         allocate(date_nc_forecast(num_date_index,meteo_nc_timesteps_forecast))
 
         call number_to_date(dble(int(var1d_nc_forecast_old(time_index_forecast,1)/sngl(seconds_in_hour*hours_in_day)+1./24./60.)),date_nc_forecast(:,1))
@@ -296,7 +288,7 @@ subroutine NORTRIP_read_MET_Nordic_forecast_netcdf4
         !Check if timestep is != 1; if true, allocate new, larger arrays and interpolate the hourly values into the new arrays.
         if ( timestep .ne. 1 ) then
             call date_and_time(TIME=time)
-            print*, "inside loop start: ", time
+            write(*,*) "Interpolation loop start: ", time
 
             !Allocate an array with the new time_index_forecast.           
             if (allocated(var3d_nc_forecast)) deallocate(var3d_nc_forecast)
@@ -308,10 +300,16 @@ subroutine NORTRIP_read_MET_Nordic_forecast_netcdf4
 
                 var3d_nc_forecast(:,:,:,i-int(1/timestep)+1) = var3d_nc_forecast_old(:,:,:,floor(i*timestep)) + ( var3d_nc_forecast_old(:,:,:,min(floor(i*timestep)+1,size(var3d_nc_forecast_old,dim=4))) - var3d_nc_forecast_old(:,:,:,floor(i*timestep))) * (i*timestep-floor(i*timestep)) !/1 
 
+                var3d_nc_forecast(precip_index_forecast,:,:,i-int(1/timestep)+1) = max(0.,var3d_nc_forecast_old(precip_index_forecast,:,:,min(floor(i*timestep)+1,size(var3d_nc_forecast_old,dim=4)))*timesteps_in_hour)
+                
             end do
             
+            ! do i = 1,timesteps_in_hour
+            !     var3d_nc_forecast(shortwaveradiation_index_forecast,:,:,i) = var3d_nc_forecast_old(shortwaveradiation_index_forecast,:,:,timesteps_in_hour)
+            !     var3d_nc_forecast(longwaveradiation_index_forecast,:,:,i) = var3d_nc_forecast_old(longwaveradiation_index_forecast,:,:,timesteps_in_hour)
+            ! end do
             call date_and_time(TIME = time)
-            print*, "end loop: ", time
+            write(*,*) "Interpolation loop end: ", time
 
             var1d_nc_forecast(x_index,:) = var1d_nc_forecast_old(x_index,:)
             var1d_nc_forecast(y_index,:) = var1d_nc_forecast_old(y_index,:)
@@ -328,7 +326,7 @@ subroutine NORTRIP_read_MET_Nordic_forecast_netcdf4
 
     else 
         meteo_nc_forecast_available = .False.
-        print*, "Do not replace default meteo data with forecast meteo data because no file was found."
+        write(*,*) "Do not replace default meteo data with forecast meteo data because no file was found."
     end if
 
     if (allocated(var3d_nc_forecast_old)) deallocate(var3d_nc_forecast_old)
