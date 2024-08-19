@@ -211,6 +211,16 @@
             write(unit_logfile,'(a)') "The variable runway_temperature was not found in the netcdf file. Setting value to -99."
             meteo_obs_data(road_temperature_index,:,:) = -99.
         end if
+
+        status = (nf90_inq_varid(ncid,"cloud_area_fraction",varid))
+        if ( status == nf90_noerr ) then
+            call check(nf90_get_var(ncid,varid,meteo_obs_data(cloudfraction_index,:,:)))
+            meteo_obs_data(cloudfraction_index,:,:) = meteo_obs_data(cloudfraction_index,:,:)/8. !! NOTE: converted from octas to fraction by division by 8.
+        else
+            write(unit_logfile,'(a)') "The variable cloud_area_fraction was not found in the netcdf file. Setting value to -99."
+            meteo_obs_data(cloudfraction_index,:,:) = -99.
+        end if
+
         call check(nf90_close(ncid))
 
         meteo_obs_date(second_index,:) = 0
