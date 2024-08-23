@@ -63,7 +63,7 @@
     end subroutine distribute_rain_snow
     
 ! ######################################################################	
-    function relax_meteo_variable(X_F, X_FO, X_O, t,dt,e_folding_time)
+    function relax_meteo_variable_Karisto(X_F, X_FO, X_O, t,dt,e_folding_time)
         !! Used to relax meteorological variables between model and observed values
         !! Based on Crevier and Delage, 2001 and Karisto et al. 2016
 
@@ -80,11 +80,36 @@
 
         
         !Out
-        real :: relax_meteo_variable
+        real :: relax_meteo_variable_Karisto
 
         t_c = e_folding_time/dt
 
-        relax_meteo_variable = X_F - (X_FO - X_O)*exp(-real(t/t_c))
+        relax_meteo_variable_Karisto = X_F - (X_FO - X_O)*exp(-real(t/t_c))
 
-    end function relax_meteo_variable
+    end function relax_meteo_variable_Karisto
+! ######################################################################	
+    function relax_meteo_variable_gaussian(X_F, X_FO, X_O, t,dt,scaling_parameter)
+        !! Used to relax meteorological variables between model and observed values
+        !! Based on Crevier and Delage, 2001 and Karisto et al. 2016
+
+        !! Input
+        real, intent(in) :: X_F !! Model value
+        real, intent(in) :: X_FO !! Model value at the time of the last observation
+        real, intent(in) :: X_O !! The last observation value
+        integer, intent(in) :: t !! current timestep
+        real, intent(in) :: dt !! timestep size
+        real, intent(in) :: scaling_parameter !! [hours]
+
+        !local:
+        real :: scale_time  
+
+        
+        !Out
+        real :: relax_meteo_variable_gaussian
+
+        scale_time = scaling_parameter/dt
+
+        relax_meteo_variable_gaussian = X_F - (X_FO - X_O)*exp(-real(t/scale_time)**2)
+
+    end function relax_meteo_variable_gaussian
 ! ######################################################################	

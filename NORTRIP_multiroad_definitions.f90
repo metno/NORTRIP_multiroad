@@ -580,7 +580,7 @@
     character(8) delete_file_command
     
     integer :: number_of_time_steps=0 !Number of time steps to read from netcdf files. If 0 then reads all data in netcdf files. Can be modified in config file.
-    real :: e_folding_for_relaxation=0 !! e
+    real :: scaling_for_relaxation=0 !! e
     
     double precision meteo_nc_projection_attributes(10)
     double precision meteo_nc2_projection_attributes(10)

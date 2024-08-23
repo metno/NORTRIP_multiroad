@@ -61,7 +61,7 @@ subroutine NORTRIP_multiroad_create_meteodata
     real DIRECTION
     double precision date_to_number
     real wetbulb_temperature
-    real relax_meteo_variable
+    real relax_meteo_variable_gaussian
    ! integer findloc
 
     integer, dimension(2) :: datetime_match !Used for matching dates with observations to the simulation date range.
@@ -729,8 +729,8 @@ subroutine NORTRIP_multiroad_create_meteodata
                         road_name = trim(inputdata_char_rl(roadname_rl_index,i)) !Model road name
                         if ( t .eq. obs_exist(1,1) ) then
                             write(*,*) "Replace modeled with observed meteorology for road: ",road_name 
-                            if ( e_folding_for_relaxation .ne. 0 ) then
-                                write(*,*) "Relaxing variables from observed to modeled values, with an e folding time of ",int(e_folding_for_relaxation),"hours."
+                            if ( scaling_for_relaxation .ne. 0 ) then
+                                write(*,*) "Relaxing variables from observed to modeled values, with a scaling time of ",int(scaling_for_relaxation),"hours."
                             else 
                                 write(*,*) "WARNING: Do not relax variables when jumping from observations to modeled meteorology."
                             end if
@@ -811,7 +811,7 @@ subroutine NORTRIP_multiroad_create_meteodata
 
                         endif
                         
-                        if (meteo_obs_data(shortwaveradiation_index,datetime_match(2),rad_index).ne.missing_data.and.replace_which_meteo_with_obs(shortwaveradiation_index).gt.0 .and. rad_index.ne.0) meteo_temp(shortwaveradiation_index)=meteo_obs_data(shortwaveradiation_index,datetime_match(2),rad_index)
+                        if (meteo_obs_data(shortwaveradiation_index,datetime_match(2),rad_index).ne.missing_data.and.replace_which_meteo_with_obs(shortwaveradiation_index).gt.0 .and. rad_index.ne.0 .and. meteo_obs_data(shortwaveradiation_index,datetime_match(2),rad_index).ge.0) meteo_temp(shortwaveradiation_index)=meteo_obs_data(shortwaveradiation_index,datetime_match(2),rad_index)
                         if (meteo_obs_data(longwaveradiation_index,datetime_match(2),rad_index).ne.missing_data.and.replace_which_meteo_with_obs(longwaveradiation_index).gt.0  .and. rad_index.ne.0) meteo_temp(longwaveradiation_index)=meteo_obs_data(longwaveradiation_index,datetime_match(2),rad_index)
                         if (meteo_obs_data(cloudfraction_index,datetime_match(2),road_index).ne.missing_data.and.replace_which_meteo_with_obs(cloudfraction_index).gt.0 .and.road_index.ne.0) meteo_temp(cloudfraction_index)=meteo_obs_data(cloudfraction_index,datetime_match(2),road_index)
                         if (meteo_obs_data(pressure_index,datetime_match(2),road_index).ne.missing_data.and.replace_which_meteo_with_obs(pressure_index).gt.0 .and.road_index.ne.0) meteo_temp(pressure_index)=meteo_obs_data(pressure_index,datetime_match(2),road_index)
@@ -833,14 +833,14 @@ subroutine NORTRIP_multiroad_create_meteodata
                         latest_forecast_index = j_forecast
                     end if
                     ! !-------------- Relax meteo variables -------------------------------
-                    if (e_folding_for_relaxation .ne. 0 .and. replace_meteo_with_obs.eq.2 .and. t > size(obs_exist,dim=2) .and. replace_meteo_with_met_forecast.eq.1 ) then ! t is higher than the highest timestep with observations (This assumes that the obs array starts at the first timestep)!TODO: Consider making this into a subroutine with the possibility to also relax regular arome data
+                    if (scaling_for_relaxation .ne. 0 .and. replace_meteo_with_obs.eq.2 .and. t > size(obs_exist,dim=2) .and. replace_meteo_with_met_forecast.eq.1 ) then ! t is higher than the highest timestep with observations (This assumes that the obs array starts at the first timestep)!TODO: Consider making this into a subroutine with the possibility to also relax regular arome data
 
                         !Temperature
                         latest_observation = meteo_obs_data(temperature_index,latest_observation_index,road_index)
                         model_at_latest_observation = var3d_nc_forecast(temperature_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),latest_forecast_index)-273.15
 
                         if ( latest_observation .ne. missing_data ) then
-                            meteo_temp(temperature_index)= relax_meteo_variable(meteo_temp(temperature_index), model_at_latest_observation, latest_observation,  t-size(meteo_obs_data,dim=2) ,timestep,e_folding_for_relaxation)
+                            meteo_temp(temperature_index)= relax_meteo_variable_gaussian(meteo_temp(temperature_index), model_at_latest_observation, latest_observation,  t-size(meteo_obs_data,dim=2) ,timestep,scaling_for_relaxation)
                         end if 
                         
                         !Longwave
@@ -848,7 +848,7 @@ subroutine NORTRIP_multiroad_create_meteodata
                         model_at_latest_observation = var3d_nc_forecast(longwaveradiation_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),latest_forecast_index)
 
                         if ( latest_observation .ne. missing_data ) then
-                            meteo_temp(longwaveradiation_index)= relax_meteo_variable(meteo_temp(longwaveradiation_index), model_at_latest_observation, latest_observation,  t-size(meteo_obs_data,dim=2) ,timestep,e_folding_for_relaxation)
+                            meteo_temp(longwaveradiation_index)= relax_meteo_variable_gaussian(meteo_temp(longwaveradiation_index), model_at_latest_observation, latest_observation,  t-size(meteo_obs_data,dim=2) ,timestep,scaling_for_relaxation)
                         end if
 
                         !Shortwave
@@ -856,16 +856,14 @@ subroutine NORTRIP_multiroad_create_meteodata
                         model_at_latest_observation = var3d_nc_forecast(shortwaveradiation_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),latest_forecast_index)
 
                         if ( latest_observation .ne. missing_data ) then                        
-                            meteo_temp(shortwaveradiation_index)= relax_meteo_variable(meteo_temp(shortwaveradiation_index), model_at_latest_observation, latest_observation,  t-size(meteo_obs_data,dim=2) ,timestep,e_folding_for_relaxation)
+                            meteo_temp(shortwaveradiation_index)= relax_meteo_variable_gaussian(meteo_temp(shortwaveradiation_index), model_at_latest_observation, latest_observation,  t-size(meteo_obs_data,dim=2) ,timestep,scaling_for_relaxation)
                         end if
-
-
 
                         !Relative Humidity
                         latest_observation = meteo_obs_data(relhumidity_index, latest_observation_index, road_index)
                         model_at_latest_observation = var3d_nc_forecast(relhumidity_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),latest_forecast_index)*100
                         if ( latest_observation .ne. missing_data ) then
-                            meteo_temp(relhumidity_index)= relax_meteo_variable(meteo_temp(relhumidity_index), model_at_latest_observation, latest_observation,  t-size(meteo_obs_data,dim=2) ,timestep,e_folding_for_relaxation)    
+                            meteo_temp(relhumidity_index)= relax_meteo_variable_gaussian(meteo_temp(relhumidity_index), model_at_latest_observation, latest_observation,  t-size(meteo_obs_data,dim=2) ,timestep,scaling_for_relaxation)    
                         end if
                         !Pressure
                         latest_observation = meteo_obs_data(pressure_index, latest_observation_index, road_index)
@@ -873,7 +871,7 @@ subroutine NORTRIP_multiroad_create_meteodata
                         model_at_latest_observation = var3d_nc_forecast(pressure_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),latest_forecast_index)/100.
                 
                         if ( latest_observation .ne. missing_data ) then
-                            meteo_temp(pressure_index)= relax_meteo_variable(meteo_temp(pressure_index), model_at_latest_observation, latest_observation,  t-size(meteo_obs_data,dim=2) ,timestep,e_folding_for_relaxation)
+                            meteo_temp(pressure_index)= relax_meteo_variable_gaussian(meteo_temp(pressure_index), model_at_latest_observation, latest_observation,  t-size(meteo_obs_data,dim=2) ,timestep,scaling_for_relaxation)
                         end if
 
 
@@ -883,7 +881,7 @@ subroutine NORTRIP_multiroad_create_meteodata
                         model_at_latest_observation = var3d_nc_forecast(dir_wind_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),latest_forecast_index)
                 
                         if ( latest_observation .ne. missing_data ) then
-                            meteo_temp(dir_wind_index)= relax_meteo_variable(meteo_temp(dir_wind_index), model_at_latest_observation, latest_observation,  t-size(meteo_obs_data,dim=2) ,timestep)
+                            meteo_temp(dir_wind_index)= relax_meteo_variable_gaussian(meteo_temp(dir_wind_index), model_at_latest_observation, latest_observation,  t-size(meteo_obs_data,dim=2) ,timestep)
                         end if
 
                         !wind speed
@@ -892,7 +890,7 @@ subroutine NORTRIP_multiroad_create_meteodata
                         model_at_latest_observation = var3d_nc_forecast(speed_wind_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),latest_forecast_index)
                 
                         if ( latest_observation .ne. missing_data ) then
-                            meteo_temp(speed_wind_index)= relax_meteo_variable(meteo_temp(speed_wind_index), model_at_latest_observation, latest_observation,  t-size(meteo_obs_data,dim=2) ,timestep)
+                            meteo_temp(speed_wind_index)= relax_meteo_variable_gaussian(meteo_temp(speed_wind_index), model_at_latest_observation, latest_observation,  t-size(meteo_obs_data,dim=2) ,timestep)
                         end if
 
                     end if

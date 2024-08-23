@@ -551,7 +551,7 @@
     if (temp_int.eq.1) only_use_major_roadlinks=.true. 
     
     number_of_time_steps=match_string_int('number_of_time_steps',unit_in,unit_logfile,0)
-    e_folding_for_relaxation=match_string_val('e_folding_time',unit_in,unit_logfile,0)
+    scaling_for_relaxation=match_string_val('scaling_for_relaxation',unit_in,unit_logfile,0)
     if (unit_logfile.gt.0) then
         close(unit_logfile,status='keep')
     endif
