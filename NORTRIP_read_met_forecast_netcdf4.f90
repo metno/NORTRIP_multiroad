@@ -300,8 +300,8 @@ subroutine NORTRIP_read_MET_Nordic_forecast_netcdf4
 
                 var3d_nc_forecast(:,:,:,i-int(1/timestep)+1) = var3d_nc_forecast_old(:,:,:,floor(i*timestep)) + ( var3d_nc_forecast_old(:,:,:,min(floor(i*timestep)+1,size(var3d_nc_forecast_old,dim=4))) - var3d_nc_forecast_old(:,:,:,floor(i*timestep))) * (i*timestep-floor(i*timestep)) !/1 
 
-                var3d_nc_forecast(precip_index_forecast,:,:,i-int(1/timestep)+1) = max(0.,var3d_nc_forecast_old(precip_index_forecast,:,:,min(floor(i*timestep)+1,size(var3d_nc_forecast_old,dim=4)))*timesteps_in_hour)
-                
+                var3d_nc_forecast(precip_index_forecast,:,:,i-int(1/timestep)+1) = max(0.,var3d_nc_forecast_old(precip_index_forecast,:,:,min(floor(i*timestep)+1,size(var3d_nc_forecast_old,dim=4)))/6)
+
             end do
             
             call date_and_time(TIME = time)
