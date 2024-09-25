@@ -304,10 +304,6 @@ subroutine NORTRIP_read_MET_Nordic_forecast_netcdf4
                 
             end do
             
-            ! do i = 1,timesteps_in_hour
-            !     var3d_nc_forecast(shortwaveradiation_index_forecast,:,:,i) = var3d_nc_forecast_old(shortwaveradiation_index_forecast,:,:,timesteps_in_hour)
-            !     var3d_nc_forecast(longwaveradiation_index_forecast,:,:,i) = var3d_nc_forecast_old(longwaveradiation_index_forecast,:,:,timesteps_in_hour)
-            ! end do
             call date_and_time(TIME = time)
             write(*,*) "Interpolation loop end: ", time
 
