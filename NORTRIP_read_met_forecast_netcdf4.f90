@@ -71,7 +71,7 @@ subroutine NORTRIP_read_MET_Nordic_forecast_netcdf4
     if (.not.allocated(meteo_var_nc_forecast_available)) allocate (meteo_var_nc_forecast_available(n_hours_input,num_var_nc_forecast)) 
     meteo_var_nc_forecast_available=.true.
 
-    !Test existence of the filename. If does not exist then use default
+    !Test existence of the filename.
     inquire(file=trim(pathfilename_nc),exist=exists)
 
     if (.not.exists) then

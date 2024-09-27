@@ -21,6 +21,7 @@ subroutine NORTRIP_read_metcoop_netcdf4
     integer, allocatable :: dim_start_metcoop_nc(:)
      
     character(256) dimname_temp
+    integer :: i,j,k,t
     integer i_grid_mid,j_grid_mid
     real dlat_nc
     integer exists
@@ -48,7 +49,6 @@ subroutine NORTRIP_read_metcoop_netcdf4
     character(10) :: time !for printing date and time
     
     integer var_id_nc_projection
-    integer :: j,h,t,i,k
     real :: TOC=273.15
     real :: RH_from_dewpoint_func
 

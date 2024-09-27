@@ -365,9 +365,6 @@ subroutine NORTRIP_multiroad_create_meteodata
     if (replace_meteo_with_met_forecast.eq.1.and.meteo_nc_forecast_available) then
         write(unit_logfile,'(a)') 'Replacing model meteorology with met forecast data (arome,forecast)'
     endif
-    if (replace_meteo_with_met_forecast.eq.1.and..not.meteo_nc_forecast_available) then
-        write(unit_logfile,'(a)') 'No met forecast meteo data available at all. Will not replace arome data with met forecast data.'
-    endif
 
     if (meteo_obs_data_available) then
         write(unit_logfile,'(a)') 'Replacing model values with observations (model,obs)'
@@ -645,12 +642,6 @@ subroutine NORTRIP_multiroad_create_meteodata
                                 write(*,*) wetbulb_temp,meteo_temp(precip_index),meteo_temp(rain_index),meteo_temp(snow_index)
                             endif                       
                         endif
-                        
-                        ! if (meteo_var_nc2_available(t,cloudfraction_index2)) then
-                        !     meteo_temp(cloudfraction_index)=var3d_nc2(cloudfraction_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t)
-                        ! endif
-                    else 
-                        write(*,*) "Warning: Forecast meteorology is not available. Do not replace default meteorology even if the flag replace_meteo_with_met_forecast = 1."                    
                     endif
                 endif       
 

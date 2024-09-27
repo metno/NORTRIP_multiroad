@@ -6,8 +6,7 @@
     
     implicit none
     
-    integer unit_in
-    integer exists
+    logical exists
     integer init_date(num_date_index)
     integer init_counter
     logical init_found
@@ -83,7 +82,7 @@
             write(unit_logfile,'(A,A,A,I4,A)') ' Found previous NORTRIP initialisation file ',trim(pathfilename_init_in),' from ',init_counter-1,' hours before'
         endif      
     else
-        write(unit_logfile,'(A,A)') ' WARNING: No initialisation file found in the last 30 days ',trim(pathfilename_init_in)
+        write(unit_logfile,'(A,A)') ' WARNING: No .txt initialisation file found in the last 30 days ',trim(pathfilename_init_in)
         filename_init_in=''
     endif
     !==========================================================================================================================
@@ -123,7 +122,7 @@
             write(unit_logfile,'(A,A,A,I4,A)') ' Found previous NORTRIP initialisation netcdf file ',trim(filename_init_in_netcdf),' from ',init_counter-1,' hours before'
         endif      
     else
-        write(unit_logfile,'(A,A)') ' WARNING: No initialisation file on netcdf format found in the last 30 days ',trim(filename_init_start_netcdf)
+        write(unit_logfile,'(A,A)') ' WARNING: No .nc initialisation file found in the last 30 days ',trim(filename_init_in_netcdf)
         filename_init_in_netcdf=''
     endif
     !!==========================================================================================================================
