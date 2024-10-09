@@ -556,7 +556,7 @@
     real, allocatable :: meteo_obs_position(:,:)
     logical :: meteo_obs_data_available=.false.
 
-    integer, allocatable :: obs_exist(:,:) !! store the corresponding date (and time) indexes of the given simulation date range and the dates with observations
+    integer, allocatable :: obs_exist(:,:) !! store the time indexes where observations is available within the simulation date range. 1: index of obs date, 2: index of date_data
     
     
     integer meteo_obs_height_index,meteo_obs_lat_index,meteo_obs_lon_index,meteo_obs_x_index,meteo_obs_y_index,num_meteo_obs_position

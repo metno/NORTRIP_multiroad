@@ -71,6 +71,9 @@
         !Get number of stations from netcdf file with observations
         call check(nf90_inq_dimid(ncid, "station_id",dimid))
         call check(nf90_inquire_dimension(ncid, dimid, len=n_meteo_obs_stations))
+
+        write(unit_logfile,'(a)') "Number of stations in obs file: "
+        write(*,*) n_meteo_obs_stations
     
         !Get number of timesteps in netcdf file with observations
         call check(nf90_inq_dimid(ncid, "time",dimid))
@@ -245,6 +248,8 @@
     
             end do
         enddo
+
+        write(unit_logfile,'(a)') "Finished reading obs file."
         
     end if
  
