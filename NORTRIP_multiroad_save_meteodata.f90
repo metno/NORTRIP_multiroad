@@ -710,7 +710,6 @@ subroutine NORTRIP_multiroad_create_meteodata
                 endif
                 
                 !Replacing at individual stations
-
                 if (meteo_obs_data_available.and.replace_meteo_with_obs.eq.2) then
                     if (print_scaling_info) then
                         if ( scaling_for_relaxation .ne. 0 ) then
@@ -721,13 +720,14 @@ subroutine NORTRIP_multiroad_create_meteodata
                         end if
                         print_scaling_info = .false.
                     end if
+
                     !Check if there are observations available in the date range of the simulation. 
                     datetime_match = findloc(obs_exist,t)
-
                     if ( datetime_match(2) .ne. 0 ) then 
 
                         road_name = trim(inputdata_char_rl(roadname_rl_index,i)) !Model road
-                        if ( t .eq. obs_exist(1,1) ) then
+
+                        if ( t .eq. obs_exist(1,1) ) then !Printing 
                             if ( any(index(meteo_obs_name,road_name(1:5)) > 0) ) then 
                                 not_shown_once = .true.
                                 write(*,'(A,A,A,I7)') "Replace modeled with observed meteorology from station ", trim(road_name(1:5)), " for road link with ID ",inputdata_int_rl(id_rl_index,i) 
@@ -736,9 +736,12 @@ subroutine NORTRIP_multiroad_create_meteodata
                                 write(*,'(A,I7,A,A,A)') "WARNING: No observational data found for road link ", inputdata_int_rl(id_rl_index,i), ". Using observational data from station ", road_name(1:5)//"0", " if available."
                             end if
                         end if
+                                
+                        surface_index = 0
+                        road_index = 0
+                        rad_index = 0
                         do r = 1, size(meteo_obs_name) !! Loop through the roads with observations to find matches between road links and observations
                             road_with_obs = trim(meteo_obs_name(r))
-
                             if ( road_name(1:5) == road_with_obs(1:5) ) then
                                 road_index = findloc(meteo_obs_name, road_name(1:5)//"0",dim=1) !! Replace meteorology with data from the default station ("0")
                                 rad_index = road_index
@@ -753,11 +756,7 @@ subroutine NORTRIP_multiroad_create_meteodata
                                     surface_index = findloc(meteo_obs_name, road_name(1:5)//"2",dim=1)
                                 else
                                     surface_index = road_index
-                                end if
-                            else 
-                                surface_index = 0
-                                road_index = 0
-                                rad_index = 0
+                                end if 
                             end if
                             !NOTE: if surface_index or road_index is 0, it means that there is no observational data for that station. In that case, the values are not replaced.
                             !Adjusts the model temperature according to lapse rate so it fits to the observation height. Only does this if replace_meteo_with_obs.eq.2. !TODO This only affect the printing?
