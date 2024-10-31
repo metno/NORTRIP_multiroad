@@ -20,6 +20,8 @@
     real :: max_val=+40.
     real :: max_diff_ta_tv=15.
     logical :: test_repetition=.true.
+    integer new_start_date_input(num_date_index)
+    double precision temp_date
     
     !Functions
     double precision date_to_number
@@ -29,7 +31,17 @@
 
     integer :: status
 
-    logical start_time_index_meteo_obs_found,end_time_index_meteo_obs_found
+    logical :: start_time_index_meteo_obs_found
+    logical :: end_time_index_meteo_obs_found
+
+    !character(256) :: filename_nc,filename_nc_in
+
+    
+
+    write(unit_logfile,'(A)') '================================================================'
+    write(unit_logfile,'(A)') 'Reading observed meteorological data (NORTRIP_multiroad_read_meteo_obs_data_netcdf)'
+    write(unit_logfile,'(A)') '================================================================'
+
 
     !If read obs data not specified then return without doing anything
     if (replace_meteo_with_obs.eq.0) then
@@ -39,20 +51,31 @@
 
     !TODO: Have an alternative to modify the observations to be on the same time resolution as the model.
     if (timestep.eq.1) then
-        write(unit_logfile,'(a)') 'The model timestep is ', timestep, 'h, while the observations are on a 10 min resolution. Therefore, do not use the observations for this simulations.' 
-        return
+        write(*,*) 'The model timestep is ', timestep, 'h, while the observations are on a 10 min resolution. Looking for suitable obs file. ' 
+        new_start_date_input=start_date_input
+        do i=1,1
+            !call incrtm(-24,new_start_date_input(1),new_start_date_input(2),new_start_date_input(3),new_start_date_input(4))
+            temp_date=date_to_number(new_start_date_input)
+            call number_to_date(temp_date-1./24.,new_start_date_input)
+            print*, new_start_date_input
+            call date_to_datestr_bracket(new_start_date_input,infile_meteo_obs_netcdf_data_template,infile_meteo_obs_netcdf_data)
+            call date_to_datestr_bracket(new_start_date_input,infile_meteo_obs_netcdf_data_template,infile_meteo_obs_netcdf_data)
+            call date_to_datestr_bracket(new_start_date_input,infile_meteo_obs_netcdf_data_template,infile_meteo_obs_netcdf_data)
+            filename=trim(inpath_meteo_obs_netcdf_data)//trim(infile_meteo_obs_netcdf_data)
+            write(unit_logfile,'(A,A)') ' Trying: ', trim(filename)
+            inquire(file=trim(filename),exist=exists)
+
+        enddo
+    else 
+        !Read in the meteo obs metadata file
+        !Test existence of the filename.
+        call date_to_datestr_bracket(start_date_input,infile_meteo_obs_netcdf_data_template,infile_meteo_obs_netcdf_data)
+        call date_to_datestr_bracket(start_date_input,infile_meteo_obs_netcdf_data_template,infile_meteo_obs_netcdf_data)
+        call date_to_datestr_bracket(start_date_input,infile_meteo_obs_netcdf_data_template,infile_meteo_obs_netcdf_data)
+        filename = trim(inpath_meteo_obs_netcdf_data)//trim(infile_meteo_obs_netcdf_data)
     endif
 
-
     meteo_obs_data_available=.true.
-
-    write(unit_logfile,'(A)') '================================================================'
-	write(unit_logfile,'(A)') 'Reading observed meteorological data (NORTRIP_multiroad_read_meteo_obs_data_netcdf)'
-	write(unit_logfile,'(A)') '================================================================'
-
-    !Read in the meteo obs metadata file
-    !Test existence of the filename.
-    filename = trim(inpath_meteo_obs_netcdf_data)//trim(infile_meteo_obs_netcdf_data)
 
     inquire(file=trim(filename),exist=exists)
 
@@ -230,9 +253,8 @@
         start_date_meteo_obs = meteo_obs_date(:,1)
         end_date_meteo_obs = meteo_obs_date(:,n_meteo_obs_date)
         
-        allocate(obs_exist(2,n_meteo_obs_date)) !1: index of obs date, 2: index of date_data
-    
-        !NOTE: The obs_exist pairs will be equal if the obs starting date is equal to the date_data starting date.
+        allocate(obs_exist(n_meteo_obs_date)) !Array of length equal to number of pbservations, will be filled with corresponding date_date indexes
+        obs_exist=0 !Initialize to zero
         do i = 1,size(date_data,dim=2)
             do t=1,size(meteo_obs_date, dim=2)
     
@@ -242,8 +264,7 @@
                     date_data(minute_index,i) .eq. meteo_obs_date(minute_index,t) .and. &
                     date_data(hour_index,i) .eq. meteo_obs_date(hour_index,t)) then
     
-                    obs_exist(:,t) = [t,i]
-    
+                    obs_exist(t) = i
                 end if
     
             end do

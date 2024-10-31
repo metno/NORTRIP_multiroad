@@ -129,8 +129,8 @@
     call date_to_datestr_bracket(start_date_input,inpath_meteo_obs_data,inpath_meteo_obs_data)
     call date_to_datestr_bracket(start_date_input,infile_meteo_obs_data,infile_meteo_obs_data)
     call date_to_datestr_bracket(start_date_input,inpath_meteo_obs_netcdf_data,inpath_meteo_obs_netcdf_data)
-    call date_to_datestr_bracket(start_date_input,infile_meteo_obs_netcdf_data,infile_meteo_obs_netcdf_data)
-    call date_to_datestr_bracket(start_date_input,infile_meteo_obs_netcdf_data,infile_meteo_obs_netcdf_data)
+    call date_to_datestr_bracket(start_date_input,infile_meteo_obs_netcdf_data_template,infile_meteo_obs_netcdf_data)
+    call date_to_datestr_bracket(start_date_input,infile_meteo_obs_netcdf_data_template,infile_meteo_obs_netcdf_data)
     call date_to_datestr_bracket(start_date_input,path_outputdata,path_outputdata)    
 
     !Roadlink ID activity files
@@ -434,7 +434,7 @@
     inpath_meteo_obs_data=match_string_char('inpath_meteo_obs_data',unit_in,unit_logfile,'')
     infile_meteo_obs_data=match_string_char('infile_meteo_obs_data',unit_in,unit_logfile,'')
     inpath_meteo_obs_netcdf_data=match_string_char('inpath_meteo_obs_netcdf_data',unit_in,unit_logfile,'')
-    infile_meteo_obs_netcdf_data=match_string_char('infile_meteo_obs_netcdf_data',unit_in,unit_logfile,'')
+    infile_meteo_obs_netcdf_data_template=match_string_char('infile_meteo_obs_netcdf_data',unit_in,unit_logfile,'')
     call match_string_multi_int('replace_which_meteo_with_obs',unit_in,unit_logfile,replace_which_meteo_with_obs_input(1:num_replace_meteo_with_obs_input),num_replace_meteo_with_obs_input)
     !pressure,temperature,relhumidity,cloudfraction,precip,shortwave_rad,longwave_rad,speed_wind,dir_wind,road_temperature
     if (replace_which_meteo_with_obs_input(1).ne.-999) then

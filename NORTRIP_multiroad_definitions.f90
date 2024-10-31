@@ -276,6 +276,7 @@
     character(256) pathfilename_mainfile
     !Declare file and path names for netcdf files
     character(256) filename_nc_template
+    character(256) infile_meteo_obs_netcdf_data_template
     character(256) filename_alternative_nc_template
     character(256) filename_nc
     character(256) filename_alternative_nc
@@ -556,8 +557,7 @@
     real, allocatable :: meteo_obs_position(:,:)
     logical :: meteo_obs_data_available=.false.
 
-    integer, allocatable :: obs_exist(:,:) !! store the time indexes where observations is available within the simulation date range. 1: index of obs date, 2: index of date_data
-    
+    integer, allocatable :: obs_exist(:) !! store the time indexes where observations is available within the simulation date range. 
     
     integer meteo_obs_height_index,meteo_obs_lat_index,meteo_obs_lon_index,meteo_obs_x_index,meteo_obs_y_index,num_meteo_obs_position
     parameter (meteo_obs_height_index=1,meteo_obs_lat_index=2,meteo_obs_lon_index=3,meteo_obs_x_index=4,meteo_obs_y_index=5)
