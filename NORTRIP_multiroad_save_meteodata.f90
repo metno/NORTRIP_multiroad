@@ -102,7 +102,7 @@ subroutine NORTRIP_multiroad_create_meteodata
     !Check to see if any alternative meteo data is available
     some_meteo_nc2_available=.false.
     if (replace_meteo_with_yr.eq.1) then
-        do t=1,n_hours_input
+        do t=1,n_hours_input/timesteps_in_hour
             if (meteo_nc2_available(t)) some_meteo_nc2_available=.true.
         enddo
     endif
@@ -165,7 +165,7 @@ subroutine NORTRIP_multiroad_create_meteodata
             dgrid_lat=(var2d_nc(lat_index,grid_index_rl(x_index,i),dim_length_nc(y_index))-var2d_nc(lat_index,grid_index_rl(x_index,i),1))/(dim_length_nc(y_index)-1)
             dgrid_lon=(var2d_nc(lon_index,dim_length_nc(x_index),grid_index_rl(y_index,i))-var2d_nc(lon_index,1,grid_index_rl(y_index,i)))/(dim_length_nc(x_index)-1)
 
-            !Recalculate position at that point
+            !Recalculate position at that point !TODO: These are not used any further. Can they be removed?
             x_index_temp=min(dim_length_nc(x_index),max(1,1+floor((inputdata_rl(lon0_rl_index,i)-var2d_nc(lon_index,1,grid_index_rl(y_index,i)))/dgrid_lon+0.5)))
             y_index_temp=min(dim_length_nc(y_index),max(1,1+floor((inputdata_rl(lat0_rl_index,i)-var2d_nc(lat_index,grid_index_rl(x_index,i),1))/dgrid_lat+0.5)))
 

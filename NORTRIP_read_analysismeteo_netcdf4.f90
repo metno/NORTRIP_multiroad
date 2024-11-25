@@ -47,7 +47,7 @@
     filename_nc2_in=filename_nc2_template
     new_start_date_input=start_date_input
          
-    if (.not.allocated(meteo_nc2_available)) allocate (meteo_nc2_available(n_hours_input)) 
+    if (.not.allocated(meteo_nc2_available)) allocate (meteo_nc2_available(n_hours_input/timesteps_in_hour)) 
     if (.not.allocated(meteo_var_nc2_available)) allocate (meteo_var_nc2_available(n_hours_input,num_var_nc2)) 
     meteo_var_nc2_available=.true.
     
@@ -70,7 +70,6 @@
         else
             meteo_nc2_available(t)=.true.
         endif
-
         !Open the netcdf file for reading
         if (meteo_nc2_available(t)) then
         
