@@ -359,12 +359,12 @@ subroutine NORTRIP_read_metcoop_netcdf4
 
     !Convert dew point to RH if RH not available and dewpoint is
     if (var_available_nc(dewpoint_index).and..not.var_available_nc(relhumidity_index)) then
-        do k=1,size(var3d_nc,4)
-            do j=1,size(var3d_nc,3)
-                do i=1,size(var3d_nc,2)
-                    var3d_nc(relhumidity_index,i,j,k)=RH_from_dewpoint_func(var3d_nc(temperature_index,i,j,k)-TOC,var3d_nc(dewpoint_index,i,j,k)-TOC)/100.
-                    var3d_nc(relhumidity_index,i,j,k)=max(var3d_nc(relhumidity_index,i,j,k),0.)
-                    var3d_nc(relhumidity_index,i,j,k)=min(var3d_nc(relhumidity_index,i,j,k),1.)
+        do k=1,size(var3d_nc_old,4)
+            do j=1,size(var3d_nc_old,3)
+                do i=1,size(var3d_nc_old,2)
+                    var3d_nc_old(relhumidity_index,i,j,k)=RH_from_dewpoint_func(var3d_nc_old(temperature_index,i,j,k)-TOC,var3d_nc_old(dewpoint_index,i,j,k)-TOC)/100.
+                    var3d_nc_old(relhumidity_index,i,j,k)=max(var3d_nc_old(relhumidity_index,i,j,k),0.)
+                    var3d_nc_old(relhumidity_index,i,j,k)=min(var3d_nc_old(relhumidity_index,i,j,k),1.)
                 enddo
             enddo
         enddo

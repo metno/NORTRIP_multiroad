@@ -49,7 +49,7 @@
         return
     endif
 
-    !TODO: Have an alternative to modify the observations to be on the same time resolution as the model.
+    !TODO: Readning of observations should maybe be more flexible; Look further back (e.g. last 3 hours); what if observations are available in the  middle of the simulation period, but not the start? 
     if (timestep.eq.1) then
         write(*,*) 'The model timestep is ', timestep, 'h, while the observations are on a 10 min resolution. Looking for suitable obs file. ' 
         new_start_date_input=start_date_input
@@ -102,6 +102,9 @@
         call check(nf90_inq_dimid(ncid, "time",dimid))
         call check(nf90_inquire_dimension(ncid, dimid, len=n_meteo_obs_date))
     
+        write(unit_logfile,'(a)') "Number of time entries in obs file: "
+        write(*,*) n_meteo_obs_date 
+
         allocate (meteo_obs_ID(n_meteo_obs_stations))
         allocate (meteo_obs_name(n_meteo_obs_stations))
 
@@ -124,8 +127,6 @@
             meteo_obs_name(i) = trim(meteo_obs_name(i))
         end do
 
-        !TODO: Need to check if variable is there or not so the program dont stop if it fails to locate the variable name in the netcdf file.
-        
         status = nf90_inq_varid(ncid,"year",varid)
         if ( status == nf90_noerr ) then
             call check(nf90_get_var(ncid,varid,meteo_obs_date(year_index,:)))
