@@ -406,7 +406,7 @@ subroutine NORTRIP_read_metcoop_netcdf4
     enddo
 
     !Check if timestep is != 1; if true, allocate new, larger arrays and interpolate the hourly values into the new arrays.
-    if ( timestep .ne. 1 .and. .not. replace_meteo_with_yr) then 
+    if ( timestep .ne. 1 ) then 
 
         !Allocate an array with the new time_index.           
         if (allocated(var3d_nc)) deallocate(var3d_nc)
