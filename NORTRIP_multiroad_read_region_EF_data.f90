@@ -150,7 +150,7 @@
         t=1
         !Set years for studded tyre season comparison. Assumes the end of season is the following year
         start_stud_season(year_index)=date_data(year_index,t)
-        if (date_to_number(date_data(:,t)).gt.date_to_number(start_stud_season)) then
+        if (date_to_number(date_data(:,t),ref_year).gt.date_to_number(start_stud_season,ref_year)) then
             start_stud_season(year_index)=date_data(year_index,t)
             start_full_stud_season(year_index)=date_data(year_index,t)
         else
@@ -169,21 +169,21 @@
         
         !Start of season
         do v=1,num_veh
-        if (date_to_number(date_data(:,t)).gt.date_to_number(start_stud_season).and.date_to_number(date_data(:,t)).lt.date_to_number(start_full_stud_season)) then
-            factor_temp=(date_to_number(date_data(:,t))-date_to_number(start_stud_season))/(date_to_number(start_full_stud_season)-date_to_number(start_stud_season))
+        if (date_to_number(date_data(:,t),ref_year).gt.date_to_number(start_stud_season,ref_year).and.date_to_number(date_data(:,t),ref_year).lt.date_to_number(start_full_stud_season,ref_year)) then
+            factor_temp=(date_to_number(date_data(:,t),ref_year)-date_to_number(start_stud_season,ref_year))/(date_to_number(start_full_stud_season,ref_year)-date_to_number(start_stud_season,ref_year))
             tyre_fraction(v,su)=(1.-factor_temp)
             tyre_fraction(v,st)=max(max_stud_fraction(v),min_stud_fraction(v))/100.*factor_temp
             tyre_fraction(v,wi)=factor_temp*(1.-max(max_stud_fraction(v),min_stud_fraction(v))/100.)
         endif
         !End of season
-        if (date_to_number(date_data(:,t)).gt.date_to_number(end_full_stud_season).and.date_to_number(date_data(:,t)).lt.date_to_number(end_stud_season)) then
-            factor_temp=1.-(date_to_number(date_data(:,t))-date_to_number(end_full_stud_season))/(date_to_number(end_stud_season)-date_to_number(end_full_stud_season))
+        if (date_to_number(date_data(:,t),ref_year).gt.date_to_number(end_full_stud_season,ref_year).and.date_to_number(date_data(:,t),ref_year).lt.date_to_number(end_stud_season,ref_year)) then
+            factor_temp=1.-(date_to_number(date_data(:,t),ref_year)-date_to_number(end_full_stud_season,ref_year))/(date_to_number(end_stud_season,ref_year)-date_to_number(end_full_stud_season,ref_year))
             tyre_fraction(v,su)=(1.-factor_temp)
             tyre_fraction(v,st)=max(max_stud_fraction(v),min_stud_fraction(v))/100.*factor_temp
             tyre_fraction(v,wi)=factor_temp*(1.-max(max_stud_fraction(v),min_stud_fraction(v))/100.)
         endif
         !Middle of season
-        if (date_to_number(date_data(:,t)).ge.date_to_number(start_full_stud_season).and.date_to_number(date_data(:,t)).lt.date_to_number(end_full_stud_season)) then
+        if (date_to_number(date_data(:,t),ref_year).ge.date_to_number(start_full_stud_season,ref_year).and.date_to_number(date_data(:,t),ref_year).lt.date_to_number(end_full_stud_season,ref_year)) then
             factor_temp=1.
             tyre_fraction(v,su)=(1.-factor_temp)
             tyre_fraction(v,st)=max(max_stud_fraction(v),min_stud_fraction(v))/100.*factor_temp
@@ -456,7 +456,7 @@
                 binding_start_mm(k), &
                 binding_end_mm(k)
             endif
-            
+            !write(*,*) k,k_index,region_id(k)
 
         enddo
          

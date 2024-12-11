@@ -145,36 +145,47 @@
             !It estimates the lat-lon grid spacing at the lat lon position with two iterations
             !Better would have been to do the projection but this is considered good enough and more general
             !Estimate the grid size of the meteo grid in lat lon by taking the central position
-            dgrid_lat=(var2d_nc(lat_index,dim_length_nc(x_index)/2,dim_length_nc(y_index))-var2d_nc(lat_index,dim_length_nc(x_index)/2,1))/(dim_length_nc(y_index)-1)
-            dgrid_lon=(var2d_nc(lon_index,dim_length_nc(x_index),dim_length_nc(y_index)/2)-var2d_nc(lon_index,1,dim_length_nc(y_index)/2))/(dim_length_nc(x_index)-1)
+            if (meteo_nc_projection_type.eq.LCC_projection_index) then
+                !None of this used any more and should be deleted. Only projection at end is valid
+                dgrid_lat=(var2d_nc(lat_index,dim_length_nc(x_index)/2,dim_length_nc(y_index))-var2d_nc(lat_index,dim_length_nc(x_index)/2,1))/(dim_length_nc(y_index)-1) !Not used anywhere
+                dgrid_lon=(var2d_nc(lon_index,dim_length_nc(x_index),dim_length_nc(y_index)/2)-var2d_nc(lon_index,1,dim_length_nc(y_index)/2))/(dim_length_nc(x_index)-1) !Not used anywhere
             
-            grid_index_rl(x_index,i)=min(dim_length_nc(x_index),max(1,1+floor((inputdata_rl(lon0_rl_index,i)-var2d_nc(lon_index,1,dim_length_nc(y_index)/2))/dgrid_lon+0.5)))
-            grid_index_rl(y_index,i)=min(dim_length_nc(y_index),max(1,1+floor((inputdata_rl(lat0_rl_index,i)-var2d_nc(lat_index,grid_index_rl(x_index,i),1))/dgrid_lat+0.5)))
-            grid_index_rl(x_index,i)=min(dim_length_nc(x_index),max(1,1+floor((inputdata_rl(lon0_rl_index,i)-var2d_nc(lon_index,1,grid_index_rl(y_index,i)))/dgrid_lon+0.5)))
+                grid_index_rl(x_index,i)=min(dim_length_nc(x_index),max(1,1+floor((inputdata_rl(lon0_rl_index,i)-var2d_nc(lon_index,1,dim_length_nc(y_index)/2))/dgrid_lon+0.5)))!overwritten
+                grid_index_rl(y_index,i)=min(dim_length_nc(y_index),max(1,1+floor((inputdata_rl(lat0_rl_index,i)-var2d_nc(lat_index,grid_index_rl(x_index,i),1))/dgrid_lat+0.5)))!overwritten
+                grid_index_rl(x_index,i)=min(dim_length_nc(x_index),max(1,1+floor((inputdata_rl(lon0_rl_index,i)-var2d_nc(lon_index,1,grid_index_rl(y_index,i)))/dgrid_lon+0.5)))!overwritten
             
-            !write(*,*) i,grid_index_rl(x_index,i),grid_index_rl(y_index,i),dgrid_lon,dgrid_lat
-            !Reestimate the lat lon grid size for the given position in the grid
-            dgrid_lat=(var2d_nc(lat_index,grid_index_rl(x_index,i),dim_length_nc(y_index))-var2d_nc(lat_index,grid_index_rl(x_index,i),1))/(dim_length_nc(y_index)-1)
-            dgrid_lon=(var2d_nc(lon_index,dim_length_nc(x_index),grid_index_rl(y_index,i))-var2d_nc(lon_index,1,grid_index_rl(y_index,i)))/(dim_length_nc(x_index)-1)
+                !write(*,*) i,grid_index_rl(x_index,i),grid_index_rl(y_index,i),dgrid_lon,dgrid_lat
+                !Reestimate the lat lon grid size for the given position in the grid
+                dgrid_lat=(var2d_nc(lat_index,grid_index_rl(x_index,i),dim_length_nc(y_index))-var2d_nc(lat_index,grid_index_rl(x_index,i),1))/(dim_length_nc(y_index)-1) !Not used anywhere
+                dgrid_lon=(var2d_nc(lon_index,dim_length_nc(x_index),grid_index_rl(y_index,i))-var2d_nc(lon_index,1,grid_index_rl(y_index,i)))/(dim_length_nc(x_index)-1) !Not used anywhere
 
-            !Recalculate position at that point
-            grid_index_rl(x_index,i)=min(dim_length_nc(x_index),max(1,1+floor((inputdata_rl(lon0_rl_index,i)-var2d_nc(lon_index,1,grid_index_rl(y_index,i)))/dgrid_lon+0.5)))
-            grid_index_rl(y_index,i)=min(dim_length_nc(y_index),max(1,1+floor((inputdata_rl(lat0_rl_index,i)-var2d_nc(lat_index,grid_index_rl(x_index,i),1))/dgrid_lat+0.5)))
+                !Recalculate position at that point
+                grid_index_rl(x_index,i)=min(dim_length_nc(x_index),max(1,1+floor((inputdata_rl(lon0_rl_index,i)-var2d_nc(lon_index,1,grid_index_rl(y_index,i)))/dgrid_lon+0.5))) !overwritten
+                grid_index_rl(y_index,i)=min(dim_length_nc(y_index),max(1,1+floor((inputdata_rl(lat0_rl_index,i)-var2d_nc(lat_index,grid_index_rl(x_index,i),1))/dgrid_lat+0.5))) !overwritten
 
-            !write(*,*) i,grid_index_rl(x_index,i),grid_index_rl(y_index,i),dgrid_lon,dgrid_lat
-            !Reestimate the lat lon grid size for the given position in the grid
-            dgrid_lat=(var2d_nc(lat_index,grid_index_rl(x_index,i),dim_length_nc(y_index))-var2d_nc(lat_index,grid_index_rl(x_index,i),1))/(dim_length_nc(y_index)-1)
-            dgrid_lon=(var2d_nc(lon_index,dim_length_nc(x_index),grid_index_rl(y_index,i))-var2d_nc(lon_index,1,grid_index_rl(y_index,i)))/(dim_length_nc(x_index)-1)
+                !write(*,*) i,grid_index_rl(x_index,i),grid_index_rl(y_index,i),dgrid_lon,dgrid_lat
+                !Reestimate the lat lon grid size for the given position in the grid
+                dgrid_lat=(var2d_nc(lat_index,grid_index_rl(x_index,i),dim_length_nc(y_index))-var2d_nc(lat_index,grid_index_rl(x_index,i),1))/(dim_length_nc(y_index)-1) !Not used anywhere
+                dgrid_lon=(var2d_nc(lon_index,dim_length_nc(x_index),grid_index_rl(y_index,i))-var2d_nc(lon_index,1,grid_index_rl(y_index,i)))/(dim_length_nc(x_index)-1) !Not used anywhere
 
-            !Recalculate position at that point
-            x_index_temp=min(dim_length_nc(x_index),max(1,1+floor((inputdata_rl(lon0_rl_index,i)-var2d_nc(lon_index,1,grid_index_rl(y_index,i)))/dgrid_lon+0.5)))
-            y_index_temp=min(dim_length_nc(y_index),max(1,1+floor((inputdata_rl(lat0_rl_index,i)-var2d_nc(lat_index,grid_index_rl(x_index,i),1))/dgrid_lat+0.5)))
+                !Recalculate position at that point
+                x_index_temp=min(dim_length_nc(x_index),max(1,1+floor((inputdata_rl(lon0_rl_index,i)-var2d_nc(lon_index,1,grid_index_rl(y_index,i)))/dgrid_lon+0.5))) !Not used anywhere
+                y_index_temp=min(dim_length_nc(y_index),max(1,1+floor((inputdata_rl(lat0_rl_index,i)-var2d_nc(lat_index,grid_index_rl(x_index,i),1))/dgrid_lat+0.5))) !Not used anywhere
 
-            !write(*,*) i,grid_index_rl(x_index,i),grid_index_rl(y_index,i),dgrid_lon,dgrid_lat
-            !grid_index_rl(x_index:y_index,i)=minloc((var2d_nc(lat_index,:,:)-inputdata_rl(lat0_rl_index,i))**2+(var2d_nc(lon_index,:,:)/cos(var2d_nc(lat_index,:,:)/180.*3.14159)-inputdata_rl(lon0_rl_index,i)/cos(inputdata_rl(lat0_rl_index,i)/180.*3.14159))**2)
-            !write(*,*) 'OLD: ',i,grid_index_rl(x_index,i),grid_index_rl(y_index,i)
+                !write(*,*) i,grid_index_rl(x_index,i),grid_index_rl(y_index,i),dgrid_lon,dgrid_lat
+                !grid_index_rl(x_index:y_index,i)=minloc((var2d_nc(lat_index,:,:)-inputdata_rl(lat0_rl_index,i))**2+(var2d_nc(lon_index,:,:)/cos(var2d_nc(lat_index,:,:)/180.*3.14159)-inputdata_rl(lon0_rl_index,i)/cos(inputdata_rl(lat0_rl_index,i)/180.*3.14159))**2)
+                !write(*,*) 'OLD: ',i,grid_index_rl(x_index,i),grid_index_rl(y_index,i)
             
-            call lb2lambert2_uEMEP(x_temp,y_temp,inputdata_rl(lon0_rl_index,i),inputdata_rl(lat0_rl_index,i),meteo_nc_projection_attributes)
+                !Project road link positions to the lambert grid
+                 call lb2lambert2_uEMEP(x_temp,y_temp,inputdata_rl(lon0_rl_index,i),inputdata_rl(lat0_rl_index,i),meteo_nc_projection_attributes)
+            
+            else
+                dgrid_lat=dgrid_nc(y_index) !Not used anywhere
+                dgrid_lon=dgrid_nc(x_index) !Not used anywhere          
+                x_temp=inputdata_rl(lon0_rl_index,i)
+                y_temp=inputdata_rl(lat0_rl_index,i)
+            endif
+            
 
             grid_index_rl(x_index,i)=1+floor((x_temp-var1d_nc(x_index,1))/dgrid_nc(x_index)+0.5)
             grid_index_rl(y_index,i)=1+floor((y_temp-var1d_nc(y_index,1))/dgrid_nc(y_index)+0.5)
@@ -227,7 +238,12 @@
                 !grid_index_rl2(x_index2:y_index2,i)=minloc((var2d_nc2(lat_index2,:,:)-inputdata_rl(lat0_rl_index,i))**2+(var2d_nc2(lon_index2,:,:)/cos(var2d_nc2(lat_index2,:,:)/180.*3.14159)-inputdata_rl(lon0_rl_index,i)/cos(inputdata_rl(lat0_rl_index,i)/180.*3.14159))**2)
                 !write(*,*) k,i,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),110*minval(sqrt((var2d_nc2(lat_index2,:,:)-inputdata_rl(lat0_rl_index,i))**2+(var2d_nc2(lon_index2,:,:)/cos(var2d_nc2(lat_index2,:,:)/180.*3.14159)-inputdata_rl(lon0_rl_index,i)/cos(inputdata_rl(lat0_rl_index,i)/180.*3.14159))**2))          
            
-                call lb2lambert2_uEMEP(x_temp,y_temp,inputdata_rl(lon0_rl_index,i),inputdata_rl(lat0_rl_index,i),meteo_nc2_projection_attributes)
+                if (meteo_nc_projection_type.eq.LL_projection_index) then
+                    x_temp=inputdata_rl(lon0_rl_index,i)
+                    y_temp=inputdata_rl(lat0_rl_index,i)
+                else
+                    call lb2lambert2_uEMEP(x_temp,y_temp,inputdata_rl(lon0_rl_index,i),inputdata_rl(lat0_rl_index,i),meteo_nc_projection_attributes)
+                endif
 
                 grid_index_rl2(x_index2,i)=1+floor((x_temp-var1d_nc2(x_index2,1))/dgrid_nc2(x_index2)+0.5)
                 grid_index_rl2(y_index2,i)=1+floor((y_temp-var1d_nc2(y_index2,1))/dgrid_nc2(y_index2)+0.5)
@@ -259,7 +275,7 @@
         date_nc(:,t)=0
         !Calculate the day
         time_temp=dble(idint(var1d_time_nc(t)/(seconds_in_hour*hours_in_day)+1./24./3600.)) !Add 1 second for round off errors
-        call number_to_date(time_temp,date_nc(:,t))
+        call number_to_date(time_temp,date_nc(:,t),ref_year)
         !Calculate hour of the day
         date_nc(hour_index,t)=idint((var1d_time_nc(t)-time_temp*dble(seconds_in_hour*hours_in_day))/dble(3600.)+.5)
 
@@ -306,6 +322,9 @@
                 end_time_index_nc=t
                 end_time_index_nc_found=.true.
         endif 
+                !write(unit_logfile,'(a32,6i6)') ' Date  data = ',date_data(:,t)
+                !write(unit_logfile,'(a32,6i6)') ' Local data = ',local_date_nc(:,t)
+
     enddo
     hours_time_index_nc=end_time_index_nc-start_time_index_nc+1
     write(unit_logfile,'(a32,i6,a32,i6,a32,i6)') ' Start_time_index_nc= ',start_time_index_nc,' End_time_index_nc= ',end_time_index_nc,' Hours_nc= ',hours_time_index_nc
@@ -320,6 +339,7 @@
         write(*,'(A)') ' ERROR: Input time start or stop date not found in meteo data. Stopping'
         write(unit_logfile,'(a32,6i6)') ' Start date input = ',start_date_input
         write(unit_logfile,'(a32,6i6)') ' End date input = ',end_date_input
+        !write(*,*) start_time_index_nc_found,end_time_index_nc_found,n_hours_input
         stop 25
     endif
     
@@ -354,8 +374,9 @@
             j_mod=start_time_index_nc+t-1
             j_obs=start_time_index_meteo_obs+t-1
             j_obs=t
+            !write(*,*) n_hours_input,start_time_index_nc,t,j_mod
             !write(*,'(5i)') i,grid_index_rl(x_index,i),grid_index_rl(y_index,i),dim_length_nc(x_index),dim_length_nc(y_index)
-            time_temp=var1d_time_nc(j_mod)    !Not used here as this is the time stamp
+            !time_temp=var1d_time_nc(j_mod)    !Not used here as this is the time stamp
             meteo_temp(temperature_index)=var3d_nc(temperature_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i),j_mod)-273.15
             meteo_temp(speed_wind_index)=sqrt(var3d_nc(x_wind_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i),j_mod)**2 &
                 + var3d_nc(y_wind_index,grid_index_rl(x_index,i),grid_index_rl(y_index,i),j_mod)**2) 
@@ -401,8 +422,13 @@
             j_nc=grid_index_rl(y_index,i)
 
             !Position of centre of road link
-            call lb2lambert2_uEMEP(x_temp,y_temp,inputdata_rl(lon0_rl_index,i),inputdata_rl(lat0_rl_index,i),meteo_nc_projection_attributes)
-
+            if (meteo_nc_projection_type.eq.LL_projection_index) then
+                x_temp=inputdata_rl(lon0_rl_index,i)
+                y_temp=inputdata_rl(lat0_rl_index,i)
+            else
+                call lb2lambert2_uEMEP(x_temp,y_temp,inputdata_rl(lon0_rl_index,i),inputdata_rl(lat0_rl_index,i),meteo_nc_projection_attributes)
+            endif
+            
             xpos_area_max=x_temp+xpos_limit
             xpos_area_min=x_temp-xpos_limit
             ypos_area_max=y_temp+ypos_limit

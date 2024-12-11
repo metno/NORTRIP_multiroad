@@ -50,7 +50,7 @@
     write(*,*) trim(temp_str),n_skyview_in
     
     !Test for compatibility
-    write(*,*) n_roadlinks_in,n_roadlinks,n_skyview_in,n_skyview
+    !write(*,*) n_roadlinks_in,n_roadlinks,n_skyview_in,n_skyview
     if (n_roadlinks_in.eq.n_roadlinks.and.n_skyview_in.eq.n_skyview) then       
 
         !write(unit_in,'(A8,6A14,<n_skyview>f8.1)') 'Road','RoadLinkID','Elevation','Can_dis_N','Can_dis_S','Can_height_N','Can_height_S',(az_skyview(s,1),s=1,n_skyview)

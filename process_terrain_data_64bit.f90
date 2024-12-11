@@ -78,6 +78,13 @@
 
     if (n_dem_files.lt.1) then
         write(unit_logfile,'(A)') ' WARNING: No terrain files available. Will not calculate skyview or street canyon parameters'
+        !Set these parameters to flat terrain parameters
+         inputdata_rl(canyonwidth_rl_index,:)=inputdata_rl(width_rl_index,:)+kerb_width*2.
+         inputdata_rl(canyondist_north_rl_index,:)=inputdata_rl(canyonwidth_rl_index,:)/2.
+         inputdata_rl(canyondist_south_rl_index,:)=inputdata_rl(canyonwidth_rl_index,:)/2.
+         inputdata_rl(canyonheight_north_rl_index,:)=0.
+         inputdata_rl(canyonheight_south_rl_index,:)=0.
+         inputdata_rl(slope_rl_index,:)=0.
         return
     endif
     

@@ -55,8 +55,8 @@
     
     !Loop through the number of time steps nad read in data when available
     do t=1,n_hours_input
-        temp_date=date_to_number(start_date_input)
-        call number_to_date(temp_date+(t-1)/dble(24.),new_start_date_input)
+        temp_date=date_to_number(start_date_input,ref_year)
+        call number_to_date(temp_date+(t-1)/dble(24.),new_start_date_input,ref_year)
         write(unit_logfile,'(a,7i)') 'Date array: ',t,new_start_date_input(1:6)
         call date_to_datestr_bracket(new_start_date_input,filename_nc2_in,filename_nc2)
         call date_to_datestr_bracket(new_start_date_input,pathname_nc2_in,pathname_nc2)
@@ -232,7 +232,7 @@
     dgrid_nc2(y_index2)=var1d_nc2(y_index2,j_grid_mid)-var1d_nc2(y_index2,j_grid_mid-1)
     
     !If the coordinates are in km instead of metres then change to metres (assuming the difference is not going to be > 100 km
-    if (dgrid_nc2(x_index2).lt.100) then
+    if (dgrid_nc2(x_index).lt.100.and.meteo_nc2_projection_type.ne.LL_projection_index) then
         dgrid_nc2=dgrid_nc2*1000.
         var1d_nc2(x_index2,:)=var1d_nc2(x_index2,:)*1000.
         var1d_nc2(y_index2,:)=var1d_nc2(y_index2,:)*1000.
