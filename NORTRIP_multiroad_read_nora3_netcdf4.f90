@@ -83,7 +83,7 @@
     new_nora3_forecast_count=0
     do i=1,n_hours_input
         !Hours. small offset required
-        nora3_forecast_hour_dp=24.*date_to_number(date_data(:,i))-nora3_starting_hour+.0001
+        nora3_forecast_hour_dp=24.*date_to_number(date_data(:,i),ref_year)-nora3_starting_hour+.0001
         !Set the date of the directory and file
         call number_to_date((nora3_forecast_hour_dp-(dmod(nora3_forecast_hour_dp,6.)))/24.,nora3_date_data(:,i))
         !Specify the forecast hour as the remainder
@@ -309,7 +309,7 @@
             dlat_nc=var2d_nc(lat_index,i_grid_mid,j_grid_mid)-var2d_nc(lat_index,i_grid_mid,j_grid_mid-1)
     
             !If the coordinates are in km instead of metres then change to metres (assuming the difference is not going to be > 100 km
-            if (dgrid_nc(x_index).lt.100) then
+            if (dgrid_nc(x_index).lt.100.and.meteo_nc_projection_type.ne.LL_projection_index) then
                 dgrid_nc=dgrid_nc*1000.
                 var1d_nc(x_index,:)=var1d_nc(x_index,:)*1000.
                 var1d_nc(y_index,:)=var1d_nc(y_index,:)*1000.
@@ -439,7 +439,6 @@
     integer id_nc
     integer dim_id_nc(num_dims_nc)
     integer var_id_nc(num_var_nc)
-    real min_distance(4)
     real distance
     integer :: extra_grids=1    !Extend the selected grid further to deal with the interpolation
     real min_grid_val(2),max_grid_val(2)
@@ -453,7 +452,7 @@
     !Set to the initial value
     dim_start_nc=1
      
-    !Find the max and in of the road link files in lat and lon
+    !Find the max and min of the road link files in lat and lon
     min_link_lat=minval(inputdata_rl(lat0_rl_index,:))
     min_link_lon=minval(inputdata_rl(lon0_rl_index,:))
     max_link_lat=maxval(inputdata_rl(lat0_rl_index,:))
@@ -464,19 +463,25 @@
     corner_link(4,1)=max_link_lon;corner_link(4,2)=min_link_lat
 
     !Convert to meteo coordinates
+    !gridded
+    if (meteo_nc_projection_type.eq.LCC_projection_index) then
     min_link_x=1e36;min_link_y=1e36;max_link_x=-1e36;max_link_y=-1e36
     do k=1,size(inputdata_rl,2)
+        
         call lb2lambert2_uEMEP(x_temp,y_temp,inputdata_rl(lon0_rl_index,k),inputdata_rl(lat0_rl_index,k),meteo_nc_projection_attributes)
         if (x_temp.lt.min_link_x) min_link_x=x_temp
         if (y_temp.lt.min_link_y) min_link_y=y_temp
         if (x_temp.gt.max_link_x) max_link_x=x_temp
         if (y_temp.gt.max_link_y) max_link_y=y_temp    
+        !write(*,*) min_link_x,min_link_y,x_temp,y_temp
+           
     enddo
     corner_link(1,1)=min_link_x;corner_link(1,2)=min_link_y
     corner_link(2,1)=min_link_x;corner_link(2,2)=max_link_y
     corner_link(3,1)=max_link_x;corner_link(3,2)=max_link_y
     corner_link(4,1)=max_link_x;corner_link(4,2)=min_link_y
-   
+    endif
+    
     !write(*,*) 'min_link_lat ',min_link_lat
    ! write(*,*) 'min_link_lon ',min_link_lon
     !write(*,*) 'max_link_lat ',max_link_lat
@@ -524,9 +529,6 @@
                         ,minval(var1d_nc_in(i,1:dim_length_nc(i))),maxval(var1d_nc_in(i,1:dim_length_nc(i))) 
             enddo
 
-    !Search the grid for the maximum and minimum values
-    grid_dim=1
-    min_distance=1.e36
     
     i_grid_mid=int(dim_length_nc(x_index)/2)
     j_grid_mid=int(dim_length_nc(y_index)/2)
@@ -568,7 +570,6 @@
     !write(*,*) 'lon tr',dim_end_nc(1),var2d_nc_temp(lon_index, dim_end_nc(1),dim_end_nc(2))
     !write(*,*) 'lat ll',dim_start_nc(2),var2d_nc_temp(lat_index, dim_start_nc(1),dim_start_nc(2))
     !write(*,*) 'lat tr',dim_end_nc(2),var2d_nc_temp(lat_index, dim_end_nc(1),dim_end_nc(2))
-    !write(*,*) 'min distance (km) ',sqrt(min_distance)*100
     !write(*,*) dim_length_nc(1:2)
     write(unit_logfile,'(A,7i5)') 'Reduced start (x,y), end (x,y) and size (x,y) dimensions after adding extra grids', dim_start_nc(1),dim_start_nc(2),dim_end_nc(1),dim_end_nc(2),dim_length_nc(1),dim_length_nc(2),extra_grids
         
@@ -606,7 +607,6 @@
     integer id_nc2
     integer dim_id_nc2(num_dims_nc)
     integer var_id_nc2(num_var_nc)
-    real min_distance(4)
     real distance
     integer :: extra_grids=1    !Extend the selected grid further to deal with the interpolation
     real min_grid_val(2),max_grid_val(2)
@@ -671,9 +671,6 @@
                         ,minval(var1d_nc2_in(i,1:dim_length_nc2(i))),maxval(var1d_nc2_in(i,1:dim_length_nc2(i))) 
             enddo
 
-    !Search the grid for the maximum and minimum values
-    grid_dim=1
-    min_distance=1.e36
     
     i_grid_mid=int(dim_length_nc(x_index2)/2)
     j_grid_mid=int(dim_length_nc(y_index2)/2)
@@ -715,7 +712,6 @@
     !write(*,*) 'lon tr',dim_end_nc(1),var2d_nc2_temp(lon_index2, dim_end_nc(1),dim_end_nc(2))
     !write(*,*) 'lat ll',dim_start_nc(2),var2d_nc2_temp(lat_index, dim_start_nc(1),dim_start_nc(2))
     !write(*,*) 'lat tr',dim_end_nc(2),var2d_nc2_temp(lat_index, dim_end_nc(1),dim_end_nc(2))
-    !write(*,*) 'min distance (km) ',sqrt(min_distance)*100
     !write(*,*) dim_length_nc(1:2)
     write(unit_logfile,'(A,7i5)') 'Reduced start (x,y), end (x,y) and size (x,y) dimensions after adding extra grids', dim_start_nc2(1),dim_start_nc2(2),dim_end_nc2(1),dim_end_nc2(2),dim_length_nc2(1),dim_length_nc2(2),extra_grids
         

@@ -169,8 +169,10 @@
     parameter (canyondist_north_rl_index=26,canyondist_south_rl_index=27)
     integer adt_rl_index,speed_rl_index,hdv_rl_index
     parameter (adt_rl_index=28,speed_rl_index=29,hdv_rl_index=30)
+    integer lon1_rl_index,lon2_rl_index,lat1_rl_index,lat2_rl_index
+    parameter (lon1_rl_index=31,lon2_rl_index=32,lat1_rl_index=33,lat2_rl_index=34)
     integer num_var_rl,num_var_rl_epi
-    parameter(num_var_rl=30,num_var_rl_epi=7)
+    parameter(num_var_rl=34,num_var_rl_epi=7)
     
     integer roadindex_rl_index,id_rl_index,drivingcycle_rl_index,pavementtype_rl_index,roadactivitytype_rl_index,nlanes_rl_index,savedata_rl_index,griddata_rl_index,ospm_pos_rl_index,roadstructuretype_rl_index
     parameter (roadindex_rl_index=1,id_rl_index=2,drivingcycle_rl_index=3,pavementtype_rl_index=4,roadactivitytype_rl_index=5,nlanes_rl_index=6,savedata_rl_index=7,griddata_rl_index=8,ospm_pos_rl_index=9,roadstructuretype_rl_index=10)
@@ -444,6 +446,12 @@
     character(256) end_date_and_time
     character(3) dayofweek_str(7)
     data dayofweek_str/'Mon','Tue','Wed','Thu','Fri','Sat','Sun'/
+    
+    !Reference year for meteo data
+    integer ref_year
+    integer :: ref_year_EMEP=1900
+    integer :: ref_year_meteo=1970
+
     
     !Studded tyre season data
     integer :: max_stud_fraction(num_veh)=0.

@@ -55,9 +55,8 @@
         new_start_date_input=start_date_input
         do i=1,1
             !call incrtm(-24,new_start_date_input(1),new_start_date_input(2),new_start_date_input(3),new_start_date_input(4))
-            temp_date=date_to_number(new_start_date_input)
-            call number_to_date(temp_date-1./24.,new_start_date_input)
-            print*, new_start_date_input
+            temp_date=date_to_number(new_start_date_input,ref_year)
+            call number_to_date(temp_date-1./24.,new_start_date_input,ref_year)
             call date_to_datestr_bracket(new_start_date_input,infile_meteo_obs_netcdf_data_template,infile_meteo_obs_netcdf_data)
             call date_to_datestr_bracket(new_start_date_input,infile_meteo_obs_netcdf_data_template,infile_meteo_obs_netcdf_data)
             call date_to_datestr_bracket(new_start_date_input,infile_meteo_obs_netcdf_data_template,infile_meteo_obs_netcdf_data)

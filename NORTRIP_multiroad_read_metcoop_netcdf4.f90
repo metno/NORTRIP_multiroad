@@ -11,7 +11,7 @@ subroutine NORTRIP_read_metcoop_netcdf4
     !include 'netcdf.inc'
       
     !Local variables
-    integer status_nc      !Error message
+    integer status_nc,status_nc1,status_nc2      !Error message
     integer id_nc
     integer dim_id_nc(num_dims_nc)
     integer xtype_nc(num_var_nc)
@@ -41,6 +41,10 @@ subroutine NORTRIP_read_metcoop_netcdf4
     real, allocatable :: var1d_nc_old(:,:)
     real, allocatable :: var4d_nc(:,:,:,:)
 
+    real, allocatable :: var1d_nc_temp(:,:)
+    real, allocatable :: var2d_nc_temp(:,:,:)
+    real, allocatable :: var3d_nc_temp(:,:,:,:)
+
     double precision temp_date
     double precision date_to_number
 
@@ -52,9 +56,15 @@ subroutine NORTRIP_read_metcoop_netcdf4
     real :: TOC=273.15
     real :: RH_from_dewpoint_func
 
+    logical invert_dim_flag(num_dims_nc)
+    
+    double precision  offset_nc, scaling_nc
+
 	write(unit_logfile,'(A)') '================================================================'
 	write(unit_logfile,'(A)') 'Reading meteorological data (NORTRIP_read_metcoop_netcdf4)'
 	write(unit_logfile,'(A)') '================================================================'
+
+    invert_dim_flag=.false.
 
     !pathname_nc='C:\BEDRE BYLUFT\NORTRIP implementation\test\';
     !filename_nc='AROME_1KM_OSLO_20141028_EPI.nc'
@@ -82,8 +92,8 @@ subroutine NORTRIP_read_metcoop_netcdf4
         found_file=.false.
         do i=1,25
             !call incrtm(-24,new_start_date_input(1),new_start_date_input(2),new_start_date_input(3),new_start_date_input(4))
-            temp_date=date_to_number(new_start_date_input)
-            call number_to_date(temp_date-1./24.,new_start_date_input)
+            temp_date=date_to_number(new_start_date_input,ref_year)
+            call number_to_date(temp_date-1./24.,new_start_date_input,ref_year)
             !write(*,*) i,new_start_date_input(1:4)
             call date_to_datestr_bracket(new_start_date_input,filename_nc_in,filename_nc)
             call date_to_datestr_bracket(new_start_date_input,pathname_nc_in,pathname_nc)
@@ -123,8 +133,8 @@ subroutine NORTRIP_read_metcoop_netcdf4
             found_file=.false.
             do i=1,25
                 !call incrtm(-24,new_start_date_input(1),new_start_date_input(2),new_start_date_input(3),new_start_date_input(4))
-                temp_date=date_to_number(new_start_date_input)
-                call number_to_date(temp_date-1./24.,new_start_date_input)
+                temp_date=date_to_number(new_start_date_input,ref_year)
+                call number_to_date(temp_date-1./24.,new_start_date_input,ref_year)
                 !write(*,*) i,new_start_date_input(1:4)
                 call date_to_datestr_bracket(new_start_date_input,filename_alternative_nc_in,filename_alternative_nc)
                 call date_to_datestr_bracket(new_start_date_input,pathname_nc_in,pathname_nc)
@@ -219,6 +229,13 @@ subroutine NORTRIP_read_metcoop_netcdf4
 
         if (i.eq.time_index) then
             status_nc = NF90_GET_VAR (id_nc, var_id_nc(i), var1d_nc_dp(1:dim_length_nc(i)), start=(/dim_start_nc(i)/), count=(/dim_length_nc(i)/))
+            
+            !This is only valid for 3 hourly EMEP data. Taken out
+            !if (index(meteo_data_type,'emep').gt.0) then
+                !Convert to seconds as this is given in days
+            !    var1d_nc_dp=var1d_nc_dp*3600.*24.
+            !endif
+                
             var1d_time_nc_old(:)=var1d_nc_dp(1:dim_length_nc(time_index))
             write(unit_logfile,'(3A,2i14)') ' ',trim(dim_name_nc(i)),' (min, max in hours): ' &
                 ,int((var1d_nc_old(i,1)-var1d_nc_old(i,1))/3600.+.5)+1 &
@@ -228,6 +245,13 @@ subroutine NORTRIP_read_metcoop_netcdf4
             write(unit_logfile,'(3A,2f12.2)') ' ',trim(dim_name_nc(i)),' (min, max in km): ' &
                 ,minval(var1d_nc_old(i,1:dim_length_nc(i))),maxval(var1d_nc_old(i,1:dim_length_nc(i))) 
         endif
+        !Check the order of increasing size
+        if (var1d_nc_old(i,2).lt.var1d_nc_old(i,1)) then
+            invert_dim_flag(i)=.true.
+        else
+            invert_dim_flag(i)=.false.
+        endif
+
         
     enddo
     
@@ -296,6 +320,16 @@ subroutine NORTRIP_read_metcoop_netcdf4
                 if (index(meteo_data_type,'emep').gt.0) then
                     status_nc = NF90_GET_VAR (id_nc, var_id_nc(i), var3d_emep,start=(/dim_start_metcoop_nc/), count=(/dim_length_metcoop_nc/))
                     var3d_nc_old(i,:,:,:)=var3d_emep(:,:,:)
+                    !Read offsets and scaling
+                    offset_nc=0.
+                    scaling_nc=1.
+                    status_nc1 =nf90_get_att(id_nc, var_id_nc(i), 'add_offset', offset_nc)
+                    status_nc2 =nf90_get_att(id_nc, var_id_nc(i), 'scale_factor', scaling_nc)
+                    !Only add offset and scale factor if available
+                    if (status_nc1.eq.0.and.status_nc2.eq.0) then
+                        var3d_nc_old(i,:,:,:)=var3d_nc(i,:,:,:)*scaling_nc+offset_nc
+                    endif
+                
                 else
                     status_nc = NF90_GET_VAR (id_nc, var_id_nc(i), var4d_nc,start=(/dim_start_metcoop_nc/), count=(/dim_length_metcoop_nc/))
                     var3d_nc_old(i,:,:,:)=var4d_nc(:,:,1,:)
@@ -333,8 +367,46 @@ subroutine NORTRIP_read_metcoop_netcdf4
         else
             write(unit_logfile,'(8A,8A)') ' Cannot read ',trim(var_name_nc(i))
             var_available_nc(i)=.false.
-        endif        
+        endif
+        
+        
     enddo
+    
+    !invert_dim_flag=.false.
+    
+    !Invert dimmension if required    
+    if (invert_dim_flag(x_index).or.invert_dim_flag(y_index)) then
+        allocate (var1d_nc_temp(num_dims_nc,maxval(dim_length_nc)))
+        allocate (var2d_nc_temp(2,dim_length_nc(x_index),dim_length_nc(y_index)))
+        allocate (var3d_nc_temp(num_var_nc,dim_length_nc(x_index),dim_length_nc(y_index),dim_length_nc(time_index)))
+   
+        var1d_nc_temp=var1d_nc
+        var2d_nc_temp=var2d_nc
+        var3d_nc_temp=var3d_nc_old
+        
+        if (invert_dim_flag(x_index)) then
+            write(unit_logfile,'(A)') ' Inverting X dimension'
+
+            do i=1,dim_length_nc(x_index)
+                var1d_nc(x_index,i)=var1d_nc_temp(x_index,dim_length_nc(x_index)+1-i)
+                var2d_nc(:,i,:)=var2d_nc_temp(:,dim_length_nc(x_index)+1-i,:)
+                var3d_nc_old(:,i,:,:)=var3d_nc_temp(:,dim_length_nc(x_index)+1-i,:,:)
+            enddo
+        endif
+        if (invert_dim_flag(y_index)) then
+            write(unit_logfile,'(A)') ' Inverting Y dimension'
+            do j=1,dim_length_nc(y_index)
+                var1d_nc(y_index,j)=var1d_nc_temp(y_index,dim_length_nc(y_index)+1-j)
+                var2d_nc(:,:,j)=var2d_nc_temp(:,:,dim_length_nc(y_index)+1-j)
+                var3d_nc_old(:,:,j,:)=var3d_nc_temp(:,:,dim_length_nc(y_index)+1-j,:)
+            enddo
+        endif
+
+        deallocate (var1d_nc_temp)
+        deallocate (var2d_nc_temp)
+        deallocate (var3d_nc_temp)
+
+    endif
     
     !NOTE: round off errors in precipitation. Need to include a 0 minimum.
     
@@ -370,6 +442,26 @@ subroutine NORTRIP_read_metcoop_netcdf4
         enddo
     endif
     
+    !In the case of lat lon coordinates in dimensions then populate the lat lon 2d field as this is used further
+    if (meteo_nc_projection_type.ne.LL_projection_index) then
+        do j=1,size(var2d_nc,3)
+            do i=1,size(var2d_nc,2)
+                var2d_nc(lon_index,i,j)=var1d_nc_old(x_index,i)
+                var2d_nc(lat_index,i,j)=var1d_nc_old(y_index,j)
+            enddo
+        enddo
+    endif
+    
+    !In the case of lat lon coordinates in dimensions then populate the lat lon 2d field as this is used further
+    if (meteo_nc_projection_type.ne.LL_projection_index) then
+        do j=1,size(var2d_nc,3)
+            do i=1,size(var2d_nc,2)
+                var2d_nc(lon_index,i,j)=var1d_nc_old(x_index,i)
+                var2d_nc(lat_index,i,j)=var1d_nc_old(y_index,j)
+            enddo
+        enddo
+    endif
+    
     !Calculate angle difference between North and the Model Y direction based on the middle grids
     !Not correct, needs to be fixed !TODO: Is this fixed?
     i_grid_mid=int(dim_length_nc(x_index)/2)
@@ -379,14 +471,15 @@ subroutine NORTRIP_read_metcoop_netcdf4
     dlat_nc=var2d_nc(lat_index,i_grid_mid,j_grid_mid)-var2d_nc(lat_index,i_grid_mid,j_grid_mid-1)
     
     !If the coordinates are in km instead of metres then change to metres (assuming the difference is not going to be > 100 km
-    if (dgrid_nc(x_index).lt.100) then
+    if (dgrid_nc(x_index).lt.100.and.meteo_nc_projection_type.ne.LL_projection_index) then
         dgrid_nc=dgrid_nc*1000.
         var1d_nc_old(x_index,:)=var1d_nc_old(x_index,:)*1000.
         var1d_nc_old(y_index,:)=var1d_nc_old(y_index,:)*1000.
     endif
-    
-    angle_nc=180./3.14159*acos(dlat_nc*3.14159/180.*6.37e6/dgrid_nc(x_index))
-    write(unit_logfile,'(A,2f12.1)') ' Grid spacing X and Y (m): ', dgrid_nc(x_index),dgrid_nc(y_index)
+
+    !This doesn't seem to make sense. Check this again
+    angle_nc=180./3.14159*acos(dlat_nc*3.14159/180.*6.37e6/dgrid_nc(y_index))
+    write(unit_logfile,'(A,2f12.3)') ' Grid spacing X and Y (m): ', dgrid_nc(x_index),dgrid_nc(y_index)
     write(unit_logfile,'(A,2i,f12.4)') ' Angle difference between grid and geo North (i,j,deg): ', i_grid_mid,j_grid_mid,angle_nc
 
 
@@ -396,7 +489,7 @@ subroutine NORTRIP_read_metcoop_netcdf4
     !Fill a date_nc array that is used to match meteo dates to the date range specified in the simulation call. 
     allocate(date_nc(num_date_index,meteo_nc_timesteps))
 
-    call number_to_date(dble(int(var1d_nc_old(time_index,1)/sngl(seconds_in_hour*hours_in_day)+1./24./60.)),date_nc(:,1))
+    call number_to_date(dble(int(var1d_nc_old(time_index,1)/sngl(seconds_in_hour*hours_in_day)+1./24./60.)),date_nc(:,1),ref_year)
 
     date_nc(hour_index,1)=int((var1d_nc_old(time_index,1)-(dble(int(var1d_nc_old(time_index,1)/sngl(seconds_in_hour*hours_in_day)+1./24./60.)))*sngl(seconds_in_hour*hours_in_day))/3600.+.5)
     do t=1, meteo_nc_timesteps-1
@@ -406,7 +499,7 @@ subroutine NORTRIP_read_metcoop_netcdf4
     enddo
 
     !Check if timestep is != 1; if true, allocate new, larger arrays and interpolate the hourly values into the new arrays.
-    if ( timestep .ne. 1 .and. .not. replace_meteo_with_yr) then 
+    if ( timestep .ne. 1) then 
 
         !Allocate an array with the new time_index.           
         if (allocated(var3d_nc)) deallocate(var3d_nc)
@@ -442,7 +535,6 @@ subroutine NORTRIP_read_metcoop_netcdf4
     start_dim_nc=dim_start_nc
     end_dim_nc=dim_length_nc
     end_dim_nc(time_index) = size(var3d_nc,dim=4)
-
     if (allocated(var3d_nc_old)) deallocate(var3d_nc_old)
     if (allocated(var1d_nc_old)) deallocate(var1d_nc_old)
     if (allocated(var1d_nc_dp)) deallocate(var1d_nc_dp)

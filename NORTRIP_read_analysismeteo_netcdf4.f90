@@ -55,8 +55,9 @@
     
     !Loop through the number of time steps and read in data when available
     do t=1,int(n_hours_input/timesteps_in_hour)
-        temp_date=date_to_number(start_date_input)
-        call number_to_date(temp_date+(t-1)/dble(24.),new_start_date_input)
+
+        temp_date=date_to_number(start_date_input,ref_year)
+        call number_to_date(temp_date+(t-1)/dble(24.),new_start_date_input,ref_year)
         write(unit_logfile,'(a,7i)') 'Date array: ',t,new_start_date_input(1:6)
         call date_to_datestr_bracket(new_start_date_input,filename_nc2_in,filename_nc2)
         call date_to_datestr_bracket(new_start_date_input,pathname_nc2_in,pathname_nc2)
@@ -116,7 +117,7 @@
         
             !Allocate the nc arrays for reading
             !write(*,*) dim_length_nc2(x_index2),dim_length_nc2(y_index2),dim_length_nc2(time_index2)
-            if (.not.allocated(var1d_nc2)) allocate (var1d_nc2(num_dims_nc2,maxval(dim_length_nc2))) !x and y and time maximum dimmensions
+            if (.not.allocated(var1d_nc2)) allocate (var1d_nc2(num_dims_nc2,maxval(dim_length_nc2))) !x and y and time maximum dimensions
             if (.not.allocated(var3d_nc2)) allocate (var3d_nc2(num_var_nc2,dim_length_nc2(x_index2),dim_length_nc2(y_index2),n_hours_input))
             if (.not.allocated(var2d_nc2)) allocate (var2d_nc2(num_var_nc2,dim_length_nc2(x_index2),dim_length_nc2(y_index2))) !Lat and lon and elevation
             if (.not.allocated(var3d_nc2_dp)) allocate (var3d_nc2_dp(dim_length_nc2(x_index2),dim_length_nc2(y_index2)))

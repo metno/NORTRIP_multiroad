@@ -77,7 +77,13 @@
     write(unit_logfile,'(A,5I5)') ' End date: ', end_date_input(year_index),end_date_input(month_index),end_date_input(day_index),end_date_input(hour_index),end_date_input(minute_index)
     
     !Calculate the number of hours between end and start dates
-    n_hours_input=int((date_to_number(end_date_input)-date_to_number(start_date_input))*24./timestep+.5)+1
+    n_hours_input=int((date_to_number(end_date_input,ref_year)-date_to_number(start_date_input,ref_year))*24./timestep+.5)+1
+    !This is only valid for 3 hourly EMEP data. Taken out
+    !if (index(meteo_data_type,'emep').gt.0) then
+    !    n_hours_input=(n_hours_input-1)/3+1
+    !endif
+
+
     if (n_hours_input.lt.1) then
         !n_hours_input=n_hours_default
         write(unit_logfile,'(A)') ' ERROR: Number of hours is 0 or less. Stopping'

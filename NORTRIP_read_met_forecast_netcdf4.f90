@@ -58,8 +58,8 @@ subroutine NORTRIP_read_MET_Nordic_forecast_netcdf4
 
     pathname_nc_in=pathname_nc_forecast
     filename_nc_in=filename_nc_forecast_template
-    temp_date=date_to_number(start_date_input)
-    call number_to_date(temp_date+(-1)/dble(24.),new_start_date_input) !This opens the forecast file from the previous hour, as the precip and radiation is cumulative, and thus the first value is zero. !TODO: Make a fix for only precipitation and radiation, so that the other variables can be read from the most recent file. 
+    temp_date=date_to_number(start_date_input,ref_year)
+    call number_to_date(temp_date+(-1)/dble(24.),new_start_date_input,ref_year) !This opens the forecast file from the previous hour, as the precip and radiation is cumulative, and thus the first value is zero. !TODO: Make a fix for only precipitation and radiation, so that the other variables can be read from the most recent file. 
 
     call date_to_datestr_bracket(new_start_date_input,filename_nc_in,filename_nc)
     call date_to_datestr_bracket(new_start_date_input,pathname_nc_in,pathname_nc)   
@@ -82,8 +82,8 @@ subroutine NORTRIP_read_MET_Nordic_forecast_netcdf4
         new_start_date_input=start_date_input
         found_file=.false.
         do i=1,25
-            temp_date=date_to_number(new_start_date_input)
-            call number_to_date(temp_date-1./24.,new_start_date_input)
+            temp_date=date_to_number(new_start_date_input,ref_year)
+            call number_to_date(temp_date-1./24.,new_start_date_input,ref_year)
             call date_to_datestr_bracket(new_start_date_input,filename_nc_in,filename_nc)
             call date_to_datestr_bracket(new_start_date_input,pathname_nc_in,pathname_nc)
             pathfilename_nc=trim(pathname_nc)//trim(filename_nc)
@@ -274,7 +274,7 @@ subroutine NORTRIP_read_MET_Nordic_forecast_netcdf4
         !Fill date_nc_forecast array that is used to match meteo dates to the date range specified in the simulation call.
         allocate(date_nc_forecast(num_date_index,meteo_nc_timesteps_forecast))
 
-        call number_to_date(dble(int(var1d_nc_forecast_old(time_index_forecast,1)/sngl(seconds_in_hour*hours_in_day)+1./24./60.)),date_nc_forecast(:,1))
+        call number_to_date(dble(int(var1d_nc_forecast_old(time_index_forecast,1)/sngl(seconds_in_hour*hours_in_day)+1./24./60.)),date_nc_forecast(:,1),ref_year)
 
 
         date_nc_forecast(hour_index,1)=int((var1d_nc_forecast_old(time_index_forecast,1)-(dble(int(var1d_nc_forecast_old(time_index_forecast,1)/sngl(seconds_in_hour*hours_in_day)+1./24./60.)))*sngl(seconds_in_hour*hours_in_day))/3600.+.5)

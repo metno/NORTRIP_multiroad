@@ -633,6 +633,7 @@ subroutine NORTRIP_multiroad_read_staticroadlink_data_ascii
     inputdata_rl(y0_rl_index,:)=(inputdata_rl(y1_rl_index,:)+inputdata_rl(y2_rl_index,:))/2.
     
     
+    
     !Calculate road orientation and check for range overflows for length as well
     !inputdata_rl(angle_rl_index,:)=180./3.14159*acos((inputdata_rl(y2_rl_index,:)-inputdata_rl(y1_rl_index,:))/inputdata_rl(length_rl_index,:))
     do i=1,n_roadlinks
@@ -644,6 +645,10 @@ subroutine NORTRIP_multiroad_read_staticroadlink_data_ascii
         if(inputdata_rl(angle_rl_index,i).gt.180.) inputdata_rl(angle_rl_index,i)=180.
         if(inputdata_rl(angle_rl_index,i).lt.0.) inputdata_rl(angle_rl_index,i)=0.
         call UTM2LL(utm_zone,inputdata_rl(y0_rl_index,i),inputdata_rl(x0_rl_index,i),inputdata_rl(lat0_rl_index,i),inputdata_rl(lon0_rl_index,i))
+        !Lat lon of end points
+        call UTM2LL(utm_zone,inputdata_rl(y1_rl_index,i),inputdata_rl(x1_rl_index,i),inputdata_rl(lat1_rl_index,i),inputdata_rl(lon1_rl_index,i))
+        call UTM2LL(utm_zone,inputdata_rl(y2_rl_index,i),inputdata_rl(x2_rl_index,i),inputdata_rl(lat2_rl_index,i),inputdata_rl(lon2_rl_index,i))
+        
     enddo
         
     !Check lengths. Can be round off errors since lengths are saved as integer meters. Set the 0 values to 1 m 
@@ -704,6 +709,243 @@ subroutine NORTRIP_multiroad_read_staticroadlink_data_ascii
     
 end subroutine NORTRIP_multiroad_read_staticroadlink_data_ascii
 !----------------------------------------------------------------------
+
+    subroutine NORTRIP_multiroad_read_staticroadlink_data_gridded
+    !New routine for reading static data
+    
+    use NORTRIP_multiroad_index_definitions
+    
+    implicit none
+    
+    character(256) search_str,temp_str
+    real temp
+    integer unit_in
+    integer i,j,jj
+    integer rl_length_short
+    integer exists
+    logical nxtdat_flag
+    integer n_roadlinks_major
+    real sub_nodes_x(5000),sub_nodes_y(5000)
+    integer temp_id,n_subnodes,temp_road_activity_type,temp_nlanes,temp_road_category,temp_road_structure_type,temp_region_id,temp_surface_id
+    real temp_adt,temp_hdv,temp_speed,temp_width,temp_length,temp_tunnel_length
+    integer counter
+    integer n_allocate_roadlinks
+    integer n_subnodes_max
+    integer :: step_sublinks=1
+    integer count_max_subnodes
+    integer n_lon,n_lat
+    real temp_lon,temp_lat
+    real :: delta_lat=0.0001,delta_lon=0.0001
+
+	write(unit_logfile,'(A)') '================================================================'
+	write(unit_logfile,'(A)') 'Reading static road link data gridded (NORTRIP_multiroad_read_staticroadlink_data_gridded)'
+	write(unit_logfile,'(A)') '================================================================'
+    
+    pathfilename_rl(1)=trim(pathname_rl(1))//trim(filename_rl(1))
+    
+    !Test existence of the road link filename (1). If does not exist then use default
+    inquire(file=trim(pathfilename_rl(1)),exist=exists)
+    if (.not.exists) then
+        write(unit_logfile,'(A,A)') ' ERROR: Static road link file ascii does not exist: ', trim(pathfilename_rl(1))
+        stop 16
+    endif
+
+    !Open the file for reading
+    unit_in=20
+    open(unit_in,file=pathfilename_rl(1),access='sequential',status='old',readonly)  
+    write(unit_logfile,'(a)') ' Opening road link file(ascii) '//trim(pathfilename_rl(1))
+    
+    rewind(unit_in)
+    call NXTDAT(unit_in,nxtdat_flag)
+    !read the header to find out how many links there are
+    !read(unit_in,'(a)',ERR=20) temp_str
+    read(unit_in,*,ERR=20) n_roadlinks_major,n_lon,n_lat
+    write(unit_logfile,'(a,i)') ' Number of major road links= ', n_roadlinks_major
+    write(unit_logfile,'(a,i)') ' Number of lon and lat grids= ', n_lon,n_lat
+             
+    !Allocate the arrays after reading in the number of roads
+    if (only_use_major_roadlinks) then
+        write(unit_logfile,'(a,i)') ' Only using major road links= ', n_roadlinks_major
+        n_allocate_roadlinks=n_roadlinks_major
+    else
+        n_allocate_roadlinks=n_roadlinks
+    endif
+    
+    allocate (inputdata_rl(num_var_rl,n_allocate_roadlinks))
+    allocate (inputdata_int_rl(num_int_rl,n_allocate_roadlinks))
+    allocate (inputdata_char_rl(num_char_rl,n_allocate_roadlinks))
+    allocate (road_type_activity_flag_roads(num_road_type_activity,n_allocate_roadlinks))
+    if (only_use_major_roadlinks) then
+        allocate (inputdata_rl_sub(4,num_n_subnodes,n_allocate_roadlinks))
+    else
+        allocate (inputdata_rl_sub(4,1,n_allocate_roadlinks))
+    endif
+    
+
+    !Initialise
+    inputdata_rl=0.
+    inputdata_int_rl=0
+    
+    if (grid_delta(1).gt.0) delta_lon=grid_delta(1)/100.
+    if (grid_delta(2).gt.0) delta_lon=grid_delta(2)/100.
+    
+
+    counter=0
+    n_subnodes_max=0
+    count_max_subnodes=0
+    !Read the data
+    do i=1,n_roadlinks_major
+        !GRID_INDEX LON LAT ADT HDV% ROAD_TYPE_FOR_ACTIVITY SPEED WIDTH N_LANES ROAD_LENGTH ROAD_TYPE_STRUCTURE REGION_ID
+        read(unit_in,*,ERR=20) temp_id,temp_lon,temp_lat,temp_adt,temp_hdv,temp_road_activity_type,temp_speed,temp_width,temp_nlanes &
+            ,temp_length,temp_road_structure_type,temp_region_id
+        !write(*,*) temp_id,temp_lon,temp_lat,temp_length
+        !read(unit_in,*) sub_nodes_x(1:n_subnodes)
+        !read(unit_in,*) sub_nodes_y(1:n_subnodes)
+        !write(*,*) sub_nodes_x(1:n_subnodes),sub_nodes_y(1:n_subnodes)
+        !put in the road link data
+        !if (temp_adt.gt.200) then
+        if (n_subnodes.gt.n_subnodes_max) n_subnodes_max=n_subnodes
+        
+        if (only_use_major_roadlinks) then
+            
+            counter=counter+1
+            inputdata_int_rl(id_rl_index,counter)=temp_id
+            inputdata_rl(adt_rl_index,counter)=temp_adt
+            inputdata_rl(hdv_rl_index,counter)=temp_hdv
+            inputdata_int_rl(roadactivitytype_rl_index,counter)=temp_road_activity_type
+            inputdata_rl(speed_rl_index,counter)=temp_speed
+            inputdata_rl(width_rl_index,counter)=temp_width
+            inputdata_int_rl(nlanes_rl_index,counter)=temp_nlanes
+            inputdata_rl(length_rl_index,counter)=temp_length
+            inputdata_int_rl(region_id_rl_index,counter)=temp_region_id
+            inputdata_int_rl(roadstructuretype_rl_index,counter)=temp_road_structure_type
+            inputdata_rl(lon0_rl_index,counter)=temp_lon
+            inputdata_rl(lat0_rl_index,counter)=temp_lat
+            
+            !Create nodes for use in gridding by giving a small offset 
+            inputdata_int_rl(n_subnodes_rl_index,counter)=2
+            inputdata_rl(x1_rl_index,counter)=temp_lon-delta_lon
+            inputdata_rl(x2_rl_index,counter)=temp_lon+delta_lon
+            inputdata_rl(y1_rl_index,counter)=temp_lat-delta_lat
+            inputdata_rl(y2_rl_index,counter)=temp_lat+delta_lat
+
+            inputdata_int_rl(roadcategory_rl_index,counter)=1 !Only used in NUDL time profiles
+            inputdata_int_rl(roadsurface_id_rl_index,counter)=0 !Never used
+            
+        endif
+        !endif
+    enddo
+    n_roadlinks=counter
+    write(unit_logfile,'(a,i)') ' Number of road links used = ', n_roadlinks
+ 
+    close(unit_in,status='keep')
+    
+    !write(unit_logfile,'(a,3i)') ' Maximum and allowed number of road sub links = ', n_subnodes_max, num_n_subnodes, count_max_subnodes
+
+    !stop
+    
+    !No speed in the files currently. Set all to 50 km/hr. Temporary
+    !inputdata_rl(speed_rl_index,:)=50.
+    !inputdata_rl(width_rl_index,:)=10.
+    !inputdata_int_rl(nlanes_rl_index,:)=2
+    
+    !Save the road types in the activity index
+    !inputdata_int_rl(roadtype_activity_rl_index,:)=inputdata_int_rl(roadactivitytype_rl_index,:)
+ 
+    !Set the road type, normal, bridge or tunnel (tunnel or jet). When a tunnel then there is no retention, always dry
+    !do i=1,n_roadlinks        
+    !    if (inputdata_int_rl(roadactivitytype_rl_index,i).eq.5.or.inputdata_int_rl(roadactivitytype_rl_index,i).eq.6) then           
+    !        inputdata_int_rl(roadactivitytype_rl_index,i)=tunnel_roadtype
+    !    else
+    !        inputdata_int_rl(roadactivitytype_rl_index,i)=normal_roadtype
+    !    endif
+    !enddo
+
+    !Calculate some additional values
+    inputdata_rl(x0_rl_index,:)=(inputdata_rl(x1_rl_index,:)+inputdata_rl(x2_rl_index,:))/2.
+    inputdata_rl(y0_rl_index,:)=(inputdata_rl(y1_rl_index,:)+inputdata_rl(y2_rl_index,:))/2.
+    
+    !x and y are the same as lon and lat
+    inputdata_rl(lon1_rl_index,:)=inputdata_rl(x1_rl_index,:)
+    inputdata_rl(lon2_rl_index,:)=inputdata_rl(x2_rl_index,:)
+    inputdata_rl(lat1_rl_index,:)=inputdata_rl(y1_rl_index,:)
+    inputdata_rl(lat2_rl_index,:)=inputdata_rl(y2_rl_index,:)
+    
+    inputdata_rl(elevation_rl_index,:)=0.0
+    
+    !Calculate road orientation and check for range overflows for length as well
+    !inputdata_rl(angle_rl_index,:)=180./3.14159*acos((inputdata_rl(y2_rl_index,:)-inputdata_rl(y1_rl_index,:))/inputdata_rl(length_rl_index,:))
+    do i=1,n_roadlinks
+       ! if ((inputdata_rl(x2_rl_index,i)-inputdata_rl(x1_rl_index,i)).ne.0.) then
+       !     inputdata_rl(angle_rl_index,i)=90.-180./3.14159*atan((inputdata_rl(y2_rl_index,i)-inputdata_rl(y1_rl_index,i))/(inputdata_rl(x2_rl_index,i)-inputdata_rl(x1_rl_index,i)))
+       ! else
+       !     inputdata_rl(angle_rl_index,i)=0.
+       ! endif
+       ! if(inputdata_rl(angle_rl_index,i).gt.180.) inputdata_rl(angle_rl_index,i)=180.
+       ! if(inputdata_rl(angle_rl_index,i).lt.0.) inputdata_rl(angle_rl_index,i)=0.
+       ! call UTM2LL(utm_zone,inputdata_rl(y0_rl_index,i),inputdata_rl(x0_rl_index,i),inputdata_rl(lat0_rl_index,i),inputdata_rl(lon0_rl_index,i))
+        inputdata_rl(angle_rl_index,i)=0.
+    enddo
+        
+    !Check lengths. Can be round off errors since lengths are saved as integer meters. Set the 0 values to 1 m 
+    !rl_length_short=0
+    !do i=1,n_roadlinks
+    !    if (inputdata_rl(length_rl_index,i).eq.0.0) then
+    !        rl_length_short=rl_length_short+1
+            !write(unit_logfile,'(a,2i,f12.5)') ' WARNING: Zero link length, setting to 1.0 m ',i,inputdata_int_rl(id_rl_index,i),inputdata_rl(length_rl_index,i)
+    !        inputdata_rl(length_rl_index,i)=1.
+            !inputdata_rl(angle_rl_index,:)=0.
+    !    endif
+    !enddo
+    !write(unit_logfile,'(a,i)') ' Number of links with 0 length = ',rl_length_short
+    ! write(unit_logfile,'(a)') ' Setting length to 1 m'
+    
+    !Check position lengths. If these are 0 then it can mean a circular link path which will not work when gridding the data
+    !Displace x cordinates by 0.5 m to allow it to be used
+   ! rl_length_short=0
+   ! do i=1,n_roadlinks
+    !    temp_length=sqrt((inputdata_rl(x1_rl_index,i)-inputdata_rl(x2_rl_index,i))**2+(inputdata_rl(y1_rl_index,i)-inputdata_rl(y2_rl_index,i))**2)            
+    !    if (temp_length.eq.0.0) then
+    !        rl_length_short=rl_length_short+1
+            !write(unit_logfile,'(a,2i,f12.5)') ' WARNING: Circular or short link',i,inputdata_int_rl(id_rl_index,i),inputdata_rl(length_rl_index,i)
+    !        inputdata_rl(x1_rl_index,i)=inputdata_rl(x1_rl_index,i)-0.5
+    !        inputdata_rl(x2_rl_index,i)=inputdata_rl(x2_rl_index,i)+0.5
+            !inputdata_rl(length_rl_index,i)=1.
+            !inputdata_rl(angle_rl_index,:)=0.
+    !    endif
+    !enddo
+    !write(unit_logfile,'(a,i)') ' Number of circular or short links with corresponding start and finish positions = ',rl_length_short
+   ! write(unit_logfile,'(a)') ' Shifting x positions +/- 0.5 m'
+    
+    !write(*,*) 'Max length: ',maxval(inputdata_rl(length_rl_index,:)),inputdata_rl(lat0_rl_index,maxloc(inputdata_rl(length_rl_index,:))),inputdata_rl(lon0_rl_index,maxloc(inputdata_rl(length_rl_index,:)))
+    !write(*,*) 'Max x and y: ',maxval(inputdata_rl(x0_rl_index,:)),maxval(inputdata_rl(y0_rl_index,:))
+    !write(*,*) 'Min x and y: ',minval(inputdata_rl(x0_rl_index,:)),minval(inputdata_rl(y0_rl_index,:))     
+
+    write(unit_logfile,'(a14,19a10)') ' LINK ','ID','X1','X2','Y1','Y2','WIDTH','LENGTH','ADT','HDV%','ANGLE','LON','LAT','N_LANES','ACT_TYPE','CAT_TYPE','REG_ID','STR_TYPE','SURF_ID','SPEED'
+    i=1
+    write(unit_logfile,'(a14,i10,9f10.1,2f10.4,6i10,f10.4)') ' First link = ',inputdata_int_rl(id_rl_index,i),inputdata_rl(x1_rl_index,i),inputdata_rl(x2_rl_index,i) &
+        ,inputdata_rl(y1_rl_index,i),inputdata_rl(y2_rl_index,i),inputdata_rl(width_rl_index,i) &
+        ,inputdata_rl(length_rl_index,i),inputdata_rl(adt_rl_index,i),inputdata_rl(hdv_rl_index,i),inputdata_rl(angle_rl_index,i) &
+        ,inputdata_rl(lon0_rl_index,i),inputdata_rl(lat0_rl_index,i) &
+        ,inputdata_int_rl(nlanes_rl_index,i),inputdata_int_rl(roadactivitytype_rl_index,i) &
+        ,inputdata_int_rl(roadcategory_rl_index,i),inputdata_int_rl(region_id_rl_index,i),inputdata_int_rl(roadstructuretype_rl_index,i),inputdata_int_rl(roadsurface_id_rl_index,i),inputdata_rl(speed_rl_index,i)
+
+    i=n_roadlinks
+    write(unit_logfile,'(a14,i10,9f10.1,2f10.4,6i10,f10.4)') ' Last link = ',inputdata_int_rl(id_rl_index,i),inputdata_rl(x1_rl_index,i),inputdata_rl(x2_rl_index,i) &
+        ,inputdata_rl(y1_rl_index,i),inputdata_rl(y2_rl_index,i),inputdata_rl(width_rl_index,i) &
+        ,inputdata_rl(length_rl_index,i),inputdata_rl(adt_rl_index,i),inputdata_rl(hdv_rl_index,i),inputdata_rl(angle_rl_index,i) &
+        ,inputdata_rl(lon0_rl_index,i),inputdata_rl(lat0_rl_index,i) &
+        ,inputdata_int_rl(nlanes_rl_index,i),inputdata_int_rl(roadactivitytype_rl_index,i) &
+        ,inputdata_int_rl(roadcategory_rl_index,i),inputdata_int_rl(region_id_rl_index,i),inputdata_int_rl(roadstructuretype_rl_index,i),inputdata_int_rl(roadsurface_id_rl_index,i),inputdata_rl(speed_rl_index,i)
+   
+    return
+20  write(unit_logfile,'(2A)') 'ERROR reading road link file: ',trim(pathfilename_rl(1))
+    stop 17
+    
+    
+    end subroutine NORTRIP_multiroad_read_staticroadlink_data_gridded
+!----------------------------------------------------------------------
+
 
 !----------------------------------------------------------------------
 subroutine NORTRIP_multiroad_read_replace_road_data
@@ -865,9 +1107,9 @@ subroutine NORTRIP_multiroad_read_replace_road_data
     do k=1,n_replace_links
         !Test to see if the end of season is smaller than or larger than the start and adjust the year appropriately
         !if (date_to_number(end_replace_season(:,k)).le.date_to_number(start_replace_season(:,k))) then
-        if (date_to_number(end_replace_season(:,k)).le.date_to_number(start_replace_season(:,k)).and.date_to_number(date_data).le.date_to_number(end_replace_season(:,k))) then
+        if (date_to_number(end_replace_season(:,k),ref_year).le.date_to_number(start_replace_season(:,k),ref_year).and.date_to_number(date_data,ref_year).le.date_to_number(end_replace_season(:,k),ref_year)) then
             start_replace_season(year_index,k)=start_replace_season(year_index,k)-1
-        elseif (date_to_number(end_replace_season(:,k)).le.date_to_number(start_replace_season(:,k)).and.date_to_number(date_data).ge.date_to_number(start_replace_season(:,k))) then
+        elseif (date_to_number(end_replace_season(:,k),ref_year).le.date_to_number(start_replace_season(:,k),ref_year).and.date_to_number(date_data,ref_year).ge.date_to_number(start_replace_season(:,k),ref_year)) then
             end_replace_season(year_index,k)=end_replace_season(year_index,k)+1
         else
             !Set the end year to next year, also when dates are the same
@@ -876,7 +1118,7 @@ subroutine NORTRIP_multiroad_read_replace_road_data
         
         !endif
         !Check if the date is within the defined season and set the flag
-        if (date_to_number(date_data(:,t)).ge.date_to_number(start_replace_season(:,k)).and.date_to_number(date_data(:,t)).lt.date_to_number(end_replace_season(:,k))) then
+        if (date_to_number(date_data(:,t),ref_year).ge.date_to_number(start_replace_season(:,k),ref_year).and.date_to_number(date_data(:,t),ref_year).lt.date_to_number(end_replace_season(:,k),ref_year)) then
             date_within_season_flag(k)=.true.
         else
             date_within_season_flag(k)=.false.            

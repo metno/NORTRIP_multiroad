@@ -67,7 +67,7 @@
     
     endif
     
-    if (index(calculation_type,'road weather').gt.0.or.index(calculation_type,'uEMEP').gt.0.or.index(calculation_type,'Avinor').gt.0) then
+    if (index(calculation_type,'road weather').gt.0.or.index(calculation_type,'uEMEP').gt.0.or.index(calculation_type,'Avinor').gt.0.or.index(calculation_type,'gridded').gt.0) then
         n_roadlinks_read=1
     else
         n_roadlinks_read=n_roadlinks
@@ -108,7 +108,7 @@
     close(unit_in,status='keep')
     
     !The NUDL data is normalised but we do it anyway
-    if (index(calculation_type,'road weather').gt.0.or.index(calculation_type,'uEMEP').gt.0.or.index(calculation_type,'Avinor').gt.0) then
+    if (index(calculation_type,'road weather').gt.0.or.index(calculation_type,'uEMEP').gt.0.or.index(calculation_type,'Avinor').gt.0.or.index(calculation_type,'gridded').gt.0) then
         do l=1,3
         do m=1,2
         do n=1,2
@@ -161,7 +161,7 @@
     inputdata_week_traffic(HDV_week_index,:,:,n_roadlinks_read)=inputdata_week_traffic(HDV_week_index,:,:,n_roadlinks_read)*inputdata_week_traffic(N_week_index,:,:,n_roadlinks_read)/average_HDV
     endif
     
-    if (index(calculation_type,'road weather').gt.0.or.index(calculation_type,'uEMEP').gt.0.or.index(calculation_type,'Avinor').gt.0) then
+    if (index(calculation_type,'road weather').gt.0.or.index(calculation_type,'uEMEP').gt.0.or.index(calculation_type,'Avinor').gt.0.or.index(calculation_type,'gridded').gt.0) then
         N_normalise=sum(inputdata_week_traffic(N_week_index,:,:,n_roadlinks_read))/7.
         HDV_normalise=sum(inputdata_week_traffic(HDV_week_index,:,:,n_roadlinks_read))/7.
         LDV_normalise=sum(inputdata_week_traffic(LDV_week_index,:,:,n_roadlinks_read))/7.
@@ -239,7 +239,7 @@
         month_temp=date_data_temp(month_index)
         
         !Calculate week of year
-        julian_day=floor(date_to_julian(date_data_temp))
+        julian_day=floor(date_to_julian(date_data_temp,2000))
         date_data_start=date_data_temp
         date_data_start(2)=1;date_data_start(3)=1;
         week_day_start=day_of_week(date_data_start)
@@ -369,7 +369,7 @@
         t=1
         !Set years for studded tyre season comparison. Assumes the end of season is the following year
         start_stud_season(year_index)=date_data(year_index,t)
-        if (date_to_number(date_data(:,t)).gt.date_to_number(start_stud_season)) then
+        if (date_to_number(date_data(:,t),ref_year).gt.date_to_number(start_stud_season,ref_year)) then
             start_stud_season(year_index)=date_data(year_index,t)
             start_full_stud_season(year_index)=date_data(year_index,t)
         else
@@ -388,21 +388,21 @@
         
         !Start of season
         do v=1,num_veh
-        if (date_to_number(date_data(:,t)).gt.date_to_number(start_stud_season).and.date_to_number(date_data(:,t)).lt.date_to_number(start_full_stud_season)) then
-            factor_temp=(date_to_number(date_data(:,t))-date_to_number(start_stud_season))/(date_to_number(start_full_stud_season)-date_to_number(start_stud_season))
+        if (date_to_number(date_data(:,t),ref_year).gt.date_to_number(start_stud_season,ref_year).and.date_to_number(date_data(:,t),ref_year).lt.date_to_number(start_full_stud_season,ref_year)) then
+            factor_temp=(date_to_number(date_data(:,t),ref_year)-date_to_number(start_stud_season,ref_year))/(date_to_number(start_full_stud_season,ref_year)-date_to_number(start_stud_season,ref_year))
             tyre_fraction(v,su)=(1.-factor_temp)
             tyre_fraction(v,st)=max(max_stud_fraction(v),min_stud_fraction(v))/100.*factor_temp
             tyre_fraction(v,wi)=factor_temp*(1.-max(max_stud_fraction(v),min_stud_fraction(v))/100.)
         endif
         !End of season
-        if (date_to_number(date_data(:,t)).gt.date_to_number(end_full_stud_season).and.date_to_number(date_data(:,t)).lt.date_to_number(end_stud_season)) then
-            factor_temp=1.-(date_to_number(date_data(:,t))-date_to_number(end_full_stud_season))/(date_to_number(end_stud_season)-date_to_number(end_full_stud_season))
+        if (date_to_number(date_data(:,t),ref_year).gt.date_to_number(end_full_stud_season,ref_year).and.date_to_number(date_data(:,t),ref_year).lt.date_to_number(end_stud_season,ref_year)) then
+            factor_temp=1.-(date_to_number(date_data(:,t),ref_year)-date_to_number(end_full_stud_season,ref_year))/(date_to_number(end_stud_season,ref_year)-date_to_number(end_full_stud_season,ref_year))
             tyre_fraction(v,su)=(1.-factor_temp)
             tyre_fraction(v,st)=max(max_stud_fraction(v),min_stud_fraction(v))/100.*factor_temp
             tyre_fraction(v,wi)=factor_temp*(1.-max(max_stud_fraction(v),min_stud_fraction(v))/100.)
         endif
         !Middle of season
-        if (date_to_number(date_data(:,t)).ge.date_to_number(start_full_stud_season).and.date_to_number(date_data(:,t)).lt.date_to_number(end_full_stud_season)) then
+        if (date_to_number(date_data(:,t),ref_year).ge.date_to_number(start_full_stud_season,ref_year).and.date_to_number(date_data(:,t),ref_year).lt.date_to_number(end_full_stud_season,ref_year)) then
             factor_temp=1.
             tyre_fraction(v,su)=(1.-factor_temp)
             tyre_fraction(v,st)=max(max_stud_fraction(v),min_stud_fraction(v))/100.*factor_temp
