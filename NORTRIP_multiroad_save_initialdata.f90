@@ -120,5 +120,4 @@
         CALL EXECUTE_COMMAND_LINE (trim(command_line_zip),wait=.true.)
     endif
     
-
     end subroutine NORTRIP_multiroad_save_initialdata    

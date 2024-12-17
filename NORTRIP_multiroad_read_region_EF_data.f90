@@ -456,7 +456,7 @@
                 binding_start_mm(k), &
                 binding_end_mm(k)
             endif
-            !write(*,*) k,k_index,region_id(k)
+            
 
         enddo
          
