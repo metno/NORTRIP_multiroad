@@ -253,7 +253,7 @@
         start_date_meteo_obs = meteo_obs_date(:,1)
         end_date_meteo_obs = meteo_obs_date(:,n_meteo_obs_date)
         
-        allocate(obs_exist(n_meteo_obs_date)) !Array of length equal to number of pbservations, will be filled with corresponding date_date indexes
+        allocate(obs_exist(n_meteo_obs_date)) !Array of length equal to number of observations, will be filled with corresponding date_date indexes
         obs_exist=0 !Initialize to zero
         do i = 1,size(date_data,dim=2)
             do t=1,size(meteo_obs_date, dim=2)

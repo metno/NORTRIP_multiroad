@@ -50,6 +50,8 @@ subroutine NORTRIP_multiroad_create_meteodata
     integer :: latest_observation_index
     integer :: latest_model
 
+    real :: relhumidity_bias
+
     character(10) :: road_name
     character(10) :: road_with_obs
 
@@ -168,27 +170,25 @@ subroutine NORTRIP_multiroad_create_meteodata
             grid_index_rl(x_index,i)=min(dim_length_nc(x_index)-1,max(2,grid_index_rl(x_index,i)))
             grid_index_rl(y_index,i)=min(dim_length_nc(y_index)-1,max(2,grid_index_rl(y_index,i)))
 
-            
+
+
+
+                        
             if (replace_meteo_with_yr.eq.1.and.some_meteo_nc2_available) then
-                
                 !Alternative
                 !grid_index_rl2(x_index2:y_index2,i)=minloc((var2d_nc2(lat_index2,:,:)-inputdata_rl(lat0_rl_index,i))**2+(var2d_nc2(lon_index2,:,:)/cos(var2d_nc2(lat_index2,:,:)/180.*3.14159)-inputdata_rl(lon0_rl_index,i)/cos(inputdata_rl(lat0_rl_index,i)/180.*3.14159))**2)
                 !write(*,*) k,i,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),110*minval(sqrt((var2d_nc2(lat_index2,:,:)-inputdata_rl(lat0_rl_index,i))**2+(var2d_nc2(lon_index2,:,:)/cos(var2d_nc2(lat_index2,:,:)/180.*3.14159)-inputdata_rl(lon0_rl_index,i)/cos(inputdata_rl(lat0_rl_index,i)/180.*3.14159))**2))          
            
-                if (meteo_nc_projection_type.eq.LL_projection_index) then
-
+                if (meteo_nc2_projection_type.eq.LL_projection_index) then
                     x_temp=inputdata_rl(lon0_rl_index,i)
                     y_temp=inputdata_rl(lat0_rl_index,i)
                 else
-                    call lb2lambert2_uEMEP(x_temp,y_temp,inputdata_rl(lon0_rl_index,i),inputdata_rl(lat0_rl_index,i),meteo_nc_projection_attributes)
+                    call lb2lambert2_uEMEP(x_temp,y_temp,inputdata_rl(lon0_rl_index,i),inputdata_rl(lat0_rl_index,i),meteo_nc2_projection_attributes)
                 endif
                 grid_index_rl2(x_index2,i)=1+floor((x_temp-var1d_nc2(x_index2,1))/dgrid_nc2(x_index2)+0.5)
                 grid_index_rl2(y_index2,i)=1+floor((y_temp-var1d_nc2(y_index2,1))/dgrid_nc2(y_index2)+0.5)
-                !print*, "look here x: ", i, x_temp, var1d_nc2(x_index2,1), dgrid_nc2(x_index2), grid_index_rl2(x_index2,i)
-                !print*, "look here y: ", i, y_temp, var1d_nc2(y_index2,1), dgrid_nc2(y_index2), grid_index_rl2(y_index2,i)
-                
             endif
-            
+
             if (replace_meteo_with_met_forecast.eq.1.and.meteo_nc_forecast_available) then
                 
                 call lb2lambert2_uEMEP(x_temp,y_temp,inputdata_rl(lon0_rl_index,i),inputdata_rl(lat0_rl_index,i),meteo_nc_forecast_projection_attributes)
@@ -506,7 +506,7 @@ subroutine NORTRIP_multiroad_create_meteodata
                         
                     endif
                 endif !interpolate_meteo_data
-                
+
 
                 not_shown_once=.false.
                 if (replace_meteo_with_met_forecast.eq.1 .and. meteo_nc_forecast_available) then
@@ -589,7 +589,6 @@ subroutine NORTRIP_multiroad_create_meteodata
                         endif
                         
                         if (meteo_var_nc2_available(t,temperature_index2)) then
-                            print*, temperature_index2, grid_index_rl2(x_index2,i), grid_index_rl2(y_index2,i), i
                             meteo_temp(temperature_index)=var3d_nc2(temperature_index2,grid_index_rl2(x_index2,i),grid_index_rl2(y_index2,i),t)-273.15
                         endif
                         
@@ -637,7 +636,7 @@ subroutine NORTRIP_multiroad_create_meteodata
                         endif                    
                     endif
                 endif       
-
+     
                 !Replace the data with observed meteo data. The same for all roads except for temperature lapse rate
                 if (meteo_obs_data_available.and.replace_meteo_with_obs.eq.1) then
                     !ii=save_meteo_index(j)  !Was jj
@@ -753,6 +752,7 @@ subroutine NORTRIP_multiroad_create_meteodata
                                     surface_index = road_index
                                 end if 
                             end if
+                        end do
                             !NOTE: if surface_index or road_index is 0, it means that there is no observational data for that station. In that case, the values are not replaced.
                             !Adjusts the model temperature according to lapse rate so it fits to the observation height. Only does this if replace_meteo_with_obs.eq.2. !TODO This only affect the printing?
                             ! if (replace_meteo_with_yr.eq.1) then
@@ -778,6 +778,7 @@ subroutine NORTRIP_multiroad_create_meteodata
                             endif
 
                             if ( road_index.ne.0 ) then
+
                                 if ( t .eq. maxval(obs_exist) ) then !Save the indicies if we are at the latest observational timestep. This is used for relaxation.
                                     latest_observation_index = datetime_match
             
@@ -786,12 +787,14 @@ subroutine NORTRIP_multiroad_create_meteodata
                                     else
                                         latest_model = j_mod
                                     end if
-                                    ! if (meteo_obs_data(relhumidity_index,datetime_match,road_index).ne.missing_data.and.replace_which_meteo_with_obs(relhumidity_index).gt.0) then
-                                    !     relhumidity_bias = meteo_temp(relhumidity_index) - meteo_obs_data(relhumidity_index,datetime_match,road_index)
-                                    !     print*, relhumidity_bias, meteo_temp(relhumidity_index), meteo_obs_data(relhumidity_index,datetime_match,road_index), t
-                                    ! endif
+                                    if (meteo_obs_data(relhumidity_index,datetime_match,road_index).ne.missing_data.and.replace_which_meteo_with_obs(relhumidity_index).gt.0) then
+                                        relhumidity_bias = meteo_temp(relhumidity_index) - meteo_obs_data(relhumidity_index,datetime_match,road_index)
+                                    endif
                                 end if
-                                if (meteo_obs_data(temperature_index,datetime_match,road_index).ne.missing_data.and.replace_which_meteo_with_obs(temperature_index).gt.0) meteo_temp(temperature_index)=meteo_obs_data(temperature_index,datetime_match,road_index)
+
+                                if (meteo_obs_data(temperature_index,datetime_match,road_index).ne.missing_data.and.replace_which_meteo_with_obs(temperature_index).gt.0) then 
+                                    meteo_temp(temperature_index)=meteo_obs_data(temperature_index,datetime_match,road_index)
+                                endif
                                 if (meteo_obs_data(dir_wind_index,datetime_match,road_index).ne.missing_data.and.replace_which_meteo_with_obs(dir_wind_index).gt.0) meteo_temp(dir_wind_index)=meteo_obs_data(dir_wind_index,datetime_match,road_index)
                                 if (meteo_obs_data(speed_wind_index,datetime_match,road_index).ne.missing_data.and.replace_which_meteo_with_obs(speed_wind_index).gt.0) meteo_temp(speed_wind_index)=meteo_obs_data(speed_wind_index,datetime_match,road_index)
                                 if (meteo_obs_data(relhumidity_index,datetime_match,road_index).ne.missing_data.and.replace_which_meteo_with_obs(relhumidity_index).gt.0) meteo_temp(relhumidity_index)=meteo_obs_data(relhumidity_index,datetime_match,road_index)
@@ -843,9 +846,7 @@ subroutine NORTRIP_multiroad_create_meteodata
                             if (replace_which_meteo_with_obs(cloudfraction_index).lt.0) meteo_temp(cloudfraction_index)=missing_data
                             if (replace_which_meteo_with_obs(road_temperature_index).lt.0) meteo_temp(road_temperature_index)=missing_data
 
-                        end do
                     end if
-
                     ! !-------------- Relax meteo variables NB: currently only works with "replace_meteo_with_met_forecast.eq.1"  -------------------------------
                     if (scaling_for_relaxation .ne. 0 .and. replace_meteo_with_obs.eq.2 .and. t >  maxval(obs_exist) .and. replace_meteo_with_met_forecast.eq.1 .and. meteo_nc_forecast_available .and. road_index.ne.0 ) then ! t is higher than the highest timestep with observations (This assumes that the obs array starts at the first timestep)!TODO: Make it possible to also relax regular arome data.
                         !Temperature
@@ -872,13 +873,8 @@ subroutine NORTRIP_multiroad_create_meteodata
                             meteo_temp(shortwaveradiation_index)= relax_meteo_variable_gaussian(meteo_temp(shortwaveradiation_index), model_at_latest_observation, latest_observation, t-maxval(obs_exist) ,timestep,scaling_for_relaxation)
                         end if
 
-                        !Relative Humidity
-                        latest_observation = meteo_obs_data(relhumidity_index, latest_observation_index, road_index)
-                        model_at_latest_observation = var3d_nc_forecast(relhumidity_index_forecast,grid_index_rl_forecast(x_index_forecast,i),grid_index_rl_forecast(y_index_forecast,i),latest_model)*100
-
-                        if ( latest_observation .ne. missing_data ) then
-                            meteo_temp(relhumidity_index)= relax_meteo_variable_gaussian(meteo_temp(relhumidity_index), model_at_latest_observation, latest_observation, t-maxval(obs_exist) ,timestep,scaling_for_relaxation)    
-                        end if
+                        ! !Relative Humidity
+                        meteo_temp(relhumidity_index)=min(meteo_temp(relhumidity_index)-relhumidity_bias,100.)     
                         !Pressure
                         latest_observation = meteo_obs_data(pressure_index, latest_observation_index, road_index)
                         

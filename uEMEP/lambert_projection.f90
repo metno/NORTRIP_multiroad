@@ -49,7 +49,7 @@ subroutine lb2lambert_uEMEP(x,y,gl,gb,lon0,lat0)
     implicit none
     real, intent(in) ::gl,gb,lon0,lat0
     real, intent(out)::x,y
-    real ::r,t
+    real ::r
     real ::PI
     real :: earth_radius,k,F,y0
     real rad2deg
@@ -73,7 +73,7 @@ subroutine lb2lambert2_uEMEP(x,y,gl,gb,projection_attributes)
     double precision, intent(in) :: projection_attributes(10)
     real, intent(in) ::gl,gb
     real, intent(out)::x,y
-    real ::r,t
+    real ::r
     real ::PI
     real :: earth_radius,k,F,y0
     real deg2rad,rad2deg,k_lambert,lat0_lambert

@@ -37,6 +37,12 @@
     double precision, allocatable :: var3d_nc2_dp(:,:)
 
     logical dim_read_flag
+
+    !Local variables used in the Avinor case:
+    integer,dimension(1) :: f
+    integer,dimension(1) :: l
+    integer :: first_value
+    integer :: last_value
     
 	write(unit_logfile,'(A)') '================================================================'
 	write(unit_logfile,'(A)') 'Reading additional meteorological data (NORTRIP_read_analysismeteo_netcdf4)'
@@ -46,7 +52,7 @@
     pathname_nc2_in=pathname_nc2
     filename_nc2_in=filename_nc2_template
     new_start_date_input=start_date_input
-         
+
     if (.not.allocated(meteo_nc2_available)) allocate (meteo_nc2_available(n_hours_input)) 
     if (.not.allocated(meteo_var_nc2_available)) allocate (meteo_var_nc2_available(n_hours_input,num_var_nc2)) 
     meteo_var_nc2_available=.true.
@@ -54,22 +60,26 @@
     dim_read_flag=.false.
     
     !Loop through the number of time steps and read in data when available
-    do t=1,int(n_hours_input/timesteps_in_hour)
+    do t=1,int(n_hours_input)
+        temp_date=date_to_number(start_date_input, ref_year)
+        call number_to_date(temp_date+(t-1)/dble(24.*timesteps_in_hour),new_start_date_input,ref_year)
+        if (new_start_date_input(minute_index) == 0) then !Only look for files at whole hours
 
-        temp_date=date_to_number(start_date_input,ref_year)
-        call number_to_date(temp_date+(t-1)/dble(24.),new_start_date_input,ref_year)
-        write(unit_logfile,'(a,7i)') 'Date array: ',t,new_start_date_input(1:6)
-        call date_to_datestr_bracket(new_start_date_input,filename_nc2_in,filename_nc2)
-        call date_to_datestr_bracket(new_start_date_input,pathname_nc2_in,pathname_nc2)
-        pathfilename_nc2=trim(pathname_nc2)//trim(filename_nc2)
+            call date_to_datestr_bracket(new_start_date_input,filename_nc2_in,filename_nc2)
+            call date_to_datestr_bracket(new_start_date_input,pathname_nc2_in,pathname_nc2)
+            pathfilename_nc2=trim(pathname_nc2)//trim(filename_nc2)
         
-        !Test existence of the filename. If does not exist then skip the time index
-        inquire(file=trim(pathfilename_nc2),exist=exists)
-        if (.not.exists) then
-            write(unit_logfile,'(A,A)') ' WARNING: Meteo netcdf2 file does not exist: ', trim(pathfilename_nc2)
+            !Test existence of the filename. If does not exist then skip the time index
+            inquire(file=trim(pathfilename_nc2),exist=exists)
+            if (.not.exists) then
+                write(unit_logfile,'(A,A)') ' WARNING: Meteo netcdf2 file does not exist: ', trim(pathfilename_nc2)
+                meteo_nc2_available(t)=.false.
+            else
+                write(unit_logfile,'(a,7i)') 'Date array: ',t,new_start_date_input(1:6)
+                meteo_nc2_available(t)=.true.
+            endif
+        else 
             meteo_nc2_available(t)=.false.
-        else
-            meteo_nc2_available(t)=.true.
         endif
 
         !Open the netcdf file for reading
@@ -90,7 +100,6 @@
                     status_nc2 = nf90_get_att(id_nc2, var_id_nc2_projection, 'latitude_of_projection_origin', meteo_nc2_projection_attributes(4))
                     status_nc2 = nf90_get_att(id_nc2, var_id_nc2_projection, 'earth_radius', meteo_nc2_projection_attributes(5))
                     meteo_nc2_projection_type=LCC_projection_index
-                            
                 write(unit_logfile,'(A,5f12.2)') 'Reading lambert_conformal_conic projection. ',meteo_nc2_projection_attributes(1:5)
             else
                 meteo_nc2_projection_type=LL_projection_index             
@@ -105,7 +114,7 @@
         
                 call NORTRIP_reduce_meteo_region2(id_nc2)
                 dim_read_flag=.true.
-            end if 
+            endif 
             status_nc2 = NF90_INQ_DIMID (id_nc2,dim_name_nc2(time_index2),dim_id_nc2(time_index2))
             status_nc2 = NF90_INQUIRE_DIMENSION (id_nc2,dim_id_nc2(time_index2),dimname_temp,dim_length_nc2(time_index2))
             write(unit_logfile,'(A,3I)') ' Size of dimensions (x,y,t): ',dim_length_nc2
@@ -116,7 +125,6 @@
             endif
         
             !Allocate the nc arrays for reading
-            !write(*,*) dim_length_nc2(x_index2),dim_length_nc2(y_index2),dim_length_nc2(time_index2)
             if (.not.allocated(var1d_nc2)) allocate (var1d_nc2(num_dims_nc2,maxval(dim_length_nc2))) !x and y and time maximum dimensions
             if (.not.allocated(var3d_nc2)) allocate (var3d_nc2(num_var_nc2,dim_length_nc2(x_index2),dim_length_nc2(y_index2),n_hours_input))
             if (.not.allocated(var2d_nc2)) allocate (var2d_nc2(num_var_nc2,dim_length_nc2(x_index2),dim_length_nc2(y_index2))) !Lat and lon and elevation
@@ -217,7 +225,7 @@
             dgrid_nc2(y_index2)=var1d_nc2(y_index2,j_grid_mid)-var1d_nc2(y_index2,j_grid_mid-1)
                 
             !If the coordinates are in km instead of metres then change to metres (assuming the difference is not going to be > 100 km
-            if (dgrid_nc2(x_index2).lt.100) then
+            if (dgrid_nc2(x_index).lt.100.and.meteo_nc2_projection_type.ne.LL_projection_index) then
                 dgrid_nc2=dgrid_nc2*1000.
                 var1d_nc2(x_index2,:)=var1d_nc2(x_index2,:)*1000.
                 var1d_nc2(y_index2,:)=var1d_nc2(y_index2,:)*1000.
@@ -231,6 +239,22 @@
         endif !End if exists
     enddo !end t loop
     
+
+    !NOTE: the below loop is currently just relevant for the runway application (calculation_type = Avinor). If more than one hour of MET_Nordic_analysis is available, 
+    !interpolate the values between the first and the last value (NB: Should therefore only be used when it is known that there is likely max. two consecutive hours available.)
+    !Set the meteo_nc2_available to .true. for these timesteps, so that the underlying meteorology will be overwritten by these values in "save_meteodata" subroutine. 
+    if (count(meteo_nc2_available) == 2 .and. calculation_type=="Avinor") then !Check if MET_Nordic_analysis is available for more than one hour. 
+        f = findloc(meteo_nc2_available, .true., back = .false.) 
+        l = findloc(meteo_nc2_available, .true., back = .true.)
+        first_value = f(1)
+        last_value = l(1)
+        
+        do t = first_value, last_value 
+            var3d_nc2(:,:,:,t) = var3d_nc2(:,:,:,first_value) + (t-first_value)*(var3d_nc2(:,:,:,last_value)-var3d_nc2(:,:,:,first_value))/(last_value-first_value)
+            meteo_nc2_available(t) = .true.
+            
+        enddo    
+    endif
     if (allocated(var3d_nc2_dp)) deallocate (var3d_nc2_dp)
     if (allocated(var2d_nc2_dp)) deallocate (var2d_nc2_dp)
 
