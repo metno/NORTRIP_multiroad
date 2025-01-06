@@ -514,6 +514,7 @@ subroutine NORTRIP_read_metcoop_netcdf4
             var3d_nc(:,:,:,i-int(1/timestep)+1) = var3d_nc_old(:,:,:,floor(i*timestep)) + ( var3d_nc_old(:,:,:,min(floor(i*timestep)+1,size(var3d_nc_old,dim=4))) - var3d_nc_old(:,:,:,floor(i*timestep)) ) * (i*timestep-floor(i*timestep)) !/1 
 
             var3d_nc(precip_index,:,:,i-int(1/timestep)+1) = max(0.,var3d_nc_old(precip_index,:,:,min(floor(i*timestep)+1,size(var3d_nc_old,dim=4)))/6)
+            var3d_nc(precip_snow_index,:,:,i-int(1/timestep)+1) = max(0.,var3d_nc_old(precip_snow_index,:,:,min(floor(i*timestep)+1,size(var3d_nc_old,dim=4)))/6)
 
             var1d_time_nc(i-int(1/timestep)+1) = var1d_time_nc_old(floor(i*timestep)) + ( var1d_time_nc_old(min(floor(i*timestep)+1,size(var1d_time_nc_old))) - var1d_time_nc_old(floor(i*timestep)) ) * (i*timestep-floor(i*timestep)) !/1 
 
