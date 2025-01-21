@@ -90,7 +90,7 @@
     !Read in static road link data.
     if (index(calculation_type,'road weather').gt.0.or.index(calculation_type,'uEMEP').gt.0.or.index(calculation_type,'Avinor').gt.0) then
         call NORTRIP_multiroad_read_staticroadlink_data_ascii
-    elseif (index(calculation_type,'gridded')) then
+    elseif (index(calculation_type,'gridded')) then !TODO: Rewrite this to be a logical
         call NORTRIP_multiroad_read_staticroadlink_data_gridded   
     else
         call NORTRIP_multiroad_read_staticroadlink_data

@@ -217,7 +217,12 @@ subroutine NORTRIP_multiroad_read_weekdynamictraffic_data
         week_day_temp=day_of_week(date_data_temp(:))
         write(*,'(a,i4,3i5,3i8)') 'DATES(t,yyyy,mm,dd,day,week,week_day):  ',t,date_data_temp(1:3),julian_day,week_of_year,week_day_temp
 
-        hour_temp=date_data_temp(hour_index)+DIFUTC_H_traffic_temp
+        if ( timesteps_in_hour > 1 ) then
+            hour_temp=date_data_temp(hour_index)+DIFUTC_H_traffic_temp+1
+        else
+            hour_temp=date_data_temp(hour_index)+DIFUTC_H_traffic_temp
+        endif
+
         if (hour_temp.le.0) then
             hour_temp=24+hour_temp
             week_day_temp=week_day_temp-1
@@ -343,6 +348,7 @@ subroutine NORTRIP_multiroad_read_weekdynamictraffic_data
     do i=1,n_roadlinks
         do v=1,num_veh
             do ty=1,num_tyre
+                !print*, 
                 traffic_data(N_t_v_index(ty,v),1:n_hours_input,i)=traffic_data(N_v_index(v),1:n_hours_input,i)*tyre_fraction(v,ty)
             enddo
         enddo

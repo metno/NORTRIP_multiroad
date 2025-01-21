@@ -116,7 +116,9 @@ subroutine NORTRIP_read_metcoop_netcdf4
         else
             write(unit_logfile,'(A,A)') ' Found earlier meteo netcdf file: ', trim(pathfilename_nc)
         endif
-        
+    else 
+        write(*, *) "ERROR: Meteo file was found on first try. Need to use file from at least one hour back to get correct radiation data. Stopping."
+        stop
     endif
     if (.not.found_file) then
         pathfilename_nc=trim(pathname_nc)//trim(filename_alternative_nc)
