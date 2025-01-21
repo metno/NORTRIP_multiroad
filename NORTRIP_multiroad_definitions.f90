@@ -390,7 +390,7 @@
     data dayofweek_str/'Mon','Tue','Wed','Thu','Fri','Sat','Sun'/
     
     !Reference year for meteo data
-    integer ref_year
+    integer :: ref_year=1970
     integer :: ref_year_EMEP=1900
     integer :: ref_year_meteo=1970
 

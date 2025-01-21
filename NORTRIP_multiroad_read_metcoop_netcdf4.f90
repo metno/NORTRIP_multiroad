@@ -129,7 +129,7 @@
         found_file=.false.
         do i=1,25
             !call incrtm(-24,new_start_date_input(1),new_start_date_input(2),new_start_date_input(3),new_start_date_input(4))
-            temp_date=date_to_number(new_start_date_input)
+            temp_date=date_to_number(new_start_date_input,ref_year)
             call number_to_date(temp_date-1./24.,new_start_date_input,ref_year)
             !write(*,*) i,new_start_date_input(1:4)
             call date_to_datestr_bracket(new_start_date_input,filename_alternative_nc_in,filename_alternative_nc)
