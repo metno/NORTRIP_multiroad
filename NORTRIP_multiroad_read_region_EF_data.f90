@@ -148,6 +148,7 @@
     !do t=1,n_hours_input
         !Base on the starting date, valid for one day but not necessarily for many more
         t=1
+        ref_year=date_data(year_index,t)
         !Set years for studded tyre season comparison. Assumes the end of season is the following year
         start_stud_season(year_index)=date_data(year_index,t)
         if (date_to_number(date_data(:,t),ref_year).gt.date_to_number(start_stud_season,ref_year)) then
