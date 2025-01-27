@@ -92,7 +92,7 @@ subroutine NORTRIP_multiroad_read_staticroadlink_data
 
     !Open the file for reading
     unit_in=20
-    open(unit_in,file=pathfilename_rl(2),access='sequential',status='old',readonly)  
+    open(unit_in,file=pathfilename_rl(2),access='sequential',status='old',readonly) 
     write(unit_logfile,'(a)') ' Opening road link file(2) '//trim(pathfilename_rl(2))
     
     rewind(unit_in)

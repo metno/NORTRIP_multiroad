@@ -94,6 +94,7 @@
                 exhaust_EF_region(k,li),exhaust_EF_region(k,he), &
                 nox_EF_region(k,li),nox_EF_region(k,he)
                 
+                !write(*,*) k,k_index,region_id(k)
                 !write(*,*) max_stud_fraction_region(k,li),max_stud_fraction_region(k,he),min_stud_fraction_region(k,li),min_stud_fraction_region(k,he)
         enddo
         else
@@ -113,7 +114,7 @@
          
     close(unit_in,status='keep')
     endif
-    
+
     if (.not.allocated(airquality_data)) allocate (airquality_data(num_airquality_index,n_hours_input,n_roadlinks))
 
     !Calculate the studded tyre share for each road link based on the region_id
@@ -123,8 +124,10 @@
     airquality_data(f_conc_index,:,:)=1.
     
     do i=1,n_roadlinks
+        !if (mod(i,10000).eq.0) write(*,*) i
         !Find the corresponding region_id and attribute the studded tyre and emission factor data to it
         !ID's in roadlink data are kommune, first two numbers are fylke
+
         !if (exists) then
         do k=1,n_region
             !if (int(inputdata_int_rl(region_id_rl_index,i)/100).eq.region_id(k)) then
@@ -139,6 +142,7 @@
                 in_exhaust_EF=exhaust_EF_region(k,:)
                 in_nox_EF=nox_EF_region(k,:)
                 !write(*,*) region_id(k)
+                exit
             else
                 !Need an alternative here? If region not found then it will use the values from the last road read. Should be OK as long as it is not the first road
             endif
@@ -148,7 +152,7 @@
     !do t=1,n_hours_input
         !Base on the starting date, valid for one day but not necessarily for many more
         t=1
-        ref_year=date_data(year_index,t)
+        ref_year=date_data(year_index,t)-1 !ref_year must be at least one less than current year because the previous year is also looked at.
         !Set years for studded tyre season comparison. Assumes the end of season is the following year
         start_stud_season(year_index)=date_data(year_index,t)
         if (date_to_number(date_data(:,t),ref_year).gt.date_to_number(start_stud_season,ref_year)) then
