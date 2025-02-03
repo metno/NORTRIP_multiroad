@@ -50,21 +50,21 @@
     
    !Place the start date string into the start date array
     character_length = LEN_TRIM(start_date_and_time)
-    if (character_length >= 10) then
-        read(start_date_and_time, *)  start_date_input(year_index),start_date_input(month_index),start_date_input(day_index),start_date_input(hour_index)
-        start_date_input(minute_index:second_index)=0
+    if (character_length >= 16) then
+        read(start_date_and_time, *)  start_date_input(year_index),start_date_input(month_index),start_date_input(day_index),start_date_input(hour_index),start_date_input(minute_index)
+        start_date_input(second_index)=0
     else
-        write(unit_logfile,'(A)') ' WARNING: "start_date_and_time" is too short. Using default date'
+        write(unit_logfile,'(A)') ' WARNING: "start_date_and_time" is too short, should be on the form yyyy,mm,dd,HH,MM. Using default date'
         start_date_input=start_date_default
     endif
 
     !Place the end date string into the end date array
     character_length = LEN_TRIM(end_date_and_time)
-    if (character_length >= 10) then
-        read(end_date_and_time, *)  end_date_input(year_index),end_date_input(month_index),end_date_input(day_index),end_date_input(hour_index)
-        end_date_input(minute_index:second_index)=0
+    if (character_length >= 16) then
+        read(end_date_and_time, *)  end_date_input(year_index),end_date_input(month_index),end_date_input(day_index),end_date_input(hour_index),end_date_input(minute_index)
+        end_date_input(second_index)=0
     else
-        write(unit_logfile,'(A)') ' WARNING: "end_date_and_time" is too short. Using default date'
+        write(unit_logfile,'(A)') ' WARNING: "end_date_and_time" is too short, should be on the form yyyy,mm,dd,HH,MM. Using default date'
         end_date_input=end_date_default
     endif  
 
@@ -73,11 +73,11 @@
         open(unit_logfile,file=filename_log,status='old',position='append')
     endif
     
-    write(unit_logfile,'(A,4I5)') ' Start date: ', start_date_input(year_index),start_date_input(month_index),start_date_input(day_index),start_date_input(hour_index)
-    write(unit_logfile,'(A,4I5)') ' End date: ', end_date_input(year_index),end_date_input(month_index),end_date_input(day_index),end_date_input(hour_index)
+    write(unit_logfile,'(A,5I5)') ' Start date: ', start_date_input(year_index),start_date_input(month_index),start_date_input(day_index),start_date_input(hour_index),start_date_input(minute_index)
+    write(unit_logfile,'(A,5I5)') ' End date: ', end_date_input(year_index),end_date_input(month_index),end_date_input(day_index),end_date_input(hour_index),end_date_input(minute_index)
     
     !Calculate the number of hours between end and start dates
-    n_hours_input=int((date_to_number(end_date_input,ref_year)-date_to_number(start_date_input,ref_year))*24.+.5)+1
+    n_hours_input=int((date_to_number(end_date_input,ref_year)-date_to_number(start_date_input,ref_year))*24./timestep+.5)+1
     !This is only valid for 3 hourly EMEP data. Taken out
     !if (index(meteo_data_type,'emep').gt.0) then
     !    n_hours_input=(n_hours_input-1)/3+1
@@ -89,25 +89,27 @@
         write(unit_logfile,'(A)') ' ERROR: Number of hours is 0 or less. Stopping'
         STOP 5
     endif
-    write(unit_logfile,'(A,4I5)') ' Number of hours: ', n_hours_input
+    write(unit_logfile,'(A,4I5)') ' Number of timesteps: ', n_hours_input
     
     !Allocate a time array to the input data
-    allocate (date_data(num_date_index,n_hours_input))
+    allocate (date_data(num_date_index,n_hours_input)) !TODO: Should this array still use hours to determine second dimension, or should it be determined by the timestep? Best option to rename n_hours_input? It is also unclear what this "input" refers to? The dates that have been given as input?
     date_data=0
     
-    !date_data(1,t)=start_date_input
-    do t=1,n_hours_input
-        a_temp=start_date_input
-        call incrtm(t-1,a_temp(1),a_temp(2),a_temp(3),a_temp(4))
-        date_data(:,t)=a_temp
-        !write(*,*) date_data(:,t)
-        !num_temp=date_to_number(a_temp)
-        !call number_to_date(num_temp,a_temp)
-        !write(*,*) a_temp
+    if ( timestep .eq. 1. ) then
+        do t=1,n_hours_input
+            a_temp=start_date_input
+            call incrtm(t-1,a_temp(1),a_temp(2),a_temp(3),a_temp(4))
+            date_data(:,t)=a_temp
+        enddo
+    else 
+        date_data(:,1) = start_date_input
+        do t=0,n_hours_input-1
+            a_temp=start_date_input
+            call minute_increment(int(minutes_in_hour*timestep)*t,a_temp(1),a_temp(2),a_temp(3),a_temp(4),a_temp(5)) 
+            date_data(:,t+1)=a_temp    
+        enddo
+    end if
 
-    enddo
-
-    
     !Fill in any time templates. Not in the NORTRIP paths as this must be set later
     !These meteo path names insert dates when reading the data, in case the paths need to be changed
     !call date_to_datestr_bracket(start_date_input,pathname_nc,pathname_nc)
@@ -119,6 +121,7 @@
     call date_to_datestr_bracket(start_date_input,filename_nc_template,filename_nc)
     call date_to_datestr_bracket(start_date_input,filename_alternative_nc_template,filename_alternative_nc)
     call date_to_datestr_bracket(start_date_input,filename_nc2_template,filename_nc2)
+    call date_to_datestr_bracket(start_date_input,filename_nc_forecast_template,filename_nc_forecast)
     call date_to_datestr_bracket(start_date_input,filename_rl(1),filename_rl(1))
     call date_to_datestr_bracket(start_date_input,filename_rl(2),filename_rl(2))
     call date_to_datestr_bracket(start_date_input,filename_traffic,filename_traffic)
@@ -131,8 +134,11 @@
     call date_to_datestr_bracket(start_date_input,filename_alternative_nc_template,filename_alternative_nc)
     call date_to_datestr_bracket(start_date_input,inpath_meteo_obs_data,inpath_meteo_obs_data)
     call date_to_datestr_bracket(start_date_input,infile_meteo_obs_data,infile_meteo_obs_data)
+    call date_to_datestr_bracket(start_date_input,inpath_meteo_obs_netcdf_data,inpath_meteo_obs_netcdf_data)
+    call date_to_datestr_bracket(start_date_input,infile_meteo_obs_netcdf_data_template,infile_meteo_obs_netcdf_data)
+    call date_to_datestr_bracket(start_date_input,infile_meteo_obs_netcdf_data_template,infile_meteo_obs_netcdf_data)
     call date_to_datestr_bracket(start_date_input,path_outputdata,path_outputdata)    
-    
+
     !Roadlink ID activity files
     call date_to_datestr_bracket(start_date_input,inpath_activity,inpath_activity)    
     call date_to_datestr_bracket(start_date_input,infile_activity,infile_activity)    
@@ -249,6 +255,7 @@
     city_str(2)=match_string_char('city_str2',unit_in,unit_logfile,'')
     pathname_nc=match_string_char('inpath_meteo_nc',unit_in,unit_logfile,'')
     pathname_nc2=match_string_char('inpath_meteo_nc2',unit_in,unit_logfile,'')
+    pathname_nc_forecast=match_string_char('inpath_meteo_nc_forecast',unit_in,unit_logfile,'')
     pathname_rl(1)=match_string_char('inpath_static_road_1',unit_in,unit_logfile,'')
     pathname_rl(2)=match_string_char('inpath_static_road_2',unit_in,unit_logfile,'')
     pathname_traffic=match_string_char('inpath_dynamic_road',unit_in,unit_logfile,'')
@@ -259,6 +266,7 @@
     filename_nc_template=match_string_char('infile_meteo_nc',unit_in,unit_logfile,'')
     filename_alternative_nc_template=match_string_char('infile_meteo_alternative_nc',unit_in,unit_logfile,'')
     filename_nc2_template=match_string_char('infile_meteo_nc2',unit_in,unit_logfile,'')
+    filename_nc_forecast_template=match_string_char('infile_meteo_nc_forecast',unit_in,unit_logfile,'')
     filename_rl(1)=match_string_char('infile_static_road_1',unit_in,unit_logfile,'')
     filename_rl(2)=match_string_char('infile_static_road_2',unit_in,unit_logfile,'')
     filename_traffic=match_string_char('infile_dynamic_road',unit_in,unit_logfile,'')
@@ -302,7 +310,11 @@
     DIFUTC_H=match_string_val('Time difference site',unit_in,unit_logfile,0.0)
     DIFUTC_H_traffic=match_string_val('Time difference traffic',unit_in,unit_logfile,0.0)
     missing_data=match_string_val('Missing data value',unit_in,unit_logfile,-999.)
+    timesteps_in_hour=match_string_int('Number of timesteps within one hour',unit_in,unit_logfile,1)
+    timestep = 1./timesteps_in_hour
     hours_between_init=match_string_int('Hours between saving init files',unit_in,unit_logfile,24)
+    hours_between_init = int(hours_between_init/timestep)
+
     calculation_type=match_string_char('Calculation type',unit_in,unit_logfile,'normal')                     	
     timevariation_type=match_string_char('Timevariation type',unit_in,unit_logfile,'normal')                     	
     ID_dynamic_emission(pm25_index)=match_string_char('Model output ID PM2.5',unit_in,unit_logfile,'{no-index-in-main-config-file}')                     	
@@ -422,10 +434,13 @@
     !Data for reading and replacing model data with observational data
     replace_meteo_with_obs=match_string_int('replace_meteo_with_obs',unit_in,unit_logfile,0)
     replace_meteo_with_yr=match_string_int('replace_meteo_with_yr',unit_in,unit_logfile,0)
+    replace_meteo_with_met_forecast=match_string_int('replace_meteo_with_met_forecast',unit_in,unit_logfile,0)
     wetbulb_snow_rain_flag=match_string_int('wetbulb_snow_rain_flag',unit_in,unit_logfile,wetbulb_snow_rain_flag)
     filename_meteo_obs_metadata=match_string_char('filename_meteo_obs_metadata',unit_in,unit_logfile,'')
     inpath_meteo_obs_data=match_string_char('inpath_meteo_obs_data',unit_in,unit_logfile,'')
     infile_meteo_obs_data=match_string_char('infile_meteo_obs_data',unit_in,unit_logfile,'')
+    inpath_meteo_obs_netcdf_data=match_string_char('inpath_meteo_obs_netcdf_data',unit_in,unit_logfile,'')
+    infile_meteo_obs_netcdf_data_template=match_string_char('infile_meteo_obs_netcdf_data',unit_in,unit_logfile,'')
     call match_string_multi_int('replace_which_meteo_with_obs',unit_in,unit_logfile,replace_which_meteo_with_obs_input(1:num_replace_meteo_with_obs_input),num_replace_meteo_with_obs_input)
     !pressure,temperature,relhumidity,cloudfraction,precip,shortwave_rad,longwave_rad,speed_wind,dir_wind,road_temperature
     if (replace_which_meteo_with_obs_input(1).ne.-999) then
@@ -542,7 +557,7 @@
     if (temp_int.eq.1) only_use_major_roadlinks=.true. 
     
     number_of_time_steps=match_string_int('number_of_time_steps',unit_in,unit_logfile,0)
-    
+    scaling_for_relaxation=match_string_val('scaling_for_relaxation',unit_in,unit_logfile,0)
     if (unit_logfile.gt.0) then
         close(unit_logfile,status='keep')
     endif
@@ -654,6 +669,9 @@
         filename_meteo_obs_metadata=replace_string_char(city_str(i),trim(temp_str),filename_meteo_obs_metadata)
         inpath_meteo_obs_data=replace_string_char(city_str(i),trim(temp_str),inpath_meteo_obs_data)
         infile_meteo_obs_data=replace_string_char(city_str(i),trim(temp_str),infile_meteo_obs_data)
+
+        inpath_meteo_obs_netcdf_data=replace_string_char(city_str(i),trim(temp_str),inpath_meteo_obs_netcdf_data)
+        infile_meteo_obs_netcdf_data=replace_string_char(city_str(i),trim(temp_str),infile_meteo_obs_netcdf_data)
         
         !EF files
         inpath_region_EF=replace_string_char(city_str(i),trim(temp_str),inpath_region_EF)
@@ -824,46 +842,36 @@
         if (use_only_special_links_flag.eq.2) then
             write(unit_logfile,'(a,i)') ' Using all road links in calculation. Saving only special links: ',n_save_links
             !Set the saving of links to all roads
-            !write(*,*) 'Here 1'
+
             do i=1,n_roadlinks
                 save_links(i)=i
             enddo      
-            !write(*,*) 'Here 2'
-            !write(*,*) shape(inputdata_int_rl),n_roadlinks,roadindex_rl_index
+
             n_save_links=n_roadlinks
-            !write(*,*) shape(save_links),n_save_links,savedata_rl_index
-            
-            !write(*,*) maxval(save_links),minval(save_links)
-            !write(*,*) 'Here min: ',inputdata_int_rl(roadindex_rl_index,minval(save_links))
-            !write(*,*) 'Here max: ',inputdata_int_rl(roadindex_rl_index,maxval(save_links))
-            !write(*,*) 'Here :',save_links(1),save_links(n_save_links)
-            !write(*,*) inputdata_int_rl(roadindex_rl_index,:)
+
             do i=1,n_save_links
                 inputdata_int_rl(roadindex_rl_index,save_links(i))=save_links(i)
                 inputdata_int_rl(savedata_rl_index,save_links(i))=0
-                !write(*,*) i,inputdata_int_rl(roadindex_rl_index,i)
             enddo
             
         endif
     
-               !write(*,*) 'Here 3'
-     
+
+        !TODO: This should be fixed! Also, the "use_uEMEP_receptor_file" is used for avinor, even if does not involve uEMEP.
         !If api is in the receptor file name then read in a different way.
-        !This is not the best method for specifying file type and should be done differently
+        !This is not the best method for specifying file type and should be done differently 
         if (index(filename_NORTRIP_receptors,'api').gt.0) use_uEMEP_receptor_file=.true.
         if (index(filename_NORTRIP_receptors,'category').gt.0) read_receptor_type=.true.
-        
         if (use_uEMEP_receptor_file) then
             unit_in=20
             open(unit_in,file=filename_NORTRIP_receptors,access='sequential',status='old',readonly)  
             write(unit_logfile,'(a)') ' Opening receptor file '//trim(filename_NORTRIP_receptors)
     
             rewind(unit_in)
-            !call NXTDAT(unit_in,nxtdat_flag)
+
             !read the header to find out how many links there are
             read(unit_in,'(a)',ERR=19) temp_str1
             k=0
-            !write(*,*) trim(temp_str1)
             do while(.not.eof(unit_in))
                 k=k+1
                 if (read_receptor_type) then
@@ -872,7 +880,11 @@
                 else             
                     read(unit_in,*,ERR=19) name_receptor(k,1),lon_receptor(k),lat_receptor(k)!,h_receptor(k),name_receptor(k,2)
                     h_receptor(k)=0 !0 height
-                    type_receptor(k)=1 !AQ type
+                    if ( calculation_type == "Avinor" ) then                  
+                        type_receptor(k)=3 !runway type 
+                    else
+                        type_receptor(k)=1 !AQ type 
+                    end if
                     name_receptor(k,2)=name_receptor(k,1) !Name
                 endif
             enddo
@@ -915,10 +927,9 @@
                 save_road_name(i)=name_receptor(k,1)
                 call LL2UTM(1,utm_zone,lat_receptor(k),lon_receptor(k),save_road_y(i),save_road_x(i))
                 save_road_ospm_pos(i)=3
-                save_road_receptor_type(i)=type_receptor(k)
+                save_road_receptor_type(i)=type_receptor(k) !TODO: type_receptor(k) was hardcoded to 1 further up, which means that save_road_receptor_type was not 3 for runways, which it should be(?). I've now changed it to 3, but this needs some more thought
                 save_road_name2(i)=name_receptor(k,2)
 
-                !write(unit_logfile,'(I12,I20,i20,A32,2f12.1,I32)') i,save_road_index(i),save_road_id(i),trim(save_road_name(i)),save_road_x(i),save_road_y(i),save_road_ospm_pos(i)
                 endif
             enddo
             n_save_road=i
@@ -977,73 +988,68 @@
             i_link_adt_max=0
             do i=1,n_roadlinks
                 !Only look in the correct ID
-                distance_to_link2=sqrt((inputdata_rl(x0_rl_index,i)-save_road_x(j))**2+(inputdata_rl(y0_rl_index,i)-save_road_y(j))**2)
+                distance_to_link2=sqrt((inputdata_rl(x0_rl_index,i)-save_road_x(j))**2+(inputdata_rl(y0_rl_index,i)-save_road_y(j))**2) !TODO: Why is this called 2??
+
                 !Do not look for roads more than 2500 m away or look for tunnel portal jets, defined as 6 in NORTRIP. Should be specified better as parameter
                 if (distance_to_link2.lt.distance_to_link_min2.and.inputdata_int_rl(roadstructuretype_rl_index,i).ne.tunnelportal_roadtype) then
-                do ii=1,inputdata_int_rl(n_subnodes_rl_index,i)-1
- 
-                    call distrl(save_road_x(j),save_road_y(j),inputdata_rl_sub(x1_rl_index,ii,i),inputdata_rl_sub(y1_rl_index,ii,i),inputdata_rl_sub(x2_rl_index,ii,i),inputdata_rl_sub(y2_rl_index,ii,i),temp_val,temp_val2,distance_to_link)!(X0,Y0,X1,Y1,X2,Y2,XM,YM,DM)
-                    !call distrl(save_road_x(j),save_road_y(j),inputdata_rl(x1_rl_index,i),inputdata_rl(y1_rl_index,i),inputdata_rl(x2_rl_index,i),inputdata_rl(y2_rl_index,i),temp_val,temp_val2,distance_to_link)!(X0,Y0,X1,Y1,X2,Y2,XM,YM,DM)
-                    !write(*,'(i8,i8,f12.0,f12.0,f12.0,f12.0,f12.0,f12.0,f12.0,f12.0,f12.0)') j,i,save_road_x(j),save_road_y(j),inputdata_rl(x1_rl_index,i),inputdata_rl(y1_rl_index,i),temp_val,temp_val2,distance_to_link,distance_to_link2,distance_to_link_min
-                    !if (distance_to_link.lt.distance_to_link_min) then
-                    !    distance_to_link_min=distance_to_link
-                    !    i_link_distance_min=i
-                    !endif
-                    adt_of_link=inputdata_rl(adt_rl_index,i)
-                    !if (inputdata_int_rl(roadstructuretype_rl_index,i).eq.runway_roadtype) then
-                    !    !Set artificially high for runways so it will always be selected if it is within min_search_distance
-                    !    adt_of_link=1e12
-                    !endif
-                    
-                    !Find the AQ stations, largest ADT within 100 m, when the same ADT then the closest
-                    if (save_road_receptor_type(j).eq.receptor_aq_index) then
-                    !If the ADT is equal to or higher and the distance is less than the maximum allowed
-                    if (adt_of_link.ge.adt_of_link_max.and.distance_to_link.lt.min_search_distance) then
-                    !if the ADT is higher or if it is the same and the ditance is less than the shortest current
-                    if (adt_of_link.gt.adt_of_link_max.or.(adt_of_link.ge.adt_of_link_max.and.distance_to_link.lt.distance_to_link_min)) then
-                        adt_of_link_max=adt_of_link
-                        i_link_adt_max=i
-                        distance_to_link_min=distance_to_link
-                        i_link_distance_min=i
-                        !write(*,*) i_link_adt_max,adt_of_link_max,distance_to_link_min
-                    endif
-                    endif
-                    endif
-                    
-                    !Find the SVV and custom stations, closest road link
-                    if (save_road_receptor_type(j).eq.receptor_svv_index.or.save_road_receptor_type(j).eq.receptor_custom_index.or.save_road_receptor_type(j).eq.receptor_camera_index) then
-                    if (distance_to_link.lt.distance_to_link_min) then
-                        adt_of_link_max=adt_of_link
-                        i_link_adt_max=i
-                        distance_to_link_min=distance_to_link
-                        i_link_distance_min=i
-                    endif
-                    endif
+                    do ii=1,inputdata_int_rl(n_subnodes_rl_index,i)-1
+                        call distrl(save_road_x(j),save_road_y(j),inputdata_rl_sub(x1_rl_index,ii,i),inputdata_rl_sub(y1_rl_index,ii,i),inputdata_rl_sub(x2_rl_index,ii,i),inputdata_rl_sub(y2_rl_index,ii,i),temp_val,temp_val2,distance_to_link)!(X0,Y0,X1,Y1,X2,Y2,XM,YM,DM)
 
-                    !if (j.eq.1247) then
-                    !    write(*,'(5i,2f12.1)') save_road_receptor_type(j),type_receptor(j),receptor_custom_index,i,ii,i_link_distance_min,distance_to_link,distance_to_link_min
-                    !endif
+                        adt_of_link=inputdata_rl(adt_rl_index,i)
+                        if (inputdata_int_rl(roadstructuretype_rl_index,i).eq.runway_roadtype) then
+                            !Set artificially high for runways so it will always be selected if it is within min_search_distance
+                            adt_of_link=1e12
+                        endif
+                        
+                        !Find the AQ stations, largest ADT within 100 m, when the same ADT then the closest
+                        if (save_road_receptor_type(j).eq.receptor_aq_index) then
+                            !If the ADT is equal to or higher and the distance is less than the maximum allowed
+                            if (adt_of_link.ge.adt_of_link_max.and.distance_to_link.lt.min_search_distance) then
+                                !if the ADT is higher or if it is the same and the ditance is less than the shortest current
+                                if (adt_of_link.gt.adt_of_link_max.or.(adt_of_link.ge.adt_of_link_max.and.distance_to_link.lt.distance_to_link_min)) then
+                                    adt_of_link_max=adt_of_link
+                                    i_link_adt_max=i
+                                    distance_to_link_min=distance_to_link
+                                    i_link_distance_min=i
+                                endif
+                            endif
+                        endif
+                        
+                        !Find the SVV and custom stations, closest road link
+                        if (save_road_receptor_type(j).eq.receptor_svv_index.or.save_road_receptor_type(j).eq.receptor_custom_index.or.save_road_receptor_type(j).eq.receptor_camera_index) then
+                            if (distance_to_link.lt.distance_to_link_min) then
+                                adt_of_link_max=adt_of_link
+                                i_link_adt_max=i
+                                distance_to_link_min=distance_to_link
+                                i_link_distance_min=i
+                            endif
+                        endif
 
-                    !Find the Runway stations, closest road link and the link must be a runway
-                    if (save_road_receptor_type(j).eq.receptor_runway_index.and.inputdata_int_rl(roadstructuretype_rl_index,i).eq.runway_roadtype) then
-                    if (distance_to_link.lt.distance_to_link_min) then
-                        adt_of_link_max=adt_of_link
-                        i_link_adt_max=i
-                        distance_to_link_min=distance_to_link
-                        i_link_distance_min=i
-                    endif
-                    endif
+                        !if (j.eq.1247) then
+                        !    write(*,'(5i,2f12.1)') save_road_receptor_type(j),type_receptor(j),receptor_custom_index,i,ii,i_link_distance_min,distance_to_link,distance_to_link_min
+                        !endif
 
-                enddo
+                        !Find the Runway stations, closest road link and the link must be a runway
+                        if (save_road_receptor_type(j).eq.receptor_runway_index.and.inputdata_int_rl(roadstructuretype_rl_index,i).eq.runway_roadtype) then
+                            if (distance_to_link.lt.distance_to_link_min) then
+                                adt_of_link_max=adt_of_link
+                                i_link_adt_max=i
+                                distance_to_link_min=distance_to_link
+                                i_link_distance_min=i
+                            endif
+                        endif
+
+                    enddo
                 endif
-                !write(*,*) j,i,distance_to_link_min !save_road_x(j),save_road_y(j),inputdata_int_rl(id_rl_index,i),inputdata_rl(x1_rl_index,i),inputdata_rl(y2_rl_index,i)
+
             enddo
                 !write(*,'(2i,3f12.1)') j,i_link_distance_min,distance_to_link_min,save_road_x(j),save_road_y(j)
-            !if (i_link_distance_min.gt.0.and.distance_to_link_min.lt.100.) then
+
             if (i_link_distance_min.gt.0.and.i_link_adt_max.gt.0.and.distance_to_link_min.le.min_search_distance &
                 .or.(distance_to_link_min.lt.min_save_distance_custom.and.save_road_receptor_type(j).eq.receptor_custom_index) &
                 .or.(distance_to_link_min.lt.min_save_distance_camera.and.save_road_receptor_type(j).eq.receptor_camera_index) &
                 .or.(distance_to_link_min.lt.min_save_distance_runway.and.save_road_receptor_type(j).eq.receptor_runway_index)) then
+
                 jj=jj+1
                 !i_link_distance_min=i_link_adt_max
                 inputdata_int_rl(savedata_rl_index,i_link_distance_min)=1
@@ -1052,13 +1058,11 @@
                 !inputdata_int_rl(id_rl_index,i_link_distance_min)=save_road_id(j)
                 save_road_index(jj)=i_link_distance_min
                 save_meteo_index(jj)=j
-                !write(*,*) ':::',jj,i_link_distance_min,distance_to_link_min,inputdata_rl(x1_rl_index,i_link_distance_min),inputdata_rl(y1_rl_index,i_link_distance_min)
                 write(unit_logfile,'(a,i8,a24,f12.2,i12,i12,f12.0,i12,i12,a48)') 'Special links (i,name,dist,index,ID,ADT,linktype,rectype,recname): ',jj,trim(inputdata_char_rl(roadname_rl_index,i_link_distance_min)) &
                     ,distance_to_link_min,save_road_index(jj),inputdata_int_rl(id_rl_index,save_road_index(jj)),inputdata_rl(adt_rl_index,save_road_index(jj)),inputdata_int_rl(roadstructuretype_rl_index,save_road_index(jj)) &
                     ,save_road_receptor_type(j),trim(adjustl(save_road_name2(j)))
             else
                 write(unit_logfile,'(a,i8,a24,i8,a48,f12.2)') 'No links found (i,name,rectype,recname,dist): ',j,trim(adjustl(save_road_name(j))),save_road_receptor_type(j),trim(adjustl(save_road_name2(j))),distance_to_link_min
-            
             endif
         enddo
         write(unit_logfile,'(a,i)') ' Number of roads found near (<100 m) of receptor points  = ', jj
@@ -1070,7 +1074,6 @@
             n_save_links=jj
             save_links(1:n_save_links)=save_road_index(1:n_save_links)     
             write(unit_logfile,'(a,<n_save_links>i12)') ' Calculating and saving only selected link index: ',save_links(1:n_save_links)
-            !write(unit_logfile,'(a,<n_save_links>i12)') ' Saving only selected roadlink index: ',inputdata_int_rl(roadindex_rl_index,save_links(1:n_save_road))
             write(unit_logfile,'(a,<n_save_links>i12)') ' Saving only selected link ID: ',inputdata_int_rl(id_rl_index,save_links(1:n_save_links)) 
             write(unit_logfile,'(a,<n_save_links>a24)') ' Saving only selected link name: ',inputdata_char_rl(roadname_rl_index,save_links(1:n_save_links))
         elseif (use_only_special_links_flag.eq.2) then
@@ -1100,19 +1103,6 @@
         endif
 
     endif
-            
-      ! if (use_only_special_links_flag.eq.2) then
-      !      !Save all the road links
-      !      write(unit_logfile,'(a,i)') ' Saving all road links: ',n_save_links
-      !      do i=1,n_roadlinks
-      !          save_links(i)=i
-      !      enddo      
-      !      n_save_links=n_roadlinks
-      !      inputdata_int_rl(savedata_rl_index,save_links(1:n_save_links))=1
-      !  endif
- 
-
-    !inputdata_int_rl(roadindex_rl_index,save_links(1:n_save_links))=save_links(1:n_save_links)
 
     return
 10  write(unit_logfile,'(2A)') 'ERROR reading road receptor link file: ',trim(filename_NORTRIP_receptors)

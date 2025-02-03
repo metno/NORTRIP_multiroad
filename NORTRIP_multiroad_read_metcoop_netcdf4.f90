@@ -1,4 +1,4 @@
-    subroutine NORTRIP_read_metcoop_netcdf4
+subroutine NORTRIP_read_metcoop_netcdf4
     !Reads MEPS -  METcoop 66 hour forecast data
     
     use NORTRIP_multiroad_index_definitions
@@ -21,7 +21,7 @@
     integer, allocatable :: dim_start_metcoop_nc(:)
      
     character(256) dimname_temp
-    integer i,j,k
+    integer :: i,j,k,t
     integer i_grid_mid,j_grid_mid
     real dlat_nc
     integer exists
@@ -33,12 +33,12 @@
     integer dim_id_nc_ensemble
     logical ensemble_dim_flag
     integer nDims
-    
+
     double precision, allocatable :: var1d_nc_dp(:)
     double precision, allocatable :: var2d_nc_dp(:,:)
-    !double precision, allocatable :: var3d_nc_dp(:,:,:)
-    !double precision, allocatable :: var4d_nc_dp(:,:,:,:)
     real, allocatable :: var3d_emep(:,:,:)
+    real, allocatable :: var3d_nc_old(:,:,:,:)
+    real, allocatable :: var1d_nc_old(:,:)
     real, allocatable :: var4d_nc(:,:,:,:)
 
     real, allocatable :: var1d_nc_temp(:,:)
@@ -47,6 +47,10 @@
 
     double precision temp_date
     double precision date_to_number
+
+    integer :: a_temp(num_date_index) !Temporary array used when filling date_nc array
+    integer meteo_nc_timesteps !The number of timesteps read from the meteo file
+    character(10) :: time !for printing date and time
     
     integer var_id_nc_projection
     real :: TOC=273.15
@@ -72,10 +76,12 @@
     call date_to_datestr_bracket(start_date_input,pathname_nc_in,pathname_nc)
     
     pathfilename_nc=trim(pathname_nc)//trim(filename_nc)
-     
+    
+    found_file = .True. !To capture the case when the file exist on the first try.
+
     !Test existence of the filename. If does not exist then use default
-    found_file=.true.
     inquire(file=trim(pathfilename_nc),exist=exists)
+
     if (.not.exists) then
         write(unit_logfile,'(A,A)') ' WARNING: Meteo netcdf file does not exist: ', trim(pathfilename_nc)
         write(unit_logfile,'(A)') ' Will try every hour for the past 25 hours.'
@@ -110,51 +116,51 @@
         else
             write(unit_logfile,'(A,A)') ' Found earlier meteo netcdf file: ', trim(pathfilename_nc)
         endif
-        
+    else 
+        write(*, *) "ERROR: Meteo file was found on first try. Need to use file from at least one hour back to get correct radiation data. Stopping."
+        stop
     endif
-
     if (.not.found_file) then
-    pathfilename_nc=trim(pathname_nc)//trim(filename_alternative_nc)
-    write(unit_logfile,'(A,A)') ' Trying to find alternative meteo netcdf file does not exist: ', trim(pathfilename_nc)
-     
-    !Test existence of the filename. If does not exist then use default
-    inquire(file=trim(pathfilename_nc),exist=exists)
-    if (.not.exists) then
-        write(unit_logfile,'(A,A)') ' WARNING: Alternative meteo netcdf file does not exist: ', trim(pathfilename_nc)
-        write(unit_logfile,'(A)') ' Will try every hour for the past 25 hours.'
-        !write(*,'(A,A)') ' ERROR: Meteo netcdf file does not exist. Stopping: ', trim(pathfilename_nc)
+        pathfilename_nc=trim(pathname_nc)//trim(filename_alternative_nc)
+        write(unit_logfile,'(A,A)') ' Trying to find alternative meteo netcdf file does not exist: ', trim(pathfilename_nc)
         
-        !Start search back 24 hours
-        new_start_date_input=start_date_input
-        found_file=.false.
-        do i=1,25
-            !call incrtm(-24,new_start_date_input(1),new_start_date_input(2),new_start_date_input(3),new_start_date_input(4))
-            temp_date=date_to_number(new_start_date_input,ref_year)
-            call number_to_date(temp_date-1./24.,new_start_date_input,ref_year)
-            !write(*,*) i,new_start_date_input(1:4)
-            call date_to_datestr_bracket(new_start_date_input,filename_alternative_nc_in,filename_alternative_nc)
-            call date_to_datestr_bracket(new_start_date_input,pathname_nc_in,pathname_nc)
-            pathfilename_nc=trim(pathname_nc)//trim(filename_alternative_nc)
-            write(unit_logfile,'(A,A)') ' Trying: ', trim(pathfilename_nc)
-            inquire(file=trim(pathfilename_nc),exist=exists)
-            if (exists) then
-                found_file=.true.
-                exit
-            else 
-                found_file=.false.
+        !Test existence of the filename. If does not exist then use default
+        inquire(file=trim(pathfilename_nc),exist=exists)
+        if (.not.exists) then
+            write(unit_logfile,'(A,A)') ' WARNING: Alternative meteo netcdf file does not exist: ', trim(pathfilename_nc)
+            write(unit_logfile,'(A)') ' Will try every hour for the past 25 hours.'
+
+            !Start search back 24 hours
+            new_start_date_input=start_date_input
+            found_file=.false.
+            do i=1,25
+                !call incrtm(-24,new_start_date_input(1),new_start_date_input(2),new_start_date_input(3),new_start_date_input(4))
+                temp_date=date_to_number(new_start_date_input,ref_year)
+                call number_to_date(temp_date-1./24.,new_start_date_input,ref_year)
+                !write(*,*) i,new_start_date_input(1:4)
+                call date_to_datestr_bracket(new_start_date_input,filename_alternative_nc_in,filename_alternative_nc)
+                call date_to_datestr_bracket(new_start_date_input,pathname_nc_in,pathname_nc)
+                pathfilename_nc=trim(pathname_nc)//trim(filename_alternative_nc)
+                write(unit_logfile,'(A,A)') ' Trying: ', trim(pathfilename_nc)
+                inquire(file=trim(pathfilename_nc),exist=exists)
+                if (exists) then
+                    found_file=.true.
+                    exit
+                else 
+                    found_file=.false.
+                endif
+            enddo
+            
+            if (.not.found_file) then
+                write(unit_logfile,'(A,A)') ' ERROR: Alternative meteo netcdf file still does not exist: ', trim(pathfilename_nc)
+                write(unit_logfile,'(A)') ' STOPPING'
+                !write(*,'(A,A)') ' ERROR: Meteo netcdf file does not exist. Stopping: ', trim(pathfilename_nc)
+                stop 8
+            else
+                write(unit_logfile,'(A,A)') ' Found earlier meteo netcdf file: ', trim(pathfilename_nc)
             endif
-        enddo
-        
-        if (.not.found_file) then
-            write(unit_logfile,'(A,A)') ' ERROR: Alternative meteo netcdf file still does not exist: ', trim(pathfilename_nc)
-            write(unit_logfile,'(A)') ' STOPPING'
-            !write(*,'(A,A)') ' ERROR: Meteo netcdf file does not exist. Stopping: ', trim(pathfilename_nc)
-            stop 8
-        else
-            write(unit_logfile,'(A,A)') ' Found earlier meteo netcdf file: ', trim(pathfilename_nc)
+            
         endif
-        
-    endif
     endif
     
     !Open the netcdf file for reading
@@ -204,14 +210,12 @@
     endif
      
     !Allocate the nc arrays for reading
-    allocate (var1d_time_nc(dim_length_nc(time_index)) )!x and y and time maximum dimmensions
-    allocate (var1d_nc(num_dims_nc,maxval(dim_length_nc))) !x and y and time maximum dimmensions
+    allocate (var1d_time_nc_old(dim_length_nc(time_index)) ) !Time allocated separately bc. it needs to be double presicion.
+    allocate (var1d_nc_old(num_dims_nc,maxval(dim_length_nc))) !x and y and time maximum dimmensions
     allocate (var1d_nc_dp(maxval(dim_length_nc))) !x and y and time maximum dimmensions
-    allocate (var3d_nc(num_var_nc,dim_length_nc(x_index),dim_length_nc(y_index),dim_length_nc(time_index)))
+    allocate (var3d_nc_old(num_var_nc,dim_length_nc(x_index),dim_length_nc(y_index),dim_length_nc(time_index)))
     allocate (var2d_nc(2,dim_length_nc(x_index),dim_length_nc(y_index))) !Lat and lon
-    !allocate (var3d_nc_dp(dim_length_nc(x_index),dim_length_nc(y_index),dim_length_nc(time_index)))
     allocate (var2d_nc_dp(dim_length_nc(x_index),dim_length_nc(y_index))) !Lat and lon
-    !allocate (var4d_nc_dp(dim_length_nc(x_index),dim_length_nc(y_index),1,dim_length_nc(time_index)))
     if (index(meteo_data_type,'emep').gt.0) then
         allocate (var3d_emep(dim_length_nc(x_index),dim_length_nc(y_index),dim_length_nc(time_index)))
     else
@@ -223,36 +227,33 @@
     !Read the x, y and time values
     do i=1,num_dims_nc
         status_nc = NF90_INQ_VARID (id_nc, trim(dim_name_nc(i)), var_id_nc(i))
-        status_nc = NF90_GET_VAR (id_nc, var_id_nc(i), var1d_nc(i,1:dim_length_nc(i)), start=(/dim_start_nc(i)/), count=(/dim_length_nc(i)/))
+        status_nc = NF90_GET_VAR (id_nc, var_id_nc(i), var1d_nc_old(i,1:dim_length_nc(i)), start=(/dim_start_nc(i)/), count=(/dim_length_nc(i)/))
+
         if (i.eq.time_index) then
-        status_nc = NF90_GET_VAR (id_nc, var_id_nc(i), var1d_nc_dp(1:dim_length_nc(i)), start=(/dim_start_nc(i)/), count=(/dim_length_nc(i)/))
-        !write(*,*) status_nc,dim_length_nc(i),trim(dim_name_nc(i)), var1d_nc_dp(1), var1d_nc_dp(dim_length_nc(i))
-        
-        !This is only valid for 3 hourly EMEP data. Taken out
-        !if (index(meteo_data_type,'emep').gt.0) then
-            !Convert to seconds as this is given in days
-        !    var1d_nc_dp=var1d_nc_dp*3600.*24.
-        !endif
+            status_nc = NF90_GET_VAR (id_nc, var_id_nc(i), var1d_nc_dp(1:dim_length_nc(i)), start=(/dim_start_nc(i)/), count=(/dim_length_nc(i)/))
             
-        var1d_time_nc(:)=var1d_nc_dp(1:dim_length_nc(time_index))
+            !This is only valid for 3 hourly EMEP data. Taken out
+            !if (index(meteo_data_type,'emep').gt.0) then
+                !Convert to seconds as this is given in days
+            !    var1d_nc_dp=var1d_nc_dp*3600.*24.
+            !endif
+                
+            var1d_time_nc_old(:)=var1d_nc_dp(1:dim_length_nc(time_index))
             write(unit_logfile,'(3A,2i14)') ' ',trim(dim_name_nc(i)),' (min, max in hours): ' &
-                !,minval(int((var1d_nc(i,1:dim_length_nc(i))-var1d_nc(i,dim_start_nc(i)))/3600.+.5)+1) &
-                !,maxval(int((var1d_nc(i,1:dim_length_nc(i))-var1d_nc(i,dim_start_nc(i)))/3600.+.5)+1) 
-                ,int((var1d_nc(i,1)-var1d_nc(i,1))/3600.+.5)+1 &
-                ,int((var1d_nc(i,dim_length_nc(i))-var1d_nc(i,1))/3600.+.5)+1
-                !,int(var1d_nc(i,1)) &
-                !,int(var1d_nc(i,dim_length_nc(i)))
+                ,int((var1d_nc_old(i,1)-var1d_nc_old(i,1))/3600.+.5)+1 &
+                ,int((var1d_nc_old(i,dim_length_nc(i))-var1d_nc_old(i,1))/3600.+.5)+1
+
         else
             write(unit_logfile,'(3A,2f12.2)') ' ',trim(dim_name_nc(i)),' (min, max in km): ' &
-                ,minval(var1d_nc(i,1:dim_length_nc(i))),maxval(var1d_nc(i,1:dim_length_nc(i))) 
+                ,minval(var1d_nc_old(i,1:dim_length_nc(i))),maxval(var1d_nc_old(i,1:dim_length_nc(i))) 
         endif
         !Check the order of increasing size
-        if (var1d_nc(i,2).lt.var1d_nc(i,1)) then
+        if (var1d_nc_old(i,2).lt.var1d_nc_old(i,1)) then
             invert_dim_flag(i)=.true.
         else
             invert_dim_flag(i)=.false.
         endif
-        !write(*,*) 'Inversion flags (x,y) ',invert_dim_flag
+
         
     enddo
     
@@ -302,72 +303,72 @@
         dim_start_metcoop_nc(4)=dim_start_nc(time_index)
     endif
     
-   
+    
     !Read through the variables in a loop
     do i=1,num_var_nc
-        !write(*,*) i,trim(var_name_nc(i))
-        status_nc = NF90_INQ_VARID (id_nc, trim(var_name_nc(i)), var_id_nc(i))
-        !write(*,*) 'Status1: ',status_nc,id_nc,var_id_nc(i),trim(var_name_nc(i)),NF_NOERR
-        !write(*,*) 'Status1: ',dim_start_metcoop_nc
-        !write(*,*) 'Status1: ',dim_length_metcoop_nc
-        if (status_nc.eq.NF90_NOERR) then
-        if (i.eq.lat_index.or.i.eq.lon_index) then
-            !write(*,*) i,lat_index,lon_index,dim_start_metcoop_nc(1:2), dim_length_metcoop_nc(1:2)
-            !status_nc = NF_GET_VARA_REAL (id_nc, var_id_nc(i), dim_start_metcoop_nc(1:2), dim_length_metcoop_nc(1:2), var2d_nc(i,:,:))
-            !status_nc = NF_GET_VARA_DOUBLE (id_nc, var_id_nc(i), dim_start_nc(1:2), dim_length_nc(1:2), var2d_nc_dp);var2d_nc(i,:,:)=real(var2d_nc_dp)
-            status_nc = NF90_GET_VAR (id_nc, var_id_nc(i), var2d_nc_dp,start=(/dim_start_metcoop_nc(1:2)/), count=(/dim_length_metcoop_nc(1:2)/));var2d_nc(i,:,:)=real(var2d_nc_dp)
 
-            write(unit_logfile,'(A,i3,A,2A,2f16.4)') ' ',status_nc,' ',trim(var_name_nc(i)),' (min, max): ' &
-                ,minval(var2d_nc(i,:,:)),maxval(var2d_nc(i,:,:)) 
-        else
-            !status_nc = NF_GET_VARA_REAL (id_nc, var_id_nc(i), dim_start_metcoop_nc, dim_length_metcoop_nc, var4d_nc);var3d_nc(i,:,:,:)=var4d_nc(:,:,1,:)
-            if (index(meteo_data_type,'emep').gt.0) then
-                status_nc = NF90_GET_VAR (id_nc, var_id_nc(i), var3d_emep,start=(/dim_start_metcoop_nc/), count=(/dim_length_metcoop_nc/));var3d_nc(i,:,:,:)=var3d_emep(:,:,:)
-                !Read offsets and scaling
-                offset_nc=0.
-                scaling_nc=1.
-                status_nc1 =nf90_get_att(id_nc, var_id_nc(i), 'add_offset', offset_nc)
-                status_nc2 =nf90_get_att(id_nc, var_id_nc(i), 'scale_factor', scaling_nc)
-                !Only add offset and scale factor if available
-                if (status_nc1.eq.0.and.status_nc2.eq.0) then
-                    var3d_nc(i,:,:,:)=var3d_nc(i,:,:,:)*scaling_nc+offset_nc
+        status_nc = NF90_INQ_VARID (id_nc, trim(var_name_nc(i)), var_id_nc(i))
+
+        if (status_nc.eq.NF90_NOERR) then
+            if (i.eq.lat_index.or.i.eq.lon_index) then
+
+                status_nc = NF90_GET_VAR (id_nc, var_id_nc(i), var2d_nc_dp,start=(/dim_start_metcoop_nc(1:2)/), count=(/dim_length_metcoop_nc(1:2)/))
+                var2d_nc(i,:,:)=real(var2d_nc_dp)
+
+                write(unit_logfile,'(A,i3,A,2A,2f16.4)') ' ',status_nc,' ',trim(var_name_nc(i)),' (min, max): ' &
+                    ,minval(var2d_nc(i,:,:)),maxval(var2d_nc(i,:,:)) 
+            else
+                
+                if (index(meteo_data_type,'emep').gt.0) then
+                    status_nc = NF90_GET_VAR (id_nc, var_id_nc(i), var3d_emep,start=(/dim_start_metcoop_nc/), count=(/dim_length_metcoop_nc/))
+                    var3d_nc_old(i,:,:,:)=var3d_emep(:,:,:)
+                    !Read offsets and scaling
+                    offset_nc=0.
+                    scaling_nc=1.
+                    status_nc1 =nf90_get_att(id_nc, var_id_nc(i), 'add_offset', offset_nc)
+                    status_nc2 =nf90_get_att(id_nc, var_id_nc(i), 'scale_factor', scaling_nc)
+                    !Only add offset and scale factor if available
+                    if (status_nc1.eq.0.and.status_nc2.eq.0) then
+                        var3d_nc_old(i,:,:,:)=var3d_nc(i,:,:,:)*scaling_nc+offset_nc
+                    endif
+                
+                else
+                    status_nc = NF90_GET_VAR (id_nc, var_id_nc(i), var4d_nc,start=(/dim_start_metcoop_nc/), count=(/dim_length_metcoop_nc/))
+                    var3d_nc_old(i,:,:,:)=var4d_nc(:,:,1,:)
+                endif
+            
+                !Make appropriate changes, going backwards so as to overwrite the existing data
+                if (i.eq.precip_index.or.i.eq.precip_snow_index) then
+                    do tt=dim_length_nc(time_index),2,-1
+                        var3d_nc_old(i,:,:,tt)=var3d_nc_old(i,:,:,tt)-var3d_nc_old(i,:,:,tt-1)
+                    enddo
+                    !Don't allow precip below the cutoff value
+                    where (var3d_nc_old(i,:,:,:).lt.precip_cutoff) var3d_nc_old(i,:,:,:)=0.                    
+                endif
+
+                if (i.eq.shortwaveradiation_index) then
+                    do tt=dim_length_nc(time_index),2,-1
+                        var3d_nc_old(i,:,:,tt)=(var3d_nc_old(i,:,:,tt)-var3d_nc_old(i,:,:,tt-1))/3600.
+                    enddo
+                endif
+
+                if (i.eq.longwaveradiation_index) then
+                    do tt=dim_length_nc(time_index),2,-1
+                        var3d_nc_old(i,:,:,tt)=(var3d_nc_old(i,:,:,tt)-var3d_nc_old(i,:,:,tt-1))/3600.
+                    enddo
                 endif
                 
-            else
-                status_nc = NF90_GET_VAR (id_nc, var_id_nc(i), var4d_nc,start=(/dim_start_metcoop_nc/), count=(/dim_length_metcoop_nc/));var3d_nc(i,:,:,:)=var4d_nc(:,:,1,:)
-            endif
-           
-            !Make appropriate changes, going backwards so as to overwrite the existing data
-            if (i.eq.precip_index.or.i.eq.precip_snow_index) then
-                do tt=dim_length_nc(time_index),2,-1
-                    !write(*,*) dim_length_nc(y_index),tt
-                    var3d_nc(i,:,:,tt)=var3d_nc(i,:,:,tt)-var3d_nc(i,:,:,tt-1)
-                enddo
-                !Don't allow precip below the cutoff value
-                where (var3d_nc(i,:,:,:).lt.precip_cutoff) var3d_nc(i,:,:,:)=0.
+                if (i.eq.elevation_index) then
+                    var3d_nc_old(i,:,:,:)=var3d_nc_old(i,:,:,:)/9.8
+                endif
                 
+                write(unit_logfile,'(A,i3,A,2A,2f16.2)') ' ',status_nc,' ',trim(var_name_nc(i)),' (min, max): ' &
+                    ,minval(var3d_nc_old(i,:,:,:)),maxval(var3d_nc_old(i,:,:,:)) 
             endif
-            if (i.eq.shortwaveradiation_index) then
-                do tt=dim_length_nc(time_index),2,-1
-                    var3d_nc(i,:,:,tt)=(var3d_nc(i,:,:,tt)-var3d_nc(i,:,:,tt-1))/3600.
-                enddo
-            endif
-            if (i.eq.longwaveradiation_index) then
-                do tt=dim_length_nc(time_index),2,-1
-                    var3d_nc(i,:,:,tt)=(var3d_nc(i,:,:,tt)-var3d_nc(i,:,:,tt-1))/3600.
-                enddo
-            endif
-            if (i.eq.elevation_index) then
-                var3d_nc(i,:,:,:)=var3d_nc(i,:,:,:)/9.8
-            endif
-            
-            write(unit_logfile,'(A,i3,A,2A,2f16.2)') ' ',status_nc,' ',trim(var_name_nc(i)),' (min, max): ' &
-                ,minval(var3d_nc(i,:,:,:)),maxval(var3d_nc(i,:,:,:)) 
-        endif
-        var_available_nc(i)=.true.
+            var_available_nc(i)=.true.
         else
-             write(unit_logfile,'(8A,8A)') ' Cannot read ',trim(var_name_nc(i))
-             var_available_nc(i)=.false.
+            write(unit_logfile,'(8A,8A)') ' Cannot read ',trim(var_name_nc(i))
+            var_available_nc(i)=.false.
         endif
         
         
@@ -383,7 +384,7 @@
    
         var1d_nc_temp=var1d_nc
         var2d_nc_temp=var2d_nc
-        var3d_nc_temp=var3d_nc
+        var3d_nc_temp=var3d_nc_old
         
         if (invert_dim_flag(x_index)) then
             write(unit_logfile,'(A)') ' Inverting X dimension'
@@ -391,7 +392,7 @@
             do i=1,dim_length_nc(x_index)
                 var1d_nc(x_index,i)=var1d_nc_temp(x_index,dim_length_nc(x_index)+1-i)
                 var2d_nc(:,i,:)=var2d_nc_temp(:,dim_length_nc(x_index)+1-i,:)
-                var3d_nc(:,i,:,:)=var3d_nc_temp(:,dim_length_nc(x_index)+1-i,:,:)
+                var3d_nc_old(:,i,:,:)=var3d_nc_temp(:,dim_length_nc(x_index)+1-i,:,:)
             enddo
         endif
         if (invert_dim_flag(y_index)) then
@@ -399,7 +400,7 @@
             do j=1,dim_length_nc(y_index)
                 var1d_nc(y_index,j)=var1d_nc_temp(y_index,dim_length_nc(y_index)+1-j)
                 var2d_nc(:,:,j)=var2d_nc_temp(:,:,dim_length_nc(y_index)+1-j)
-                var3d_nc(:,:,j,:)=var3d_nc_temp(:,:,dim_length_nc(y_index)+1-j,:)
+                var3d_nc_old(:,:,j,:)=var3d_nc_temp(:,:,dim_length_nc(y_index)+1-j,:)
             enddo
         endif
 
@@ -412,60 +413,70 @@
     !NOTE: round off errors in precipitation. Need to include a 0 minimum.
     
     status_nc = NF90_CLOSE (id_nc)
-    
+
     !Put in some basic data checks to see if file is corrupt
-    if (abs(maxval(var3d_nc(temperature_index,:,:,:))).gt.500) then
-        write(unit_logfile,'(A,e12.2)') ' ERROR: out of bounds temperature: ', maxval(var3d_nc(temperature_index,:,:,:))
+    if (abs(maxval(var3d_nc_old(temperature_index,:,:,:))).gt.500) then
+        write(unit_logfile,'(A,e12.2)') ' ERROR: out of bounds temperature: ', maxval(var3d_nc_old(temperature_index,:,:,:))
         write(unit_logfile,'(A)') ' STOPPING'
         stop
     endif    
-    if (abs(maxval(var3d_nc(x_wind_index,:,:,:))).gt.500) then
-        write(unit_logfile,'(A,e12.2)') ' ERROR: out of bounds x wind: ', maxval(var3d_nc(x_wind_index,:,:,:))
+    if (abs(maxval(var3d_nc_old(x_wind_index,:,:,:))).gt.500) then
+        write(unit_logfile,'(A,e12.2)') ' ERROR: out of bounds x wind: ', maxval(var3d_nc_old(x_wind_index,:,:,:))
         write(unit_logfile,'(A)') ' STOPPING'
         stop
     endif    
-    if (abs(maxval(var3d_nc(shortwaveradiation_index,:,:,:))).gt.5000) then
-        write(unit_logfile,'(A,e12.2)') ' ERROR: out of bounds short wave radiation: ', maxval(var3d_nc(shortwaveradiation_index,:,:,:))
+    if (abs(maxval(var3d_nc_old(shortwaveradiation_index,:,:,:))).gt.5000) then
+        write(unit_logfile,'(A,e12.2)') ' ERROR: out of bounds short wave radiation: ', maxval(var3d_nc_old(shortwaveradiation_index,:,:,:))
         write(unit_logfile,'(A)') ' STOPPING'
         stop
     endif    
 
     !Convert dew point to RH if RH not available and dewpoint is
     if (var_available_nc(dewpoint_index).and..not.var_available_nc(relhumidity_index)) then
-        do k=1,size(var3d_nc,4)
-        do j=1,size(var3d_nc,3)
-        do i=1,size(var3d_nc,2)
-            var3d_nc(relhumidity_index,i,j,k)=RH_from_dewpoint_func(var3d_nc(temperature_index,i,j,k)-TOC,var3d_nc(dewpoint_index,i,j,k)-TOC)/100.
-            var3d_nc(relhumidity_index,i,j,k)=max(var3d_nc(relhumidity_index,i,j,k),0.)
-            var3d_nc(relhumidity_index,i,j,k)=min(var3d_nc(relhumidity_index,i,j,k),1.)
-        enddo
-        enddo
+        do k=1,size(var3d_nc_old,4)
+            do j=1,size(var3d_nc_old,3)
+                do i=1,size(var3d_nc_old,2)
+                    var3d_nc_old(relhumidity_index,i,j,k)=RH_from_dewpoint_func(var3d_nc_old(temperature_index,i,j,k)-TOC,var3d_nc_old(dewpoint_index,i,j,k)-TOC)/100.
+                    var3d_nc_old(relhumidity_index,i,j,k)=max(var3d_nc_old(relhumidity_index,i,j,k),0.)
+                    var3d_nc_old(relhumidity_index,i,j,k)=min(var3d_nc_old(relhumidity_index,i,j,k),1.)
+                enddo
+            enddo
         enddo
     endif
     
-    !In the case of lat lon coordinates in deimmensions then populate the lat lon 2d field as this is used further
+    !In the case of lat lon coordinates in dimensions then populate the lat lon 2d field as this is used further
     if (meteo_nc_projection_type.ne.LL_projection_index) then
         do j=1,size(var2d_nc,3)
-        do i=1,size(var2d_nc,2)
-            var2d_nc(lon_index,i,j)=var1d_nc(x_index,i)
-            var2d_nc(lat_index,i,j)=var1d_nc(y_index,j)
+            do i=1,size(var2d_nc,2)
+                var2d_nc(lon_index,i,j)=var1d_nc_old(x_index,i)
+                var2d_nc(lat_index,i,j)=var1d_nc_old(y_index,j)
+            enddo
         enddo
+    endif
+    
+    !In the case of lat lon coordinates in dimensions then populate the lat lon 2d field as this is used further
+    if (meteo_nc_projection_type.ne.LL_projection_index) then
+        do j=1,size(var2d_nc,3)
+            do i=1,size(var2d_nc,2)
+                var2d_nc(lon_index,i,j)=var1d_nc_old(x_index,i)
+                var2d_nc(lat_index,i,j)=var1d_nc_old(y_index,j)
+            enddo
         enddo
     endif
     
     !Calculate angle difference between North and the Model Y direction based on the middle grids
-    !Not correct, needs to be fixed
+    !Not correct, needs to be fixed !TODO: Is this fixed?
     i_grid_mid=int(dim_length_nc(x_index)/2)
     j_grid_mid=int(dim_length_nc(y_index)/2)
-    dgrid_nc(x_index)=var1d_nc(x_index,i_grid_mid)-var1d_nc(x_index,i_grid_mid-1)
-    dgrid_nc(y_index)=var1d_nc(y_index,j_grid_mid)-var1d_nc(y_index,j_grid_mid-1)
+    dgrid_nc(x_index)=var1d_nc_old(x_index,i_grid_mid)-var1d_nc_old(x_index,i_grid_mid-1)
+    dgrid_nc(y_index)=var1d_nc_old(y_index,j_grid_mid)-var1d_nc_old(y_index,j_grid_mid-1)
     dlat_nc=var2d_nc(lat_index,i_grid_mid,j_grid_mid)-var2d_nc(lat_index,i_grid_mid,j_grid_mid-1)
     
     !If the coordinates are in km instead of metres then change to metres (assuming the difference is not going to be > 100 km
     if (dgrid_nc(x_index).lt.100.and.meteo_nc_projection_type.ne.LL_projection_index) then
         dgrid_nc=dgrid_nc*1000.
-        var1d_nc(x_index,:)=var1d_nc(x_index,:)*1000.
-        var1d_nc(y_index,:)=var1d_nc(y_index,:)*1000.
+        var1d_nc_old(x_index,:)=var1d_nc_old(x_index,:)*1000.
+        var1d_nc_old(y_index,:)=var1d_nc_old(y_index,:)*1000.
     endif
 
     !This doesn't seem to make sense. Check this again
@@ -473,17 +484,67 @@
     write(unit_logfile,'(A,2f12.3)') ' Grid spacing X and Y (m): ', dgrid_nc(x_index),dgrid_nc(y_index)
     write(unit_logfile,'(A,2i,f12.4)') ' Angle difference between grid and geo North (i,j,deg): ', i_grid_mid,j_grid_mid,angle_nc
 
+
+
+    meteo_nc_timesteps = nint(1 + (dim_length_nc(time_index)-1)/timestep) !Number of time steps that will be saved from the meteo file. (If timestep = 1h this will just be the number of hours)
+
+    !Fill a date_nc array that is used to match meteo dates to the date range specified in the simulation call. 
+    allocate(date_nc(num_date_index,meteo_nc_timesteps))
+
+    call number_to_date(dble(int(var1d_nc_old(time_index,1)/sngl(seconds_in_hour*hours_in_day)+1./24./60.)),date_nc(:,1),ref_year)
+
+    date_nc(hour_index,1)=int((var1d_nc_old(time_index,1)-(dble(int(var1d_nc_old(time_index,1)/sngl(seconds_in_hour*hours_in_day)+1./24./60.)))*sngl(seconds_in_hour*hours_in_day))/3600.+.5)
+    do t=1, meteo_nc_timesteps-1
+        a_temp=date_nc(:,1)
+        call minute_increment(int(minutes_in_hour*timestep)*t,a_temp(1),a_temp(2),a_temp(3),a_temp(4),a_temp(5)) 
+        date_nc(:,t+1)=a_temp   
+    enddo
+
+    !Check if timestep is != 1; if true, allocate new, larger arrays and interpolate the hourly values into the new arrays.
+    if ( timestep .ne. 1) then 
+
+        !Allocate an array with the new time_index.           
+        if (allocated(var3d_nc)) deallocate(var3d_nc)
+        allocate (var3d_nc(num_var_nc,dim_length_nc(x_index),dim_length_nc(y_index),nint(1 + (dim_length_nc(time_index)-1)/timestep)))
+        allocate (var1d_nc(num_dims_nc,maxval(dim_length_nc)))
+        allocate (var1d_time_nc(nint(1 + (dim_length_nc(time_index)-1)/timestep)))
+
+        call date_and_time(TIME=time)
+        print*, "loop start: ", time
+        do i = int(1/timestep), nint(dim_length_nc(time_index)/timestep)
+
+            var3d_nc(:,:,:,i-int(1/timestep)+1) = var3d_nc_old(:,:,:,floor(i*timestep)) + ( var3d_nc_old(:,:,:,min(floor(i*timestep)+1,size(var3d_nc_old,dim=4))) - var3d_nc_old(:,:,:,floor(i*timestep)) ) * (i*timestep-floor(i*timestep)) !/1 
+
+            var3d_nc(precip_index,:,:,i-int(1/timestep)+1) = max(0.,var3d_nc_old(precip_index,:,:,min(floor(i*timestep)+1,size(var3d_nc_old,dim=4)))/6)
+            var3d_nc(precip_snow_index,:,:,i-int(1/timestep)+1) = max(0.,var3d_nc_old(precip_snow_index,:,:,min(floor(i*timestep)+1,size(var3d_nc_old,dim=4)))/6)
+
+            var1d_time_nc(i-int(1/timestep)+1) = var1d_time_nc_old(floor(i*timestep)) + ( var1d_time_nc_old(min(floor(i*timestep)+1,size(var1d_time_nc_old))) - var1d_time_nc_old(floor(i*timestep)) ) * (i*timestep-floor(i*timestep)) !/1 
+
+        end do
+        call date_and_time(TIME = time)
+        print*, "end loop: ", time
+
+        
+        var1d_nc(x_index,:) = var1d_nc_old(x_index,:)
+        var1d_nc(y_index,:) = var1d_nc_old(y_index,:)
+
+    else
+        var1d_nc = var1d_nc_old
+        var1d_time_nc = var1d_time_nc_old
+        var3d_nc = var3d_nc_old
+    end if
+
     !Set the array dimensions to the available ones. Can be changed later based on input information, particularly for time
-    end_dim_nc=dim_length_nc
     start_dim_nc=dim_start_nc
-    
-    if (allocated(var4d_nc)) deallocate(var4d_nc)
-    if (allocated(var3d_emep)) deallocate(var3d_emep)
+    end_dim_nc=dim_length_nc
+    end_dim_nc(time_index) = size(var3d_nc,dim=4)
+    if (allocated(var3d_nc_old)) deallocate(var3d_nc_old)
+    if (allocated(var1d_nc_old)) deallocate(var1d_nc_old)
     if (allocated(var1d_nc_dp)) deallocate(var1d_nc_dp)
     if (allocated(var2d_nc_dp)) deallocate(var2d_nc_dp)
-    if (allocated(dim_length_metcoop_nc)) deallocate(dim_length_metcoop_nc)
-    if (allocated(dim_start_metcoop_nc)) deallocate(dim_start_metcoop_nc)
-    
-    end subroutine NORTRIP_read_metcoop_netcdf4
+    if (allocated(var4d_nc)) deallocate(var4d_nc)
+    if (allocated(var3d_emep)) deallocate(var3d_emep)
 
-    
+
+
+end subroutine NORTRIP_read_metcoop_netcdf4

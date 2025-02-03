@@ -1,6 +1,6 @@
 !NORTRIP_multiroad_read_weekdynamictraffic_data.f90
     
-    subroutine NORTRIP_multiroad_read_weekdynamictraffic_data
+subroutine NORTRIP_multiroad_read_weekdynamictraffic_data
     
     use NORTRIP_multiroad_index_definitions
     
@@ -12,7 +12,7 @@
     integer unit_in
     integer i,t,d,h,v,ty
     integer rl_length_short
-    integer exists
+    logical exists
     logical nxtdat_flag
     integer week_day_temp,hour_temp
     real tyre_fraction(num_veh,num_tyre)
@@ -55,7 +55,6 @@
         stop 19
     endif
 
-    !write(*,*) num_week_traffic,days_in_week,hours_in_day,n_roadlinks
     if (index(timevariation_type,'NUDL').gt.0) then
         allocate (inputdata_hour_traffic(3,2,2,days_in_week,hours_in_day))
         allocate (inputdata_month_traffic(3,2,2,months_in_year))
@@ -105,115 +104,79 @@
                     ,inputdata_month_traffic(3,1,1,m),inputdata_month_traffic(3,1,2,m),inputdata_month_traffic(3,2,1,m),inputdata_month_traffic(3,2,2,m)                               
         enddo        
         
-    close(unit_in,status='keep')
+        close(unit_in,status='keep')
     
-    !The NUDL data is normalised but we do it anyway
-    if (index(calculation_type,'road weather').gt.0.or.index(calculation_type,'uEMEP').gt.0.or.index(calculation_type,'Avinor').gt.0.or.index(calculation_type,'gridded').gt.0) then
-        do l=1,3
-        do m=1,2
-        do n=1,2
-            hour_normalise=sum(inputdata_hour_traffic(l,m,n,:,:))
-            month_normalise=sum(inputdata_month_traffic(l,m,n,:))
-            inputdata_hour_traffic(l,m,n,:,:)=inputdata_hour_traffic(l,m,n,:,:)/hour_normalise*7.
-            inputdata_month_traffic(l,m,n,:)=inputdata_month_traffic(l,m,n,:)/month_normalise*12.
-            !write(*,*) l,m,n,sum(inputdata_hour_traffic(l,m,n,:,:))
-            !write(*,*) l,m,n,sum(inputdata_month_traffic(l,m,n,:))
-        enddo
-        enddo
-        enddo
-    else
-        write(unit_logfile,'(a)') 'Cannot process NUDL data for this calculation type. Stopping'
-        stop
-    endif
+        !The NUDL data is normalised but we do it anyway
+        if (index(calculation_type,'road weather').gt.0.or.index(calculation_type,'uEMEP').gt.0.or.index(calculation_type,'Avinor').gt.0.or.index(calculation_type,'gridded').gt.0) then
+            do l=1,3
+                do m=1,2
+                    do n=1,2
+                        hour_normalise=sum(inputdata_hour_traffic(l,m,n,:,:))
+                        month_normalise=sum(inputdata_month_traffic(l,m,n,:))
+                        inputdata_hour_traffic(l,m,n,:,:)=inputdata_hour_traffic(l,m,n,:,:)/hour_normalise*7.
+                        inputdata_month_traffic(l,m,n,:)=inputdata_month_traffic(l,m,n,:)/month_normalise*12.
+                    enddo
+                enddo
+            enddo
+        else
+            write(unit_logfile,'(a)') 'Cannot process NUDL data for this calculation type. Stopping'
+            stop
+        endif
 
     else
+        !Read the normal data
+        t=0
+        do d=1,days_in_week 
+            do h=1,hours_in_day
+                do i=1,n_roadlinks_read
+                    t=t+1
+                    read(unit_in,*,ERR=10) &
+                        hour_week_traffic(d,h,i) &
+                        ,temp_id &
+                        ,inputdata_week_traffic(N_week_index,d,h,i) &
+                        ,inputdata_week_traffic(HDV_week_index,d,h,i) &
+                        ,inputdata_week_traffic(V_week_index,d,h,i)         
+                enddo
+            enddo
+        enddo
         
-
-    !Read the normal data
-    t=0
-    do d=1,days_in_week 
-      do h=1,hours_in_day
-        do i=1,n_roadlinks_read
-            t=t+1
-            read(unit_in,*,ERR=10) &
-                hour_week_traffic(d,h,i) &
-                ,temp_id &
-                ,inputdata_week_traffic(N_week_index,d,h,i) &
-                ,inputdata_week_traffic(HDV_week_index,d,h,i) &
-                ,inputdata_week_traffic(V_week_index,d,h,i)         
-            !write(*,*) d,hour_week_traffic(d,h,i),temp_id,inputdata_week_traffic(N_week_index,d,h,i)
-        enddo
-      enddo
-    enddo
-     
-    close(unit_in,status='keep')
-    
-    if (index(timevariation_type,'normal2').gt.0) then
-        write(unit_logfile,'(a)') 'Using time profile with LDV and HDV timeprofiles seperately, i.e. normal2'
+        close(unit_in,status='keep')
         
-        inputdata_week_traffic(LDV_week_index,:,:,:)=inputdata_week_traffic(N_week_index,:,:,:)
-    
-    else
-    !Calculate the HDV profile first
-    write(unit_logfile,'(a)') 'Using incorrect time profiles with NTOTAL and HDV% timeprofiles seperately, i.e. normal. Works for HDV around 10%'
-
-    average_HDV=sum(inputdata_week_traffic(HDV_week_index,:,:,n_roadlinks_read))/size(inputdata_week_traffic(HDV_week_index,:,:,n_roadlinks_read))
-    inputdata_week_traffic(HDV_week_index,:,:,n_roadlinks_read)=inputdata_week_traffic(HDV_week_index,:,:,n_roadlinks_read)*inputdata_week_traffic(N_week_index,:,:,n_roadlinks_read)/average_HDV
+        if (index(timevariation_type,'normal').gt.0) then
+            write(unit_logfile,'(a)') 'Using time profile with LDV and HDV timeprofiles seperately, i.e. normal'
+            
+            inputdata_week_traffic(LDV_week_index,:,:,:)=inputdata_week_traffic(N_week_index,:,:,:)
+        
+        else
+            write(unit_logfile,'(a)') "ERROR: Timevariation type must be either 'normal' or 'NUDL'. Stopping."
+            stop
+        endif
+        
+        if (index(calculation_type,'road weather').gt.0.or.index(calculation_type,'uEMEP').gt.0.or.index(calculation_type,'Avinor').gt.0.or.index(calculation_type,'gridded').gt.0) then
+            N_normalise=sum(inputdata_week_traffic(N_week_index,:,:,n_roadlinks_read))/7.
+            HDV_normalise=sum(inputdata_week_traffic(HDV_week_index,:,:,n_roadlinks_read))/7.
+            LDV_normalise=sum(inputdata_week_traffic(LDV_week_index,:,:,n_roadlinks_read))/7.
+            V_normalise=sum(inputdata_week_traffic(V_week_index,:,:,n_roadlinks_read))/size(inputdata_week_traffic(V_week_index,:,:,n_roadlinks_read))
+            !Loop downwards so that the first value (n_roadlinks_read) is updated last
+            if (index(timevariation_type,'normal').gt.0) then
+                do i=n_roadlinks,1,-1
+                    inputdata_week_traffic(LDV_week_index,:,:,i)=inputdata_week_traffic(LDV_week_index,:,:,n_roadlinks_read)/LDV_normalise*inputdata_rl(adt_rl_index,i)*(1.-inputdata_rl(hdv_rl_index,i)/100.)
+                    inputdata_week_traffic(HDV_week_index,:,:,i)=inputdata_week_traffic(HDV_week_index,:,:,n_roadlinks_read)/HDV_normalise*inputdata_rl(adt_rl_index,i)*inputdata_rl(hdv_rl_index,i)/100.
+                    inputdata_week_traffic(N_week_index,:,:,i)=inputdata_week_traffic(LDV_week_index,:,:,i)+inputdata_week_traffic(HDV_week_index,:,:,i)
+                    inputdata_week_traffic(V_week_index,:,:,i)=inputdata_week_traffic(V_week_index,:,:,n_roadlinks_read)/V_normalise*inputdata_rl(speed_rl_index,i)
+                    hour_week_traffic(:,:,i)=hour_week_traffic(:,:,n_roadlinks_read)
+                    !if (i.eq.19) write(*,*) sum(inputdata_week_traffic(N_week_index,:,:,i))/7.,inputdata_rl(adt_rl_index,i),sum(inputdata_week_traffic(HDV_week_index,:,:,i))/7.,inputdata_rl(adt_rl_index,i)*inputdata_rl(hdv_rl_index,i)/100.
+                enddo
+            else
+                write(unit_logfile,'(a)') "ERROR: Timevariation type must be either 'normal' or 'NUDL'. Stopping."
+                stop
+            endif
+        endif
+        
     endif
     
-    if (index(calculation_type,'road weather').gt.0.or.index(calculation_type,'uEMEP').gt.0.or.index(calculation_type,'Avinor').gt.0.or.index(calculation_type,'gridded').gt.0) then
-        N_normalise=sum(inputdata_week_traffic(N_week_index,:,:,n_roadlinks_read))/7.
-        HDV_normalise=sum(inputdata_week_traffic(HDV_week_index,:,:,n_roadlinks_read))/7.
-        LDV_normalise=sum(inputdata_week_traffic(LDV_week_index,:,:,n_roadlinks_read))/7.
-        !HDV_normalise=sum(inputdata_week_traffic(HDV_week_index,:,:,n_roadlinks_read))/size(inputdata_week_traffic(HDV_week_index,:,:,n_roadlinks_read))
-        V_normalise=sum(inputdata_week_traffic(V_week_index,:,:,n_roadlinks_read))/size(inputdata_week_traffic(V_week_index,:,:,n_roadlinks_read))
-        !write(*,*) N_normalise,HDV_normalise,LDV_normalise,t
-        !Loop downwards so that the first value (n_roadlinks_read) is updated last
-    if (index(timevariation_type,'normal2').gt.0) then
-        do i=n_roadlinks,1,-1
-            inputdata_week_traffic(LDV_week_index,:,:,i)=inputdata_week_traffic(LDV_week_index,:,:,n_roadlinks_read)/LDV_normalise*inputdata_rl(adt_rl_index,i)*(1.-inputdata_rl(hdv_rl_index,i)/100.)
-            inputdata_week_traffic(HDV_week_index,:,:,i)=inputdata_week_traffic(HDV_week_index,:,:,n_roadlinks_read)/HDV_normalise*inputdata_rl(adt_rl_index,i)*inputdata_rl(hdv_rl_index,i)/100.
-            inputdata_week_traffic(N_week_index,:,:,i)=inputdata_week_traffic(LDV_week_index,:,:,i)+inputdata_week_traffic(HDV_week_index,:,:,i)
-            inputdata_week_traffic(V_week_index,:,:,i)=inputdata_week_traffic(V_week_index,:,:,n_roadlinks_read)/V_normalise*inputdata_rl(speed_rl_index,i)
-            hour_week_traffic(:,:,i)=hour_week_traffic(:,:,n_roadlinks_read)
-            !if (i.eq.19) write(*,*) sum(inputdata_week_traffic(N_week_index,:,:,i))/7.,inputdata_rl(adt_rl_index,i),sum(inputdata_week_traffic(HDV_week_index,:,:,i))/7.,inputdata_rl(adt_rl_index,i)*inputdata_rl(hdv_rl_index,i)/100.
-        enddo
-    else
-        do i=n_roadlinks,1,-1
-            inputdata_week_traffic(N_week_index,:,:,i)=inputdata_week_traffic(N_week_index,:,:,n_roadlinks_read)/N_normalise*inputdata_rl(adt_rl_index,i)
-            !inputdata_week_traffic(HDV_week_index,:,:,i)=inputdata_week_traffic(HDV_week_index,:,:,n_roadlinks_read)/HDV_normalise*inputdata_rl(hdv_rl_index,i)
-            inputdata_week_traffic(HDV_week_index,:,:,i)=inputdata_week_traffic(HDV_week_index,:,:,n_roadlinks_read)/HDV_normalise*inputdata_rl(hdv_rl_index,i)/100.*inputdata_rl(adt_rl_index,i)
-            inputdata_week_traffic(V_week_index,:,:,i)=inputdata_week_traffic(V_week_index,:,:,n_roadlinks_read)/V_normalise*inputdata_rl(speed_rl_index,i)
-            hour_week_traffic(:,:,i)=hour_week_traffic(:,:,n_roadlinks_read)
-            !if (i.eq.19) write(*,*) sum(inputdata_week_traffic(N_week_index,:,:,i))/7.,inputdata_rl(adt_rl_index,i),sum(inputdata_week_traffic(HDV_week_index,:,:,i))/7.,inputdata_rl(adt_rl_index,i)*inputdata_rl(hdv_rl_index,i)/100.
-        enddo
-    endif
-    
-    endif
-    
-    endif
-    
-    !Write example to log file    
-    !write(unit_logfile,'(a12,5a12)') ' LINK ','HOUR','ID','N','ADT(%)','SPEED'
-    i=1;d=1;h=1
-    do d=1,days_in_week
-    do h=1,hours_in_day
-    !write(unit_logfile,'(a12,2i12,3f12.2)') ' First link = ',hour_week_traffic(d,h,i),inputdata_int_rl(id_rl_index,i) &
-    !    ,inputdata_week_traffic(N_week_index,d,h,i),inputdata_week_traffic(HDV_week_index,d,h,i) &
-    !    ,inputdata_week_traffic(V_week_index,d,h,i)
-    enddo
-    enddo
-    i=n_roadlinks;d=days_in_week;h=hours_in_day
-    do d=1,days_in_week
-    do h=1,hours_in_day
-    !write(unit_logfile,'(a12,2i12,3f12.2)') ' Last  link = ',hour_week_traffic(d,h,i),inputdata_int_rl(id_rl_index,i) &
-    !    ,inputdata_week_traffic(N_week_index,d,h,i),inputdata_week_traffic(HDV_week_index,d,h,i) &
-    !    ,inputdata_week_traffic(V_week_index,d,h,i)
-    enddo
-    enddo
     
     !Put input data traffic into output traffic data file
-    !write(*,*) num_traffic_index,n_hours_input,n_roadlinks
     allocate (traffic_data(num_traffic_index,n_hours_input,n_roadlinks))
     
     write(unit_logfile,'(a)') ' Restistributing weekly traffic in model dates (UTC): '
@@ -249,15 +212,17 @@
         if (week_of_year.lt.1) week_of_year=52
         if (week_of_year.gt.52) week_of_year=52
         
-        !Cannot trust this routine. Do as in uEMEP
-        !call incrtm(int(DIFUTC_H_traffic_temp),date_data_temp(1),date_data_temp(2),date_data_temp(3),date_data_temp(4))
 
         !This could be right now. Test with an end of week date
         week_day_temp=day_of_week(date_data_temp(:))
-        !write(*,'(a,3i6,i)') 'IN:  ',t,week_day_temp,hour_temp,0
         write(*,'(a,i4,3i5,3i8)') 'DATES(t,yyyy,mm,dd,day,week,week_day):  ',t,date_data_temp(1:3),julian_day,week_of_year,week_day_temp
 
-        hour_temp=date_data_temp(hour_index)+DIFUTC_H_traffic_temp
+        if ( timesteps_in_hour > 1 ) then
+            hour_temp=date_data_temp(hour_index)+DIFUTC_H_traffic_temp+1
+        else
+            hour_temp=date_data_temp(hour_index)+DIFUTC_H_traffic_temp
+        endif
+
         if (hour_temp.le.0) then
             hour_temp=24+hour_temp
             week_day_temp=week_day_temp-1
@@ -272,122 +237,91 @@
         if (week_day_temp.eq.0) then
             week_day_temp=7
         endif
-        !write(*,'(a,3i6,i)') 'OUT: ',t,week_day_temp,hour_temp,int(DIFUTC_H_traffic_temp)
         
-
-        !hour_temp=(week_day_temp-1)*24+date_data_temp(4)+DIFUTC_H_traffic_temp
-        !if (hour_temp.gt.hours_in_week) hour_temp=hour_temp-hours_in_week
-        !if (hour_temp.lt.1) hour_temp=hour_temp+hours_in_week
 
         
         if (index(timevariation_type,'NUDL').gt.0) then
 
-        do i=1,n_roadlinks
-            !Find the road category
-            if (inputdata_int_rl(roadcategory_rl_index,i).eq.1.or.inputdata_int_rl(roadcategory_rl_index,i).eq.2) then
-                m=1
-            elseif (inputdata_int_rl(roadcategory_rl_index,i).eq.3.or.inputdata_int_rl(roadcategory_rl_index,i).eq.4) then
-                m=2
-            else
-                m=1 !Default is busy roads
-            endif
-            !Find the region and exit loop when found. If not found then use the high population value
-            n=0
-            do k=1,n_region
-                if (inputdata_int_rl(region_id_rl_index,i).eq.population_region_id(k)) then
-                    if (population_region_scaling(k).ge.population_cutoff) then
-                        n=1
-                    elseif (population_region_scaling(k).lt.population_cutoff) then
-                        n=2 
-                    else
-                        n=1 !Default is high population
-                    endif
-                    exit
-                endif       
-            enddo
-            if (n.eq.0) then
-                write(unit_logfile,*) 'WARNING: Could not find region ID ',i,population_region_id(k)
-                write(unit_logfile,*) 'WARNING: Setting to 1 (> population_cutoff)'
-                n=1
-            endif
-            
-            !Use only the short and long categories, since do not have the middle categories               
+            do i=1,n_roadlinks
+                !Find the road category
+                if (inputdata_int_rl(roadcategory_rl_index,i).eq.1.or.inputdata_int_rl(roadcategory_rl_index,i).eq.2) then
+                    m=1
+                elseif (inputdata_int_rl(roadcategory_rl_index,i).eq.3.or.inputdata_int_rl(roadcategory_rl_index,i).eq.4) then
+                    m=2
+                else
+                    m=1 !Default is busy roads
+                endif
+                !Find the region and exit loop when found. If not found then use the high population value
+                n=0
+                do k=1,n_region
+                    if (inputdata_int_rl(region_id_rl_index,i).eq.population_region_id(k)) then
+                        if (population_region_scaling(k).ge.population_cutoff) then
+                            n=1
+                        elseif (population_region_scaling(k).lt.population_cutoff) then
+                            n=2 
+                        else
+                            n=1 !Default is high population
+                        endif
+                        exit
+                    endif       
+                enddo
+                if (n.eq.0) then
+                    write(unit_logfile,*) 'WARNING: Could not find region ID ',i,population_region_id(k)
+                    write(unit_logfile,*) 'WARNING: Setting to 1 (> population_cutoff)'
+                    n=1
+                endif
+                
+                !Use only the short and long categories, since do not have the middle categories               
                 traffic_data(N_li_index,t,i)=inputdata_hour_traffic(1,m,n,week_day_temp,hour_temp)*inputdata_month_traffic(1,m,n,month_temp)*inputdata_rl(adt_rl_index,i)*(100.-inputdata_rl(hdv_rl_index,i))/100.
                 traffic_data(N_he_index,t,i)=inputdata_hour_traffic(3,m,n,week_day_temp,hour_temp)*inputdata_month_traffic(3,m,n,month_temp)*inputdata_rl(adt_rl_index,i)*inputdata_rl(hdv_rl_index,i)/100.
                 traffic_data(N_total_index,t,i)=traffic_data(N_li_index,t,i)+traffic_data(N_he_index,t,i)
                 traffic_data(V_li_index,t,i)=inputdata_rl(speed_rl_index,i)
                 traffic_data(V_he_index,t,i)=traffic_data(V_li_index,t,i)
-                !write(*,'(7i,2f)') t,i,population_region_id(k),m,n,week_day_temp,month_temp,inputdata_hour_traffic(1,m,n,week_day_temp,hour_temp),inputdata_month_traffic(1,m,n,month_temp)
-                            
-        enddo
-        
-        
+                                
+            enddo
+            
         else
             
-            if (index(timevariation_type,'normal2').gt.0) then
-            do i=1,n_roadlinks
-                traffic_data(N_total_index,t,i)=inputdata_week_traffic(N_week_index,week_day_temp,hour_temp,i)
-                traffic_data(N_he_index,t,i)=inputdata_week_traffic(HDV_week_index,week_day_temp,hour_temp,i)
-                traffic_data(N_li_index,t,i)=inputdata_week_traffic(LDV_week_index,week_day_temp,hour_temp,i)
-                traffic_data(V_li_index,t,i)=inputdata_week_traffic(V_week_index,week_day_temp,hour_temp,i)
-                traffic_data(V_he_index,t,i)=traffic_data(V_li_index,t,i)
-                !if (i.eq.19) write(*,*) t,traffic_data(N_total_index,t,i),traffic_data(N_li_index,t,i),traffic_data(N_he_index,t,i)
-            enddo
+            if (index(timevariation_type,'normal').gt.0) then
+                do i=1,n_roadlinks
+                    traffic_data(N_total_index,t,i)=inputdata_week_traffic(N_week_index,week_day_temp,hour_temp,i)
+                    traffic_data(N_he_index,t,i)=inputdata_week_traffic(HDV_week_index,week_day_temp,hour_temp,i)
+                    traffic_data(N_li_index,t,i)=inputdata_week_traffic(LDV_week_index,week_day_temp,hour_temp,i)
+                    traffic_data(V_li_index,t,i)=inputdata_week_traffic(V_week_index,week_day_temp,hour_temp,i)
+                    traffic_data(V_he_index,t,i)=traffic_data(V_li_index,t,i)
+                enddo
                 
             else
-        
-            do i=1,n_roadlinks
-                traffic_data(N_total_index,t,i)=inputdata_week_traffic(N_week_index,week_day_temp,hour_temp,i)
-                traffic_data(N_he_index,t,i)=inputdata_week_traffic(HDV_week_index,week_day_temp,hour_temp,i)
-                traffic_data(N_li_index,t,i)=traffic_data(N_total_index,t,i)-inputdata_week_traffic(HDV_week_index,week_day_temp,hour_temp,i)
-                !traffic_data(N_he_index,t,i)=traffic_data(N_total_index,t,i) &
-                !    *(inputdata_week_traffic(HDV_week_index,week_day_temp,hour_temp,i))/100.
-                !traffic_data(N_li_index,t,i)=traffic_data(N_total_index,t,i) &
-                !    *(100.-inputdata_week_traffic(HDV_week_index,week_day_temp,hour_temp,i))/100.
-                traffic_data(V_li_index,t,i)=inputdata_week_traffic(V_week_index,week_day_temp,hour_temp,i)
-                traffic_data(V_he_index,t,i)=traffic_data(V_li_index,t,i)
-                !if (i.eq.19) write(*,*) t,traffic_data(N_total_index,t,i),traffic_data(N_li_index,t,i),traffic_data(N_he_index,t,i)
-                
-                !Don't allow negative values that can occur when using 'normal' time profile type
-                traffic_data(N_he_index,t,i)=min(traffic_data(N_he_index,t,i),traffic_data(N_total_index,t,i))
-                traffic_data(N_li_index,t,i)=min(traffic_data(N_li_index,t,i),traffic_data(N_total_index,t,i))
-                traffic_data(N_he_index,t,i)=max(traffic_data(N_he_index,t,i),0.)
-                traffic_data(N_li_index,t,i)=max(traffic_data(N_li_index,t,i),0.)
-                
-            enddo
+                write(unit_logfile,'(a)') "ERROR: Timevariation type must be either 'normal' or 'NUDL'. Stopping."
+                stop
             endif
-            
         endif
-        
     enddo
- 
-    
-    
+
     !Calculate the studded tyre share
-    !do t=1,n_hours_input
     !Use the first hour to sett the studded tyres
-        t=1
-        !Set years for studded tyre season comparison. Assumes the end of season is the following year
+    t=1
+    !Set years for studded tyre season comparison. Assumes the end of season is the following year
+    start_stud_season(year_index)=date_data(year_index,t)
+    if (date_to_number(date_data(:,t),ref_year).gt.date_to_number(start_stud_season,ref_year)) then
         start_stud_season(year_index)=date_data(year_index,t)
-        if (date_to_number(date_data(:,t),ref_year).gt.date_to_number(start_stud_season,ref_year)) then
-            start_stud_season(year_index)=date_data(year_index,t)
-            start_full_stud_season(year_index)=date_data(year_index,t)
-        else
-            start_stud_season(year_index)=date_data(year_index,t)-1   
-            start_full_stud_season(year_index)=date_data(year_index,t)-1   
-        endif
-        end_stud_season(year_index)=start_stud_season(year_index)+1   
-        end_full_stud_season(year_index)=start_full_stud_season(year_index)+1   
-             
-        !All tyres are summer is set as default
-        tyre_fraction=0.
-        do v=1,num_veh
+        start_full_stud_season(year_index)=date_data(year_index,t)
+    else
+        start_stud_season(year_index)=date_data(year_index,t)-1   
+        start_full_stud_season(year_index)=date_data(year_index,t)-1   
+    endif
+    end_stud_season(year_index)=start_stud_season(year_index)+1   
+    end_full_stud_season(year_index)=start_full_stud_season(year_index)+1   
+            
+    !All tyres are summer is set as default
+    tyre_fraction=0.
+    do v=1,num_veh
         tyre_fraction(v,su)=1.-min_stud_fraction(v)/100.
         tyre_fraction(v,st)=min_stud_fraction(v)/100.
-        enddo
-        
-        !Start of season
-        do v=1,num_veh
+    enddo
+    
+    !Start of season
+    do v=1,num_veh
         if (date_to_number(date_data(:,t),ref_year).gt.date_to_number(start_stud_season,ref_year).and.date_to_number(date_data(:,t),ref_year).lt.date_to_number(start_full_stud_season,ref_year)) then
             factor_temp=(date_to_number(date_data(:,t),ref_year)-date_to_number(start_stud_season,ref_year))/(date_to_number(start_full_stud_season,ref_year)-date_to_number(start_stud_season,ref_year))
             tyre_fraction(v,su)=(1.-factor_temp)
@@ -408,24 +342,18 @@
             tyre_fraction(v,st)=max(max_stud_fraction(v),min_stud_fraction(v))/100.*factor_temp
             tyre_fraction(v,wi)=factor_temp*(1.-max(max_stud_fraction(v),min_stud_fraction(v))/100.)
         endif
-        enddo
-        
-        !write(*,*) tyre_fraction(li,:)
-        !do t=1,n_hours_input
-        do i=1,n_roadlinks
-            do v=1,num_veh
-                do ty=1,num_tyre
-                    traffic_data(N_t_v_index(ty,v),1:n_hours_input,i)=traffic_data(N_v_index(v),1:n_hours_input,i)*tyre_fraction(v,ty)
-            !if (i.eq.19) then
-            !    write(*,*) v,ty,tyre_fraction(v,ty)
-            !    write(*,*) traffic_data(N_v_index(v),1:n_hours_input,i)
-            !endif
-                enddo
-            
+    enddo
+    
+
+    do i=1,n_roadlinks
+        do v=1,num_veh
+            do ty=1,num_tyre
+                !print*, 
+                traffic_data(N_t_v_index(ty,v),1:n_hours_input,i)=traffic_data(N_v_index(v),1:n_hours_input,i)*tyre_fraction(v,ty)
             enddo
-        enddo        
-        !enddo
-   
+        enddo
+    enddo        
+    
     if (.not.allocated(airquality_data)) allocate (airquality_data(num_airquality_index,n_hours_input,n_roadlinks))
 
     !Calculate the studded tyre share for each road link based on the region_id
@@ -446,7 +374,6 @@
     !Write example to log file
     write(unit_logfile,'(5a8,11a8)') 'NUM','YEAR','MONTH','DAY','HOUR','N','N_HE','N_LI','N_ST_HE','N_ST_LI','N_WI_HE','N_WI_LI','N_SU_HE','N_SU_LI','V_HE','V_LI'
     i=1
-    !write(*,'(2f,2i,2f)') inputdata_rl(adt_rl_index,i),inputdata_rl(hdv_rl_index,i),week_day_temp,month_temp,sum(traffic_data(N_total_index,:,i))
     do t=1,n_hours_input
         write(unit_logfile,'(5i8,11f8.1)') t,date_data(1:4,t),traffic_data(N_total_index,t,i) &
             ,traffic_data(N_v_index(he),t,i),traffic_data(N_v_index(li),t,i) &
@@ -455,14 +382,7 @@
             ,traffic_data(N_t_v_index(su,he),t,i),traffic_data(N_t_v_index(su,li),t,i) &
             ,traffic_data(V_he_index,t,i),traffic_data(V_li_index,t,i)
     enddo
-    !t=n_hours_input
-    !    write(unit_logfile,'(5i8,11f8.1)') t,date_data(1:4,t),traffic_data(N_total_index,t,1) &
-    !!       ,traffic_data(N_v_index(he),t,i),traffic_data(N_v_index(li),t,i) &
-    !        ,traffic_data(N_t_v_index(st,he),t,i),traffic_data(N_t_v_index(st,li),t,i) &
-    !        ,traffic_data(N_t_v_index(wi,he),t,i),traffic_data(N_t_v_index(wi,li),t,i) &
-    !        ,traffic_data(N_t_v_index(su,he),t,i),traffic_data(N_t_v_index(su,li),t,i) &
-    !        ,traffic_data(V_he_index,t,i),traffic_data(V_li_index,t,i)   
-    
+
     if (allocated(inputdata_week_traffic)) deallocate(inputdata_week_traffic)
     if (allocated(hour_week_traffic)) deallocate(hour_week_traffic)    
  
@@ -476,4 +396,4 @@
     stop 19
 
     
-    end subroutine NORTRIP_multiroad_read_weekdynamictraffic_data
+end subroutine NORTRIP_multiroad_read_weekdynamictraffic_data

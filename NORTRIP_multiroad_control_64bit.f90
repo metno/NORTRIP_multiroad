@@ -90,7 +90,7 @@
     !Read in static road link data.
     if (index(calculation_type,'road weather').gt.0.or.index(calculation_type,'uEMEP').gt.0.or.index(calculation_type,'Avinor').gt.0) then
         call NORTRIP_multiroad_read_staticroadlink_data_ascii
-    elseif (index(calculation_type,'gridded')) then
+    elseif (index(calculation_type,'gridded')) then !TODO: Rewrite this to be a logical
         call NORTRIP_multiroad_read_staticroadlink_data_gridded   
     else
         call NORTRIP_multiroad_read_staticroadlink_data
@@ -121,12 +121,10 @@
     
     call NORTRIP_multiroad_read_activity_data
 
-    !Reorder the links and traffic data to fit the selection. Don't do it for the road weather option
+    !Reorder the links and traffic data to fit the selection.
     !It also sets the gridding flags so needs to be called
-    !if (index(calculation_type,'road weather').eq.0) then
-        call NORTRIP_multiroad_reorder_staticroadlink_data
-    !endif
-    
+    call NORTRIP_multiroad_reorder_staticroadlink_data
+
     !Read DEM input data and make skyview file
     call process_terrain_data_64bit
     
@@ -149,8 +147,10 @@
         !Read in meteo data from MEPs or METCOOP data. This is standard
         call NORTRIP_read_metcoop_netcdf4 
         if (replace_meteo_with_yr.eq.1) then
-            !call NORTRIP_read_t2m500yr_netcdf4
             call NORTRIP_read_analysismeteo_netcdf4
+        endif
+        if (replace_meteo_with_met_forecast.eq.1) then
+            call NORTRIP_read_MET_Nordic_forecast_netcdf4
         endif
     elseif (index(meteo_data_type,'nora3').gt.0) then
         !Read in meteo data from MEPs or METCOOP data. This is standard
@@ -165,9 +165,6 @@
         if (replace_meteo_with_yr.eq.1) then
             call NORTRIP_read_analysismeteo_netcdf4
         endif
-    elseif (index(meteo_data_type,'nbv').gt.0) then
-        !Reads in meteo from special files made for Episode. Old and not used any more
-        call NORTRIP_read_meteo_NBV_netcdf4  
     else
          write(unit_logfile,'(2A)') 'No valid meteo_data_type provided: ',trim(meteo_data_type)
          write(unit_logfile,'(A)') 'Stopping '
@@ -175,7 +172,11 @@
     endif
     
     !Read and replace meteo model data with meteo obs data
-    call NORTRIP_multiroad_read_meteo_obs_data
+    if ( read_obs_from_netcdf ) then
+        call NORTRIP_multiroad_read_meteo_obs_data_netcdf
+    else
+        call NORTRIP_multiroad_read_meteo_obs_data
+    end if
     
     !Set the number of road links to be save
     !n_roadlinks=10
