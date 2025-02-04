@@ -302,6 +302,7 @@ subroutine NORTRIP_multiroad_read_weekdynamictraffic_data
     !Use the first hour to sett the studded tyres
     t=1
     !Set years for studded tyre season comparison. Assumes the end of season is the following year
+    ref_year=date_data(1,t)-1
     start_stud_season(year_index)=date_data(year_index,t)
     if (date_to_number(date_data(:,t),ref_year).gt.date_to_number(start_stud_season,ref_year)) then
         start_stud_season(year_index)=date_data(year_index,t)
