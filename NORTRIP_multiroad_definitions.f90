@@ -697,7 +697,8 @@
     integer :: num_n_subnodes=250
     real, allocatable :: inputdata_rl_sub(:,:,:)
 
-
+    character(256) :: region_str(2)='' !Read at command line or in config file
+ 
     end module NORTRIP_multiroad_index_definitions
     
 !==========================================================================
@@ -799,6 +800,7 @@ subroutine  set_constant_values
         delete_file_command='rm -f'
     endif
     
+
     
 end subroutine set_constant_values
     

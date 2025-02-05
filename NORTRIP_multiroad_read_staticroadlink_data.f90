@@ -761,7 +761,7 @@ end subroutine NORTRIP_multiroad_read_staticroadlink_data_ascii
     !read(unit_in,'(a)',ERR=20) temp_str
     read(unit_in,*,ERR=20) n_roadlinks_major,n_lon,n_lat
     write(unit_logfile,'(a,i)') ' Number of major road links= ', n_roadlinks_major
-    write(unit_logfile,'(a,i)') ' Number of lon and lat grids= ', n_lon,n_lat
+    write(unit_logfile,'(a,2i)') ' Number of lon and lat grids= ', n_lon,n_lat
              
     !Allocate the arrays after reading in the number of roads
     if (only_use_major_roadlinks) then

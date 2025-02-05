@@ -75,6 +75,10 @@ subroutine NORTRIP_read_metcoop_netcdf4
     call date_to_datestr_bracket(start_date_input,filename_alternative_nc_in,filename_alternative_nc)
     call date_to_datestr_bracket(start_date_input,pathname_nc_in,pathname_nc)
     
+    !write(*,*) start_date_input
+    !write(*,*) trim(pathname_nc)
+    !write(*,*) trim(filename_nc)
+
     pathfilename_nc=trim(pathname_nc)//trim(filename_nc)
     
     found_file = .True. !To capture the case when the file exist on the first try.

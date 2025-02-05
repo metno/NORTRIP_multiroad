@@ -26,7 +26,7 @@
     integer :: unit_logfile_temp=0
     
     !Functions
-    doubleprecision date_to_number
+    double precision date_to_number
     integer day_of_week
     
 	write(*,'(A)') '================================================================'
@@ -34,8 +34,11 @@
 	write(*,'(A)') '================================================================'
 
     !Read the input data main file name and dates in the same format as NILU reads meteo data
-    call Get3Arguments(pathfilename_mainfile, start_date_and_time, end_date_and_time)
+    !call Get3Arguments(pathfilename_mainfile, start_date_and_time, end_date_and_time)
+    call Get5Arguments(pathfilename_mainfile, start_date_and_time, end_date_and_time, region_str(1), region_str(2))
  
+    write(*,'(10A)') 'Command line arguments: ',trim(pathfilename_mainfile),' ',trim(start_date_and_time),' ',trim(end_date_and_time),' ',trim(region_str(1)),' ',trim(region_str(2))
+     
     !Test existence of the filename. If does not exist then use default
     inquire(file=trim(pathfilename_mainfile),exist=exists)
     if (.not.exists) then
@@ -53,6 +56,10 @@
     if (character_length >= 16) then
         read(start_date_and_time, *)  start_date_input(year_index),start_date_input(month_index),start_date_input(day_index),start_date_input(hour_index),start_date_input(minute_index)
         start_date_input(second_index)=0
+    elseif (character_length >= 13) then
+        read(start_date_and_time, *)  start_date_input(year_index),start_date_input(month_index),start_date_input(day_index),start_date_input(hour_index)
+        start_date_input(minute_index)=0
+        start_date_input(second_index)=0
     else
         write(unit_logfile,'(A)') ' WARNING: "start_date_and_time" is too short, should be on the form yyyy,mm,dd,HH,MM. Using default date'
         start_date_input=start_date_default
@@ -62,6 +69,10 @@
     character_length = LEN_TRIM(end_date_and_time)
     if (character_length >= 16) then
         read(end_date_and_time, *)  end_date_input(year_index),end_date_input(month_index),end_date_input(day_index),end_date_input(hour_index),end_date_input(minute_index)
+        end_date_input(second_index)=0
+    elseif (character_length >= 13) then
+        read(end_date_and_time, *)  end_date_input(year_index),end_date_input(month_index),end_date_input(day_index),end_date_input(hour_index)
+        end_date_input(minute_index)=0
         end_date_input(second_index)=0
     else
         write(unit_logfile,'(A)') ' WARNING: "end_date_and_time" is too short, should be on the form yyyy,mm,dd,HH,MM. Using default date'
@@ -228,7 +239,7 @@
     !Read in replacement strings
     city_str(1)=match_string_char('city_str1',unit_in,-1,'') !Supress output
     city_str(2)=match_string_char('city_str2',unit_in,-1,'') !Supress output
-   
+    
     !Go through all input strings and replace
     do i=1,2
         if (i.eq.1) temp_str='city_str1'
@@ -253,6 +264,8 @@
 	write(unit_logfile,'(A)') '================================================================'
     city_str(1)=match_string_char('city_str1',unit_in,unit_logfile,'')
     city_str(2)=match_string_char('city_str2',unit_in,unit_logfile,'')
+    region_str(1)=match_string_char('region_str1',unit_in,unit_logfile,region_str(1)) !Replace existing from command line if available
+    region_str(2)=match_string_char('region_str2',unit_in,unit_logfile,region_str(2)) !Replace existing from command line if available
     pathname_nc=match_string_char('inpath_meteo_nc',unit_in,unit_logfile,'')
     pathname_nc2=match_string_char('inpath_meteo_nc2',unit_in,unit_logfile,'')
     pathname_nc_forecast=match_string_char('inpath_meteo_nc_forecast',unit_in,unit_logfile,'')
@@ -584,6 +597,7 @@
     implicit none
     
     character(256) temp_str
+    character(256) replace_str
     integer i,j,k
     
     !Functions
@@ -593,109 +607,124 @@
     !Go through all input strings and replace with city strings
     !Do it twice in case there is an occurence twice in the string
     do k=1,2 
-    do i=1,2
-        if (i.eq.1) temp_str='city_str1'
-        if (i.eq.2) temp_str='city_str2'
-        pathname_nc=replace_string_char(city_str(i),trim(temp_str),pathname_nc)
-        pathname_nc2=replace_string_char(city_str(i),trim(temp_str),pathname_nc2)
-        pathname_rl(1)=replace_string_char(city_str(i),trim(temp_str),pathname_rl(1))
-        pathname_rl(2)=replace_string_char(city_str(i),trim(temp_str),pathname_rl(2))
-        pathname_traffic=replace_string_char(city_str(i),trim(temp_str),pathname_traffic)
-        pathname_dynamic_emission=replace_string_char(city_str(i),trim(temp_str),pathname_dynamic_emission)
-        pathname_terrain=replace_string_char(city_str(i),trim(temp_str),pathname_terrain)
-        pathname_forest=replace_string_char(city_str(i),trim(temp_str),pathname_forest)
-        pathname_urban=replace_string_char(city_str(i),trim(temp_str),pathname_urban)
-        filename_nc=replace_string_char(city_str(i),trim(temp_str),filename_nc)
-        filename_nc2=replace_string_char(city_str(i),trim(temp_str),filename_nc2)
-        filename_rl(1)=replace_string_char(city_str(i),trim(temp_str),filename_rl(1))
-        filename_rl(2)=replace_string_char(city_str(i),trim(temp_str),filename_rl(2))
-        filename_traffic=replace_string_char(city_str(i),trim(temp_str),filename_traffic)
-        filename_dynamic_emission(pm25_index)=replace_string_char(city_str(i),trim(temp_str),filename_dynamic_emission(pm25_index))
-        filename_dynamic_emission(pm10_index)=replace_string_char(city_str(i),trim(temp_str),filename_dynamic_emission(pm10_index))
-        filename_dynamic_emission(ep_index)=replace_string_char(city_str(i),trim(temp_str),filename_dynamic_emission(ep_index))
-        path_inputdata_for_NORTRIP=replace_string_char(city_str(i),trim(temp_str),path_inputdata_for_NORTRIP)
-        path_init_for_NORTRIP=replace_string_char(city_str(i),trim(temp_str),path_init_for_NORTRIP)
-        path_init_out_for_NORTRIP=replace_string_char(city_str(i),trim(temp_str),path_init_out_for_NORTRIP)
-        filename_NORTRIP_template=replace_string_char(city_str(i),trim(temp_str),filename_NORTRIP_template)
-        filename_NORTRIP_info=replace_string_char(city_str(i),trim(temp_str),filename_NORTRIP_info)
+    do i=1,4
+        if (i.eq.1) then
+            replace_str=city_str(1)
+            temp_str='city_str1'
+        endif
+        if (i.eq.2) then
+            replace_str=city_str(2)
+            temp_str='city_str2'
+        endif
+        if (i.eq.3) then
+            replace_str=region_str(1)
+            temp_str='region_str1'
+        endif
+        if (i.eq.4) then
+            replace_str=region_str(2)
+            temp_str='region_str2'
+        endif
+
+        pathname_nc=replace_string_char(replace_str,trim(temp_str),pathname_nc)
+        pathname_nc2=replace_string_char(replace_str,trim(temp_str),pathname_nc2)
+        pathname_rl(1)=replace_string_char(replace_str,trim(temp_str),pathname_rl(1))
+        pathname_rl(2)=replace_string_char(replace_str,trim(temp_str),pathname_rl(2))
+        pathname_traffic=replace_string_char(replace_str,trim(temp_str),pathname_traffic)
+        pathname_dynamic_emission=replace_string_char(replace_str,trim(temp_str),pathname_dynamic_emission)
+        pathname_terrain=replace_string_char(replace_str,trim(temp_str),pathname_terrain)
+        pathname_forest=replace_string_char(replace_str,trim(temp_str),pathname_forest)
+        pathname_urban=replace_string_char(replace_str,trim(temp_str),pathname_urban)
+        filename_nc=replace_string_char(replace_str,trim(temp_str),filename_nc)
+        filename_nc2=replace_string_char(replace_str,trim(temp_str),filename_nc2)
+        filename_rl(1)=replace_string_char(replace_str,trim(temp_str),filename_rl(1))
+        filename_rl(2)=replace_string_char(replace_str,trim(temp_str),filename_rl(2))
+        filename_traffic=replace_string_char(replace_str,trim(temp_str),filename_traffic)
+        filename_dynamic_emission(pm25_index)=replace_string_char(replace_str,trim(temp_str),filename_dynamic_emission(pm25_index))
+        filename_dynamic_emission(pm10_index)=replace_string_char(replace_str,trim(temp_str),filename_dynamic_emission(pm10_index))
+        filename_dynamic_emission(ep_index)=replace_string_char(replace_str,trim(temp_str),filename_dynamic_emission(ep_index))
+        path_inputdata_for_NORTRIP=replace_string_char(replace_str,trim(temp_str),path_inputdata_for_NORTRIP)
+        path_init_for_NORTRIP=replace_string_char(replace_str,trim(temp_str),path_init_for_NORTRIP)
+        path_init_out_for_NORTRIP=replace_string_char(replace_str,trim(temp_str),path_init_out_for_NORTRIP)
+        filename_NORTRIP_template=replace_string_char(replace_str,trim(temp_str),filename_NORTRIP_template)
+        filename_NORTRIP_info=replace_string_char(replace_str,trim(temp_str),filename_NORTRIP_info)
         
         !NORTRIP paths
-        filename_log_NORTRIP=replace_string_char(city_str(i),trim(temp_str),filename_log_NORTRIP)
-        path_inputparam=replace_string_char(city_str(i),trim(temp_str),path_inputparam)
-        filename_inputparam=replace_string_char(city_str(i),trim(temp_str),filename_inputparam)
-        path_inputdata=replace_string_char(city_str(i),trim(temp_str),path_inputdata)
-        filename_inputdata=replace_string_char(city_str(i),trim(temp_str),filename_inputdata)
-        path_outputdata=replace_string_char(city_str(i),trim(temp_str),path_outputdata)
-        filename_outputdata=replace_string_char(city_str(i),trim(temp_str),filename_outputdata)
-        path_init=replace_string_char(city_str(i),trim(temp_str),path_init)
-        filename_init=replace_string_char(city_str(i),trim(temp_str),filename_init)
-        path_output_emis=replace_string_char(city_str(i),trim(temp_str),path_output_emis)
-        filename_output_emis=replace_string_char(city_str(i),trim(temp_str),filename_output_emis)
-        path_output_roadmeteo=replace_string_char(city_str(i),trim(temp_str),path_output_roadmeteo)
-        filename_output_roadmeteo=replace_string_char(city_str(i),trim(temp_str),filename_output_roadmeteo)
-        path_fortran=replace_string_char(city_str(i),trim(temp_str),path_fortran)
-        path_fortran_output=replace_string_char(city_str(i),trim(temp_str),path_fortran_output)
-        path_outputfig=replace_string_char(city_str(i),trim(temp_str),path_outputfig)
-        path_ospm=replace_string_char(city_str(i),trim(temp_str),path_ospm)
-        filename_NORTRIP_data=replace_string_char(city_str(i),trim(temp_str),filename_NORTRIP_data)
+        filename_log_NORTRIP=replace_string_char(replace_str,trim(temp_str),filename_log_NORTRIP)
+        path_inputparam=replace_string_char(replace_str,trim(temp_str),path_inputparam)
+        filename_inputparam=replace_string_char(replace_str,trim(temp_str),filename_inputparam)
+        path_inputdata=replace_string_char(replace_str,trim(temp_str),path_inputdata)
+        filename_inputdata=replace_string_char(replace_str,trim(temp_str),filename_inputdata)
+        path_outputdata=replace_string_char(replace_str,trim(temp_str),path_outputdata)
+        filename_outputdata=replace_string_char(replace_str,trim(temp_str),filename_outputdata)
+        path_init=replace_string_char(replace_str,trim(temp_str),path_init)
+        filename_init=replace_string_char(replace_str,trim(temp_str),filename_init)
+        path_output_emis=replace_string_char(replace_str,trim(temp_str),path_output_emis)
+        filename_output_emis=replace_string_char(replace_str,trim(temp_str),filename_output_emis)
+        path_output_roadmeteo=replace_string_char(replace_str,trim(temp_str),path_output_roadmeteo)
+        filename_output_roadmeteo=replace_string_char(replace_str,trim(temp_str),filename_output_roadmeteo)
+        path_fortran=replace_string_char(replace_str,trim(temp_str),path_fortran)
+        path_fortran_output=replace_string_char(replace_str,trim(temp_str),path_fortran_output)
+        path_outputfig=replace_string_char(replace_str,trim(temp_str),path_outputfig)
+        path_ospm=replace_string_char(replace_str,trim(temp_str),path_ospm)
+        filename_NORTRIP_data=replace_string_char(replace_str,trim(temp_str),filename_NORTRIP_data)
         
         !Terrain
         if (n_dem_files.gt.0) then
         do j=1,n_dem_files
-            filename_terrain_data(j)=replace_string_char(city_str(i),trim(temp_str),filename_terrain_data(j))
+            filename_terrain_data(j)=replace_string_char(replace_str,trim(temp_str),filename_terrain_data(j))
         enddo
         endif
         if (n_forest_files.gt.0) then
         do j=1,n_forest_files
-            filename_forest_data(j)=replace_string_char(city_str(i),trim(temp_str),filename_forest_data(j))
+            filename_forest_data(j)=replace_string_char(replace_str,trim(temp_str),filename_forest_data(j))
         enddo
         endif
         if (n_urban_files.gt.0) then
         do j=1,n_dem_files
-            filename_urban_data(j)=replace_string_char(city_str(i),trim(temp_str),filename_urban_data(j))
+            filename_urban_data(j)=replace_string_char(replace_str,trim(temp_str),filename_urban_data(j))
         enddo
         endif
-        filename_skyview=replace_string_char(city_str(i),trim(temp_str),filename_skyview)
+        filename_skyview=replace_string_char(replace_str,trim(temp_str),filename_skyview)
         
         !Main Episode file and grids
-        inpath_main_AQmodel=replace_string_char(city_str(i),trim(temp_str),inpath_main_AQmodel)
-        infile_main_AQmodel=replace_string_char(city_str(i),trim(temp_str),infile_main_AQmodel)
-        filename_output_grid_emis=replace_string_char(city_str(i),trim(temp_str),filename_output_grid_emis)
+        inpath_main_AQmodel=replace_string_char(replace_str,trim(temp_str),inpath_main_AQmodel)
+        infile_main_AQmodel=replace_string_char(replace_str,trim(temp_str),infile_main_AQmodel)
+        filename_output_grid_emis=replace_string_char(replace_str,trim(temp_str),filename_output_grid_emis)
         
         !Special receptors
-        filename_NORTRIP_receptors=replace_string_char(city_str(i),trim(temp_str),filename_NORTRIP_receptors)
+        filename_NORTRIP_receptors=replace_string_char(replace_str,trim(temp_str),filename_NORTRIP_receptors)
         
         !Meteo observations     
-        filename_meteo_obs_metadata=replace_string_char(city_str(i),trim(temp_str),filename_meteo_obs_metadata)
-        inpath_meteo_obs_data=replace_string_char(city_str(i),trim(temp_str),inpath_meteo_obs_data)
-        infile_meteo_obs_data=replace_string_char(city_str(i),trim(temp_str),infile_meteo_obs_data)
+        filename_meteo_obs_metadata=replace_string_char(replace_str,trim(temp_str),filename_meteo_obs_metadata)
+        inpath_meteo_obs_data=replace_string_char(replace_str,trim(temp_str),inpath_meteo_obs_data)
+        infile_meteo_obs_data=replace_string_char(replace_str,trim(temp_str),infile_meteo_obs_data)
 
-        inpath_meteo_obs_netcdf_data=replace_string_char(city_str(i),trim(temp_str),inpath_meteo_obs_netcdf_data)
-        infile_meteo_obs_netcdf_data=replace_string_char(city_str(i),trim(temp_str),infile_meteo_obs_netcdf_data)
+        inpath_meteo_obs_netcdf_data=replace_string_char(replace_str,trim(temp_str),inpath_meteo_obs_netcdf_data)
+        infile_meteo_obs_netcdf_data=replace_string_char(replace_str,trim(temp_str),infile_meteo_obs_netcdf_data)
         
         !EF files
-        inpath_region_EF=replace_string_char(city_str(i),trim(temp_str),inpath_region_EF)
-        infile_region_EF=replace_string_char(city_str(i),trim(temp_str),infile_region_EF)
+        inpath_region_EF=replace_string_char(replace_str,trim(temp_str),inpath_region_EF)
+        infile_region_EF=replace_string_char(replace_str,trim(temp_str),infile_region_EF)
  
         !Regional activity files
-        inpath_region_activity=replace_string_char(city_str(i),trim(temp_str),inpath_region_activity)
-        infile_region_activity=replace_string_char(city_str(i),trim(temp_str),infile_region_activity)
+        inpath_region_activity=replace_string_char(replace_str,trim(temp_str),inpath_region_activity)
+        infile_region_activity=replace_string_char(replace_str,trim(temp_str),infile_region_activity)
         
         !Roadlink ID activity files
-        inpath_activity=replace_string_char(city_str(i),trim(temp_str),inpath_activity)
-        infile_activity=replace_string_char(city_str(i),trim(temp_str),infile_activity)
-        inpath_static_activity=replace_string_char(city_str(i),trim(temp_str),inpath_static_activity)
-        infile_static_activity=replace_string_char(city_str(i),trim(temp_str),infile_static_activity)
+        inpath_activity=replace_string_char(replace_str,trim(temp_str),inpath_activity)
+        infile_activity=replace_string_char(replace_str,trim(temp_str),infile_activity)
+        inpath_static_activity=replace_string_char(replace_str,trim(temp_str),inpath_static_activity)
+        infile_static_activity=replace_string_char(replace_str,trim(temp_str),infile_static_activity)
 
         !Scaling files
-        inpath_region_scaling=replace_string_char(city_str(i),trim(temp_str),inpath_region_scaling)
-        infile_region_scaling=replace_string_char(city_str(i),trim(temp_str),infile_region_scaling)
-        inpath_trend_scaling=replace_string_char(city_str(i),trim(temp_str),inpath_trend_scaling)
-        infile_trend_scaling=replace_string_char(city_str(i),trim(temp_str),infile_trend_scaling)
+        inpath_region_scaling=replace_string_char(replace_str,trim(temp_str),inpath_region_scaling)
+        infile_region_scaling=replace_string_char(replace_str,trim(temp_str),infile_region_scaling)
+        inpath_trend_scaling=replace_string_char(replace_str,trim(temp_str),inpath_trend_scaling)
+        infile_trend_scaling=replace_string_char(replace_str,trim(temp_str),infile_trend_scaling)
 
         !Population files
-        inpath_region_population=replace_string_char(city_str(i),trim(temp_str),inpath_region_population)
-        infile_region_population=replace_string_char(city_str(i),trim(temp_str),infile_region_population)
+        inpath_region_population=replace_string_char(replace_str,trim(temp_str),inpath_region_population)
+        infile_region_population=replace_string_char(replace_str,trim(temp_str),infile_region_population)
     enddo
     enddo
     
