@@ -96,6 +96,7 @@
                 
                 !write(*,*) k,k_index,region_id(k)
                 !write(*,*) max_stud_fraction_region(k,li),max_stud_fraction_region(k,he),min_stud_fraction_region(k,li),min_stud_fraction_region(k,he)
+                !write(*,*) exhaust_EF_region(k,li),exhaust_EF_region(k,he),nox_EF_region(k,li),nox_EF_region(k,he)
         enddo
         else
         do k=1,n_region          

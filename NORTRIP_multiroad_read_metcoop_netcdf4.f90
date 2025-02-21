@@ -59,6 +59,7 @@ subroutine NORTRIP_read_metcoop_netcdf4
     logical invert_dim_flag(num_dims_nc)
     
     double precision  offset_nc, scaling_nc
+    double precision seconds_correction
 
 	write(unit_logfile,'(A)') '================================================================'
 	write(unit_logfile,'(A)') 'Reading meteorological data (NORTRIP_read_metcoop_netcdf4)'
@@ -97,7 +98,7 @@ subroutine NORTRIP_read_metcoop_netcdf4
         do i=1,25
             !call incrtm(-24,new_start_date_input(1),new_start_date_input(2),new_start_date_input(3),new_start_date_input(4))
             temp_date=date_to_number(new_start_date_input,ref_year)
-            call number_to_date(temp_date-1./24.,new_start_date_input,ref_year)
+            call number_to_date(temp_date-1./dble(hours_in_day),new_start_date_input,ref_year)
             !write(*,*) i,new_start_date_input(1:4)
             call date_to_datestr_bracket(new_start_date_input,filename_nc_in,filename_nc)
             call date_to_datestr_bracket(new_start_date_input,pathname_nc_in,pathname_nc)
@@ -121,8 +122,12 @@ subroutine NORTRIP_read_metcoop_netcdf4
             write(unit_logfile,'(A,A)') ' Found earlier meteo netcdf file: ', trim(pathfilename_nc)
         endif
     else 
+        if (index(meteo_data_type,'emep').gt.0) then
+            !Do nothing as it is OK for emep meteo data
+        else
         write(*, *) "ERROR: Meteo file was found on first try. Need to use file from at least one hour back to get correct radiation data. Stopping."
         stop
+        endif
     endif
     if (.not.found_file) then
         pathfilename_nc=trim(pathname_nc)//trim(filename_alternative_nc)
@@ -140,7 +145,7 @@ subroutine NORTRIP_read_metcoop_netcdf4
             do i=1,25
                 !call incrtm(-24,new_start_date_input(1),new_start_date_input(2),new_start_date_input(3),new_start_date_input(4))
                 temp_date=date_to_number(new_start_date_input,ref_year)
-                call number_to_date(temp_date-1./24.,new_start_date_input,ref_year)
+                call number_to_date(temp_date-1./dble(hours_in_day),new_start_date_input,ref_year)
                 !write(*,*) i,new_start_date_input(1:4)
                 call date_to_datestr_bracket(new_start_date_input,filename_alternative_nc_in,filename_alternative_nc)
                 call date_to_datestr_bracket(new_start_date_input,pathname_nc_in,pathname_nc)
@@ -226,6 +231,13 @@ subroutine NORTRIP_read_metcoop_netcdf4
         allocate (var4d_nc(dim_length_nc(x_index),dim_length_nc(y_index),1,dim_length_nc(time_index)))
     endif
     
+    !Account for the fact that EMEP is in days since 1900 and MEPS is in seconds since 1970
+    if (index(meteo_data_type,'emep').gt.0) then
+        seconds_correction=1.
+    else
+        seconds_correction=dble(seconds_in_hour*hours_in_day)
+    endif
+
     !Set the number of hours to be read
     
     !Read the x, y and time values
@@ -236,16 +248,11 @@ subroutine NORTRIP_read_metcoop_netcdf4
         if (i.eq.time_index) then
             status_nc = NF90_GET_VAR (id_nc, var_id_nc(i), var1d_nc_dp(1:dim_length_nc(i)), start=(/dim_start_nc(i)/), count=(/dim_length_nc(i)/))
             
-            !This is only valid for 3 hourly EMEP data. Taken out
-            !if (index(meteo_data_type,'emep').gt.0) then
-                !Convert to seconds as this is given in days
-            !    var1d_nc_dp=var1d_nc_dp*3600.*24.
-            !endif
-                
+           !This write statement is correct for both EMEP and METCOOP time data
             var1d_time_nc_old(:)=var1d_nc_dp(1:dim_length_nc(time_index))
             write(unit_logfile,'(3A,2i14)') ' ',trim(dim_name_nc(i)),' (min, max in hours): ' &
-                ,int((var1d_nc_old(i,1)-var1d_nc_old(i,1))/3600.+.5)+1 &
-                ,int((var1d_nc_old(i,dim_length_nc(i))-var1d_nc_old(i,1))/3600.+.5)+1
+                ,int((var1d_nc_old(i,1)-var1d_nc_old(i,1))/dble(seconds_correction)*dble(hours_in_day)+.5)+1 &
+                ,int((var1d_nc_old(i,dim_length_nc(i))-var1d_nc_old(i,1))/dble(seconds_correction)*dble(hours_in_day)+.5)+1
 
         else
             write(unit_logfile,'(3A,2f12.2)') ' ',trim(dim_name_nc(i)),' (min, max in km): ' &
@@ -324,7 +331,11 @@ subroutine NORTRIP_read_metcoop_netcdf4
             else
                 
                 if (index(meteo_data_type,'emep').gt.0) then
+                write(*,*) 'Reading EMEP: ',trim(var_name_nc(i))
+                write(*,*) 'Dim start: ',dim_start_metcoop_nc
+                write(*,*) 'Dim length: ',dim_length_metcoop_nc
                     status_nc = NF90_GET_VAR (id_nc, var_id_nc(i), var3d_emep,start=(/dim_start_metcoop_nc/), count=(/dim_length_metcoop_nc/))
+                    write(*,*) 'Read'
                     var3d_nc_old(i,:,:,:)=var3d_emep(:,:,:)
                     !Read offsets and scaling
                     offset_nc=0.
@@ -333,7 +344,7 @@ subroutine NORTRIP_read_metcoop_netcdf4
                     status_nc2 =nf90_get_att(id_nc, var_id_nc(i), 'scale_factor', scaling_nc)
                     !Only add offset and scale factor if available
                     if (status_nc1.eq.0.and.status_nc2.eq.0) then
-                        var3d_nc_old(i,:,:,:)=var3d_nc(i,:,:,:)*scaling_nc+offset_nc
+                        var3d_nc_old(i,:,:,:)=var3d_emep(:,:,:)*scaling_nc+offset_nc
                     endif
                 
                 else
@@ -342,26 +353,29 @@ subroutine NORTRIP_read_metcoop_netcdf4
                 endif
             
                 !Make appropriate changes, going backwards so as to overwrite the existing data
-                if (i.eq.precip_index.or.i.eq.precip_snow_index) then
-                    do tt=dim_length_nc(time_index),2,-1
-                        var3d_nc_old(i,:,:,tt)=var3d_nc_old(i,:,:,tt)-var3d_nc_old(i,:,:,tt-1)
-                    enddo
-                    !Don't allow precip below the cutoff value
-                    where (var3d_nc_old(i,:,:,:).lt.precip_cutoff) var3d_nc_old(i,:,:,:)=0.                    
+                !EMEP data is not accumulated
+                if (index(meteo_data_type,'emep').eq.0) then
+                    if (i.eq.precip_index.or.i.eq.precip_snow_index) then
+                        do tt=dim_length_nc(time_index),2,-1
+                            var3d_nc_old(i,:,:,tt)=var3d_nc_old(i,:,:,tt)-var3d_nc_old(i,:,:,tt-1)
+                        enddo
+                        !Don't allow precip below the cutoff value
+                        where (var3d_nc_old(i,:,:,:).lt.precip_cutoff) var3d_nc_old(i,:,:,:)=0.                    
+                    endif
+
+                    if (i.eq.shortwaveradiation_index) then
+                        do tt=dim_length_nc(time_index),2,-1
+                            var3d_nc_old(i,:,:,tt)=(var3d_nc_old(i,:,:,tt)-var3d_nc_old(i,:,:,tt-1))/dble(seconds_in_hour)
+                        enddo
+                    endif
+
+                    if (i.eq.longwaveradiation_index) then
+                        do tt=dim_length_nc(time_index),2,-1
+                            var3d_nc_old(i,:,:,tt)=(var3d_nc_old(i,:,:,tt)-var3d_nc_old(i,:,:,tt-1))/dble(seconds_in_hour)
+                        enddo
+                    endif
                 endif
 
-                if (i.eq.shortwaveradiation_index) then
-                    do tt=dim_length_nc(time_index),2,-1
-                        var3d_nc_old(i,:,:,tt)=(var3d_nc_old(i,:,:,tt)-var3d_nc_old(i,:,:,tt-1))/3600.
-                    enddo
-                endif
-
-                if (i.eq.longwaveradiation_index) then
-                    do tt=dim_length_nc(time_index),2,-1
-                        var3d_nc_old(i,:,:,tt)=(var3d_nc_old(i,:,:,tt)-var3d_nc_old(i,:,:,tt-1))/3600.
-                    enddo
-                endif
-                
                 if (i.eq.elevation_index) then
                     var3d_nc_old(i,:,:,:)=var3d_nc_old(i,:,:,:)/9.8
                 endif
@@ -386,7 +400,7 @@ subroutine NORTRIP_read_metcoop_netcdf4
         allocate (var2d_nc_temp(2,dim_length_nc(x_index),dim_length_nc(y_index)))
         allocate (var3d_nc_temp(num_var_nc,dim_length_nc(x_index),dim_length_nc(y_index),dim_length_nc(time_index)))
    
-        var1d_nc_temp=var1d_nc
+        var1d_nc_temp=var1d_nc_old
         var2d_nc_temp=var2d_nc
         var3d_nc_temp=var3d_nc_old
         
@@ -394,7 +408,7 @@ subroutine NORTRIP_read_metcoop_netcdf4
             write(unit_logfile,'(A)') ' Inverting X dimension'
 
             do i=1,dim_length_nc(x_index)
-                var1d_nc(x_index,i)=var1d_nc_temp(x_index,dim_length_nc(x_index)+1-i)
+                var1d_nc_old(x_index,i)=var1d_nc_temp(x_index,dim_length_nc(x_index)+1-i)
                 var2d_nc(:,i,:)=var2d_nc_temp(:,dim_length_nc(x_index)+1-i,:)
                 var3d_nc_old(:,i,:,:)=var3d_nc_temp(:,dim_length_nc(x_index)+1-i,:,:)
             enddo
@@ -402,7 +416,7 @@ subroutine NORTRIP_read_metcoop_netcdf4
         if (invert_dim_flag(y_index)) then
             write(unit_logfile,'(A)') ' Inverting Y dimension'
             do j=1,dim_length_nc(y_index)
-                var1d_nc(y_index,j)=var1d_nc_temp(y_index,dim_length_nc(y_index)+1-j)
+                var1d_nc_old(y_index,j)=var1d_nc_temp(y_index,dim_length_nc(y_index)+1-j)
                 var2d_nc(:,:,j)=var2d_nc_temp(:,:,dim_length_nc(y_index)+1-j)
                 var3d_nc_old(:,:,j,:)=var3d_nc_temp(:,:,dim_length_nc(y_index)+1-j,:)
             enddo
@@ -495,12 +509,12 @@ subroutine NORTRIP_read_metcoop_netcdf4
     !Fill a date_nc array that is used to match meteo dates to the date range specified in the simulation call. 
     allocate(date_nc(num_date_index,meteo_nc_timesteps))
 
-    call number_to_date(dble(int(var1d_nc_old(time_index,1)/sngl(seconds_in_hour*hours_in_day)+1./24./60.)),date_nc(:,1),ref_year)
+    call number_to_date(dble(int(var1d_nc_old(time_index,1)/seconds_correction+1./dble(hours_in_day*minutes_in_hour))),date_nc(:,1),ref_year)
 
-    date_nc(hour_index,1)=int((var1d_nc_old(time_index,1)-(dble(int(var1d_nc_old(time_index,1)/sngl(seconds_in_hour*hours_in_day)+1./24./60.)))*sngl(seconds_in_hour*hours_in_day))/3600.+.5)
+    date_nc(hour_index,1)=int((var1d_nc_old(time_index,1)-(dble(int(var1d_nc_old(time_index,1)/seconds_correction+1./dble(hours_in_day*minutes_in_hour))))*seconds_correction)/dble(seconds_in_hour)+.5)
     do t=1, meteo_nc_timesteps-1
         a_temp=date_nc(:,1)
-        call minute_increment(int(minutes_in_hour*timestep)*t,a_temp(1),a_temp(2),a_temp(3),a_temp(4),a_temp(5)) 
+        call minute_increment(int(dble(minutes_in_hour)*timestep)*t,a_temp(1),a_temp(2),a_temp(3),a_temp(4),a_temp(5)) 
         date_nc(:,t+1)=a_temp   
     enddo
 

@@ -136,12 +136,11 @@
     
     !Read in meteorological data
     !Set reference year according to meteo data being read
-    !This is only valid for 3 hourly EMEP data. Taken out
-    !if (index(meteo_data_type,'emep').gt.0) then
-    !    ref_year=ref_year_EMEP
-    !else
+    if (index(meteo_data_type,'emep').gt.0) then
+        ref_year=ref_year_EMEP
+    else
         ref_year=ref_year_meteo !This should be read from the attributes in the netcdf file
-    !endif
+    endif
 
     if (index(meteo_data_type,'metcoop').gt.0) then
         !Read in meteo data from MEPs or METCOOP data. This is standard
