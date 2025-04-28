@@ -61,6 +61,8 @@ subroutine NORTRIP_read_metcoop_netcdf4
     double precision  offset_nc, scaling_nc
     double precision seconds_correction
 
+    character(256) units_nc(num_var_nc)
+
 	write(unit_logfile,'(A)') '================================================================'
 	write(unit_logfile,'(A)') 'Reading meteorological data (NORTRIP_read_metcoop_netcdf4)'
 	write(unit_logfile,'(A)') '================================================================'
@@ -92,6 +94,9 @@ subroutine NORTRIP_read_metcoop_netcdf4
         write(unit_logfile,'(A)') ' Will try every hour for the past 25 hours.'
         !write(*,'(A,A)') ' ERROR: Meteo netcdf file does not exist. Stopping: ', trim(pathfilename_nc)
         
+        !If looking for older meteo data then allow all times to be read, not limited by number_of_time_steps
+        number_of_time_steps=0
+
         !Start search back 24 hours
         new_start_date_input=start_date_input
         found_file=.false.
@@ -352,6 +357,9 @@ subroutine NORTRIP_read_metcoop_netcdf4
                     var3d_nc_old(i,:,:,:)=var4d_nc(:,:,1,:)
                 endif
             
+            !Read units
+                status_nc =nf90_get_att(id_nc, var_id_nc(i), 'units', units_nc(i))
+
                 !Make appropriate changes, going backwards so as to overwrite the existing data
                 !EMEP data is not accumulated
                 if (index(meteo_data_type,'emep').eq.0) then
@@ -359,8 +367,14 @@ subroutine NORTRIP_read_metcoop_netcdf4
                         do tt=dim_length_nc(time_index),2,-1
                             var3d_nc_old(i,:,:,tt)=var3d_nc_old(i,:,:,tt)-var3d_nc_old(i,:,:,tt-1)
                         enddo
+                        !Assumes units of kg/m^2. Scale if otherwise (EC data)
+                        if (index(units_nc(i),'Mg/m^2').gt.0.or.index(units_nc(i),'Mg/m2').gt.0) then
+                            var3d_nc_old(i,:,:,:)=var3d_nc_old(i,:,:,:)*1000.
+                            write(*,*) 'Precipitation units are Mg/m^2. Converting to kg/m^2'
+                        endif
+
                         !Don't allow precip below the cutoff value
-                        where (var3d_nc_old(i,:,:,:).lt.precip_cutoff) var3d_nc_old(i,:,:,:)=0.                    
+                        where (var3d_nc_old(i,:,:,:).lt.precip_cutoff) var3d_nc_old(i,:,:,:)=0.                
                     endif
 
                     if (i.eq.shortwaveradiation_index) then
