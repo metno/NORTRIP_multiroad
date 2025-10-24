@@ -64,7 +64,10 @@
     
     integer a(num_date_index)
     logical dim_read_flag
-    
+
+    integer meteo_nc_timesteps
+    double precision seconds_correction
+
     allocate (nora3_date_data(num_date_index,n_hours_input))
     allocate (new_nora3_forecast(n_hours_input+1))
     allocate (nora3_forecast_hour(n_hours_input+1))
@@ -73,11 +76,10 @@
 	write(unit_logfile,'(A)') 'Reading meteorological data (NORTRIP_read_nora3_netcdf4)'
 	write(unit_logfile,'(A)') '================================================================'
 
-    !pathname_nc='C:\BEDRE BYLUFT\NORTRIP implementation\test\';
-    !filename_nc='AROME_1KM_OSLO_20141028_EPI.nc'
     pathname_nc_in=pathname_nc
     filename_nc_in=filename_nc_template
     
+    !write(*,*) pathname_nc_in,filename_nc_in,n_hours_input
     !Defne the NORA3 files corresponding to the input time
     !fc<yyyymmddHH>_[num]_fp.nc num is 2 digits 003 to 009 and HH is the forecast hour
     new_nora3_forecast_count=0
@@ -85,7 +87,7 @@
         !Hours. small offset required
         nora3_forecast_hour_dp=24.*date_to_number(date_data(:,i),ref_year)-nora3_starting_hour+.0001
         !Set the date of the directory and file
-        call number_to_date((nora3_forecast_hour_dp-(dmod(nora3_forecast_hour_dp,6.)))/24.,nora3_date_data(:,i))
+          call number_to_date((nora3_forecast_hour_dp-(dmod(nora3_forecast_hour_dp,6.)))/24.,nora3_date_data(:,i),ref_year)
         !Specify the forecast hour as the remainder
         !nora3_forecast_hour(i)=floor(nora3_forecast_hour_dp-dmod(nora3_forecast_hour_dp,6.)*6.+0.5)
         nora3_forecast_hour(i)=idint(dmod(nora3_forecast_hour_dp,6.))+nora3_starting_hour
@@ -101,7 +103,7 @@
             new_nora3_forecast_count=new_nora3_forecast_count+1
         endif
         
-       ! write(*,*) i,nora3_forecast_hour(i),new_nora3_forecast(i)
+        !write(*,*) i,nora3_forecast_hour(i),new_nora3_forecast(i)
        ! write(*,*) nora3_date_data(1:4,i)
         !write(*,*) date_data(1:4,i)
         !write(*,*) (nora3_forecast_hour_dp-(dmod(nora3_forecast_hour_dp,6.)))/24.,nora3_forecast_hour_dp
@@ -388,16 +390,26 @@
            ! write(*,*) 'HERE2: ',var1d_nc(time_index,1)
 
     enddo !jj
-            ! write(*,*) 'HERE3: ',var1d_nc(time_index,1)
+             !write(*,*) 'HERE3: ',var1d_nc(time_index,1)
    
+    !meteo_nc_timesteps = nint(1 + (dim_length_nc(time_index)-1)/timestep) !Number of time steps that will be saved from the meteo file. (If timestep = 1h this will just be the number of hours)
 
     dim_length_nc(time_index)=n_hours_input
     start_dim_nc(time_index)=1
     end_dim_nc(time_index)=n_hours_input
-    
+ 
+    !Fill a date_nc array that is used to match meteo dates to the date range specified in the simulation call.
+    !write(*,*) num_date_index,end_dim_nc(time_index),n_hours_input
+    allocate(date_nc(num_date_index,dim_length_nc(time_index)))
+    !seconds_correction=dble(seconds_in_hour*hours_in_day)
+    !call number_to_date(dble(int(var1d_nc(time_index,1)/seconds_correction+1./dble(hours_in_day*minutes_in_hour))),date_nc(:,1),ref_year)
+
     do ii=start_dim_nc(time_index),end_dim_nc(time_index)
-    call number_to_date((var1d_time_nc(ii)+1.)/dble(3600.*24.),a)
-    write(*,'(7i8,es16.8)') ii, a(1:6),var1d_time_nc(ii)!/3600./24.
+        call number_to_date((var1d_time_nc(ii)+1.)/dble(3600.*24.),a,ref_year)
+        do k=1,num_date_index
+            date_nc(k,ii)=a(k)
+        enddo
+        write(*,'(7i8,es16.8)') ii, a(1:6),var1d_time_nc(ii)!/3600./24.
     enddo
     
     if (allocated(var4d_nc)) deallocate(var4d_nc)

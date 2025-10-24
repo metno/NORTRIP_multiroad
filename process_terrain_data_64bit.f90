@@ -45,10 +45,11 @@
     !set search parameters for shading
     real :: length_segment_init=50.
     real :: kerb_width=5.
-    real :: max_canyon_search_distance=100.
+    real :: max_canyon_search_distance=50. !Reduced canyon search to 50m, from 100m before
     real :: max_skyview_search_distance=20000.
     real :: forest_kerb_width=10.
     real :: forest_height=10.
+    real :: height_min=0.1
     integer :: is_forest=0
     
     integer seg,n_segments,n_valid_segment
@@ -59,7 +60,8 @@
     logical :: first_valid_segment=.false.
 
     real length_sublink
- 
+    logical :: use_dem_for_road_width=.true.
+    real width_av_canyon(2)
 
     !n_skyview set in definitions
     allocate (az_skyview(n_skyview,n_roadlinks))
@@ -87,7 +89,16 @@
          inputdata_rl(slope_rl_index,:)=0.
         return
     endif
-    
+
+             !Initialise for valid data
+            inputdata_rl(canyonwidth_rl_index,:)=inputdata_rl(width_rl_index,:)+kerb_width*2.
+            inputdata_rl(canyondist_north_rl_index,:)=inputdata_rl(canyonwidth_rl_index,:)/2.
+            inputdata_rl(canyondist_south_rl_index,:)=inputdata_rl(canyonwidth_rl_index,:)/2.
+            inputdata_rl(canyonheight_north_rl_index,:)=height_min
+            inputdata_rl(canyonheight_south_rl_index,:)=height_min
+            inputdata_rl(slope_rl_index,:)=0.
+
+   
     allocate (filename_ascii(n_dem_files))
     do f=1,n_dem_files
         filename_ascii(f)=trim(pathname_terrain)//trim(filename_terrain_data(f))
@@ -122,7 +133,7 @@
         endif
         
         if (utm_zone.ne.terrain_utm_zone) then
-            write(unit_logfile,'(A,2i)') ' WARNING: Terrain is not the same projection as the road (road utm, terrain utm)', utm_zone,terrain_utm_zone
+            write(unit_logfile,'(A,2i)') ' WARNING: Terrain is not the same projection as the road. Will reproject (road utm, terrain utm)', utm_zone,terrain_utm_zone
         endif
         
         !Define a point for testing
@@ -175,8 +186,8 @@
     
                 !Search for minimum in the local area
                 if (i_point.ne.0.and.j_point.ne.0) then    
-                    !Do not find minimum if grid size is > 15 m. So only for 10 m or 5 m terrain data
-                    if (cellsize.gt.15) then
+                    !Do not find minimum if grid size is 10 m. So only for 10 m or 5 m terrain data
+                    if (cellsize.gt.10) then
                         search_min=array(i_point,j_point)
                         search_max=array(i_point,j_point)
                     else
@@ -196,9 +207,9 @@
                 
                 !Search in a particular direction
                 road_angle=inputdata_rl(angle_rl_index,ro)
-                stepsize=cellsize
+                stepsize=cellsize/2 !Reduced the step size by half
                 n_grid_search_canyon=int(max_canyon_search_distance/stepsize) !Number of grids to search in, out to a radius of max_canyon_search_distance
-                width_canyon=stepsize
+                width_canyon=0 !Was stepsize
                 height_canyon=0
                 height_angle_max=0
                 !search_min=array(i_point,j_point)
@@ -251,8 +262,10 @@
     
                     if (first_valid_segment) then
                         height_angle_max_av_canyon=height_angle_max_canyon
+                        width_av_canyon=width_canyon
                     else
                         height_angle_max_av_canyon=height_angle_max_av_canyon*(n_valid_segment-1.)/n_valid_segment+height_angle_max_canyon/n_valid_segment
+                        width_av_canyon=width_av_canyon*(n_valid_segment-1.)/n_valid_segment+width_canyon/n_valid_segment
                     endif
                     !write(*,*) ro,height_angle_max_av_canyon
                     !write(*,'(A,i6,a,2f6.2,a,2f6.2)') 'Road:',ro,' Width canyon (N/S): ',width_canyon(2),width_canyon(1),' Height canyon (N/S): ',height_canyon(1),height_canyon(2)
@@ -349,12 +362,22 @@
             
             if (height_angle_max_av_canyon(north_index).ne.missing_data) then
                 !Put the canyon width always at road_width+10 m.
-                inputdata_rl(canyonwidth_rl_index,ro)=inputdata_rl(width_rl_index,ro)+kerb_width*2.
+                !Initialised with this value
+                !inputdata_rl(canyonwidth_rl_index,ro)=inputdata_rl(width_rl_index,ro)+kerb_width*2.
+
                 !Set the heights according to the average height angle
                 inputdata_rl(canyondist_north_rl_index,ro)=inputdata_rl(canyonwidth_rl_index,ro)/2.
                 inputdata_rl(canyondist_south_rl_index,ro)=inputdata_rl(canyonwidth_rl_index,ro)/2.
+                if (use_dem_for_road_width) then
+                    inputdata_rl(canyondist_north_rl_index,ro)=max(width_av_canyon(north_index),inputdata_rl(canyondist_north_rl_index,ro))
+                    inputdata_rl(canyondist_south_rl_index,ro)=max(width_av_canyon(south_index),inputdata_rl(canyondist_south_rl_index,ro))
+                    inputdata_rl(canyonwidth_rl_index,ro)=inputdata_rl(canyondist_north_rl_index,ro)+inputdata_rl(canyondist_south_rl_index,ro)
+                endif
                 inputdata_rl(canyonheight_north_rl_index,ro)=tan(height_angle_max_av_canyon(north_index))*inputdata_rl(canyondist_north_rl_index,ro)
                 inputdata_rl(canyonheight_south_rl_index,ro)=tan(height_angle_max_av_canyon(south_index))*inputdata_rl(canyondist_south_rl_index,ro)
+                inputdata_rl(canyonheight_north_rl_index,ro)=max(inputdata_rl(canyonheight_north_rl_index,ro),height_min)
+                inputdata_rl(canyonheight_south_rl_index,ro)=max(inputdata_rl(canyonheight_south_rl_index,ro),height_min)
+
                 !write(*,'(A,i6,A,i10,A,i4,a,2f6.1,a,2f6.1,a,2f6.1,a,f6.2)') 'Road:',ro,' ID:',inputdata_int_rl(id_rl_index,ro), &
                 !    ' n_seg:',n_segments,' Width canyon (N/S): ', &
                 !    inputdata_rl(canyondist_north_rl_index,ro),inputdata_rl(canyondist_south_rl_index,ro) &

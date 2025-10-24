@@ -211,12 +211,14 @@
     integer index_val
     logical exists
     integer road_type_activity_flag_input(num_road_type_activity,num_max_road_types)
-    character(2048) temp_str_2048
-    integer temp_int
+    !character(2048) temp_str_2048
+    character(8192) temp_str_2048
+     integer temp_int
     
     !Functions
     character(256) match_string_char
-    character(2048) match_string_char_2048
+    !character(2048) match_string_char_2048
+    character(8192) match_string_char_2048
     real match_string_val
     integer match_string_int
     character(256) replace_string_char

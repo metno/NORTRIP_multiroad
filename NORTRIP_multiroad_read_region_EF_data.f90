@@ -1001,7 +1001,7 @@
                 airquality_data(NOX_emis_index,1:n_hours_input,i)=0
                 do v=1,num_veh
                     airquality_data(EP_emis_index,1:n_hours_input,i)=airquality_data(EP_emis_index,1:n_hours_input,i)+traffic_data(N_v_index(v),1:n_hours_input,i)*exhaust_EF_region(j,v)*exhaust_EF_region_scaling(j,v)*exhaust_EF_trend_scaling(k,v)
-                    airquality_data(NOX_emis_index,1:n_hours_input,i)=airquality_data(NOX_emis_index,1:n_hours_input,i)+traffic_data(N_v_index(v),1:n_hours_input,i)*nox_EF_region(j,v)*nox_EF_region_scaling(j,v)*exhaust_EF_trend_scaling(k,v)
+                    airquality_data(NOX_emis_index,1:n_hours_input,i)=airquality_data(NOX_emis_index,1:n_hours_input,i)+traffic_data(N_v_index(v),1:n_hours_input,i)*nox_EF_region(j,v)*nox_EF_region_scaling(j,v)*nox_EF_trend_scaling(k,v)
                 enddo     
                 !write(*,*) 'After EP, NOX:',sum(airquality_data(EP_emis_index,1:n_hours_input,i)),sum(airquality_data(NOX_emis_index,1:n_hours_input,i))
             elseif (inputdata_int_rl(roadstructuretype_rl_index,i).ne.runway_roadtype) then
