@@ -130,8 +130,9 @@ subroutine NORTRIP_read_metcoop_netcdf4
         if (index(meteo_data_type,'emep').gt.0) then
             !Do nothing as it is OK for emep meteo data
         else
-        write(*, *) "ERROR: Meteo file was found on first try. Need to use file from at least one hour back to get correct radiation data. Stopping."
-        stop
+        !Commented out because if the date string is just yyyymmdd, as in ifs files, then it will find it first time
+        !write(*, *) "WARNING: Meteo file was found on first try. Need to use file from at least one hour back to get correct radiation data. Stopping."
+        !stop
         endif
     endif
     if (.not.found_file) then

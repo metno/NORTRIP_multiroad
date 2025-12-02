@@ -14,8 +14,8 @@ subroutine NORTRIP_multiroad_create_meteodata
     real meteo_temp(num_var_meteo)
     double precision time_temp,time_temp2
     integer exists
-    integer local_date_nc(num_date_index,end_dim_nc(time_index))
-    integer local_date_nc_forecast(num_date_index,end_dim_nc_forecast(time_index))
+    integer, allocatable :: local_date_nc(:,:)
+    integer, allocatable :: local_date_nc_forecast(:,:)
     integer start_time_index_nc,end_time_index_nc,hours_time_index_nc
     logical start_time_index_nc_found,end_time_index_nc_found
 
@@ -84,21 +84,28 @@ subroutine NORTRIP_multiroad_create_meteodata
 	write(unit_logfile,'(A)') 'Creating multiroad meteorology file (NORTRIP_multiroad_create_meteodata)'
 	write(unit_logfile,'(A)') '================================================================'
     
-    !Should be dimensions n_roadlinks?
+    !write(*,*) 'here01',num_var_meteo,n_hours_input,n_roadlinks,n_save_links
+   !Should be dimensions n_roadlinks?
     !Either this or meteo_output needs to be indexed with j not i
     !Note I have not used this select only roads functionality since changing to the combined version so there  could be something wrong.
     !allocate (meteo_output(num_var_meteo,n_hours_input,n_save_links))
     !allocate (meteo_obs_ID_output(n_save_links))
-    allocate (meteo_output(num_var_meteo,n_hours_input,n_roadlinks))
-    allocate (meteo_obs_ID_output(n_roadlinks))
-        
+    !write(*,*) num_date_index,dim_length_nc(time_index)
+    allocate(meteo_output(num_var_meteo,n_hours_input,n_roadlinks))
+
+    !write(*,*) 'here3'
+    allocate(meteo_obs_ID_output(n_roadlinks))
+    !write(*,*) 'here1'
     !Attribute a grid index to each road link
-    allocate (grid_index_rl(2,n_roadlinks))
-    allocate (grid_index_rl2(2,n_roadlinks))
-    allocate (grid_index_rl_forecast(2,n_roadlinks))
-    allocate (dist_array_nc(dim_length_nc(x_index),dim_length_nc(y_index)))
-    allocate (dist_array_nc2(dim_length_nc2(x_index2),dim_length_nc2(y_index2)))
+    allocate(grid_index_rl(2,n_roadlinks))
+    allocate(grid_index_rl2(2,n_roadlinks))
+    allocate(grid_index_rl_forecast(2,n_roadlinks))
+    allocate(dist_array_nc(dim_length_nc(x_index),dim_length_nc(y_index)))
+    allocate(dist_array_nc2(dim_length_nc2(x_index2),dim_length_nc2(y_index2)))
+    !write(*,*) 'here2'
     
+    !allocate (local_date_nc(num_date_index,end_dim_nc(time_index)))
+    allocate(local_date_nc(num_date_index,dim_length_nc(time_index)))
     out_of_range_count=0
     
     !Check to see if any alternative meteo data is available
@@ -110,7 +117,7 @@ subroutine NORTRIP_multiroad_create_meteodata
     endif
     
     
-    write(unit_logfile,'(a)') ' Matching meteo grids to road links '
+    write(unit_logfile,'(a,2i)') ' Matching meteo grids to road links ',n_save_links,n_roadlinks
 
     do k=1,n_save_links
         i=save_links(k)
@@ -142,7 +149,7 @@ subroutine NORTRIP_multiroad_create_meteodata
         !This actually means we do not have an x,y coodinate system and we 'approximate' the lat lon assuming the x,y grid is roughly in a N-S direction
         elseif (index(meteo_data_type,'metcoop').gt.0.or.index(meteo_data_type,'emep').gt.0.or.index(meteo_data_type,'nora3').gt.0) then
             !loop through all grids to find the nearest in lat lon
-            
+            !write(*,*) k,i
             !This method should work for any roughly north south projection but is not 'exact'. Can be out by a grid
             !It estimates the lat-lon grid spacing at the lat lon position with two iterations
             !Better would have been to do the projection but this is considered good enough and more general
@@ -209,10 +216,14 @@ subroutine NORTRIP_multiroad_create_meteodata
         write(unit_logfile,'(a,4i12)') ' WARNING: Number of road links outside of grid (NORTRIP_multiroad_save_meteodata) = ',out_of_range_count
     endif
     
+ 
     !Match the meteo netcdf times to the input time
     start_time_index_nc=start_dim_nc(time_index)
     end_time_index_nc=end_dim_nc(time_index)
     
+    write(*,*) 'here1',time_index
+
+    !write(*,*) start_time_index_nc,end_time_index_nc
     ! !NOTE: This is not optimal because of the round off errors. Should be relooked at
     ! do t=start_dim_nc(time_index),end_dim_nc(time_index)
     ! !     !Netcdf are in seconds since 1970
@@ -239,8 +250,8 @@ subroutine NORTRIP_multiroad_create_meteodata
     !     !call incrtm(int(-DIFUTC_H),local_date_nc(1,t),local_date_nc(2,t),local_date_nc(3,t),local_date_nc(4,t))
     !     !write(*,*) local_date_nc(:,t)
     ! enddo
- 
-    
+     write(*,*) 'here2',time_index
+
     write(unit_logfile,'(a32,6i6)') ' Start date meteo netcdf = ',date_nc(:,start_dim_nc(time_index))
     write(unit_logfile,'(a32,6i6)') ' End date meteo netcdf = ',date_nc(:,end_dim_nc(time_index))
     write(unit_logfile,'(a32,6i6)') ' Start date meteo local = ',local_date_nc(:,start_dim_nc(time_index))
@@ -288,6 +299,7 @@ subroutine NORTRIP_multiroad_create_meteodata
     !---------------------------------------------------MET Nordic forecast stuff-------------------------------------------------------------------------------!
     if ( replace_meteo_with_met_forecast.eq.1 .and. meteo_nc_forecast_available) then
         
+        allocate (local_date_nc_forecast(num_date_index,end_dim_nc_forecast(time_index)))
 
         !Match the meteo netcdf times to the input time
         start_time_index_nc_forecast=start_dim_nc_forecast(time_index)
@@ -1015,17 +1027,22 @@ subroutine NORTRIP_multiroad_create_meteodata
         
     enddo
 
-    deallocate (grid_index_rl)
-    deallocate (dist_array_nc)
-    deallocate (dist_array_nc2)
+    if (allocated(grid_index_rl)) deallocate(grid_index_rl)
+    if (allocated(dist_array_nc)) deallocate(dist_array_nc)
+    if (allocated(dist_array_nc2)) deallocate(dist_array_nc2)
+    if (allocated(grid_index_rl2)) deallocate(grid_index_rl2)
+    if (allocated(grid_index_rl_forecast)) deallocate(grid_index_rl_forecast)
     
-    if (allocated(var1d_nc)) deallocate (var1d_nc)
-    if (allocated(var2d_nc)) deallocate (var2d_nc)
-    if (allocated(var3d_nc)) deallocate (var3d_nc)
-    if (allocated(var1d_nc2)) deallocate (var1d_nc2)
-    if (allocated(var2d_nc2)) deallocate (var2d_nc2)
-    if (allocated(var3d_nc2)) deallocate (var3d_nc2)
-    
+    if (allocated(var1d_nc)) deallocate(var1d_nc)
+    if (allocated(var2d_nc)) deallocate(var2d_nc)
+    if (allocated(var3d_nc)) deallocate(var3d_nc)
+    if (allocated(var1d_nc2)) deallocate(var1d_nc2)
+    if (allocated(var2d_nc2)) deallocate(var2d_nc2)
+    if (allocated(var3d_nc2)) deallocate(var3d_nc2)
+ 
+     if (allocated(local_date_nc)) deallocate(local_date_nc)
+     if (allocated(local_date_nc_forecast)) deallocate(local_date_nc_forecast)
+   
     
 end subroutine NORTRIP_multiroad_create_meteodata
     

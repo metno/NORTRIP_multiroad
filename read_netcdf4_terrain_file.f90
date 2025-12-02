@@ -27,7 +27,7 @@
     status_nc = NF90_OPEN (filename_nc_sub, NF90_NOWRITE, id_nc)
     if (status_nc .NE. NF90_NOERR) write(unit_logfile,'(A,I)') 'ERROR opening netcdf file: ',status_nc
 
-    !Find out the x,y and time dimmensions of the file by looking at pressure variable
+    !Find out the x,y and dimmensions of the file
     status_nc = NF90_INQ_DIMID (id_nc,dim_name_nc(x_index),dim_id_nc(x_index))
     status_nc = NF90_INQUIRE_DIMENSION (id_nc,dim_id_nc(x_index),dimname_temp,dim_length_nc(x_index))
     status_nc = NF90_INQ_DIMID (id_nc,dim_name_nc(y_index),dim_id_nc(y_index))
@@ -40,9 +40,9 @@
     if (.not.allocated(array)) allocate(array(ncols_sub,nrows_sub))
     if (.not.allocated(x_array)) allocate(x_array(ncols_sub))
     if (.not.allocated(y_array)) allocate(y_array(nrows_sub))
-    allocate (var1d_nc(num_dims_nc,max(ncols_sub,nrows_sub))) !x and y and time maximum dimmensions
+    allocate (var1d_nc(num_dims_nc,max(ncols_sub,nrows_sub))) !x and y maximum dimmensions
    
-    !Read the x, y and time values
+    !Read the x, y values
     do i=1,num_dims_terrain_nc
         status_nc = NF90_INQ_VARID (id_nc, trim(dim_name_terrain_nc(i)), var_id_nc)
         status_nc = NF90_GET_VAR (id_nc, var_id_nc, var1d_nc(i,:), start=(/dim_start_nc(i)/), count=(/dim_length_nc(i)/))
