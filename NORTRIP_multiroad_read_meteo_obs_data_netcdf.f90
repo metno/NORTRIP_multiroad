@@ -56,7 +56,7 @@
         do i=1,1
             !call incrtm(-24,new_start_date_input(1),new_start_date_input(2),new_start_date_input(3),new_start_date_input(4))
             temp_date=date_to_number(new_start_date_input,ref_year)
-            call number_to_date(temp_date-1./24.,new_start_date_input,ref_year)
+            call number_to_date(temp_date-1./dble(hours_in_day),new_start_date_input,ref_year)
             call date_to_datestr_bracket(new_start_date_input,infile_meteo_obs_netcdf_data_template,infile_meteo_obs_netcdf_data)
             call date_to_datestr_bracket(new_start_date_input,infile_meteo_obs_netcdf_data_template,infile_meteo_obs_netcdf_data)
             call date_to_datestr_bracket(new_start_date_input,infile_meteo_obs_netcdf_data_template,infile_meteo_obs_netcdf_data)
@@ -91,7 +91,11 @@
         write(unit_logfile,'(a)') trim(filename)
         call check(nf90_open(filename,NF90_NOWRITE,ncid))
         !Get number of stations from netcdf file with observations
-        call check(nf90_inq_dimid(ncid, "station_id",dimid))
+        if (calculation_type=="Avinor") then !TODO: Determine what should be the default choice here. The road_id version is only used with interpolated "observations", but that doesn't have its own calculation type yet.
+            call check(nf90_inq_dimid(ncid, "station_id",dimid))
+        else
+            call check(nf90_inq_dimid(ncid, "road_id",dimid))
+        end if 
         call check(nf90_inquire_dimension(ncid, dimid, len=n_meteo_obs_stations))
 
         write(unit_logfile,'(a)') "Number of stations in obs file: "
@@ -230,12 +234,25 @@
             meteo_obs_data(precip_index,:,:) = -99.
         end if
 
-        status = (nf90_inq_varid(ncid,"runway_temperature",varid))
-        if ( status == nf90_noerr ) then
-            call check(nf90_get_var(ncid,varid,meteo_obs_data(road_temperature_index,:,:)))
-        else
-            write(unit_logfile,'(a)') "The variable runway_temperature was not found in the netcdf file. Setting value to -99."
-            meteo_obs_data(road_temperature_index,:,:) = -99.
+        if (calculation_type=="Avinor") then 
+
+            status = (nf90_inq_varid(ncid,"runway_temperature",varid))
+            if ( status == nf90_noerr ) then
+                call check(nf90_get_var(ncid,varid,meteo_obs_data(road_temperature_index,:,:)))
+            else
+                write(unit_logfile,'(a)') "The variable runway_temperature was not found in the netcdf file. Setting value to -99."
+                meteo_obs_data(road_temperature_index,:,:) = -99.
+            end if
+        else 
+            status = (nf90_inq_varid(ncid,"T_s",varid)) !NOTE: this is an interpolated temperature, found by using road_surface_temperature observations and IDW interpolation
+            if ( status == nf90_noerr ) then
+                print*, "found variable T_s ", size(meteo_obs_data, dim = 2), size(meteo_obs_data, dim = 3)
+                call check(nf90_get_var(ncid,varid,meteo_obs_data(road_temperature_index,:,:)))
+            else
+                write(unit_logfile,'(a)') "The variable T_s was not found in the netcdf file. Setting value to -99."
+                meteo_obs_data(road_temperature_index,:,:) = -99.
+            end if
+
         end if
 
         status = (nf90_inq_varid(ncid,"cloud_area_fraction",varid))
