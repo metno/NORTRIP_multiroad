@@ -93,16 +93,13 @@ subroutine NORTRIP_multiroad_create_meteodata
     !write(*,*) num_date_index,dim_length_nc(time_index)
     allocate(meteo_output(num_var_meteo,n_hours_input,n_roadlinks))
 
-    !write(*,*) 'here3'
     allocate(meteo_obs_ID_output(n_roadlinks))
-    !write(*,*) 'here1'
     !Attribute a grid index to each road link
     allocate(grid_index_rl(2,n_roadlinks))
     allocate(grid_index_rl2(2,n_roadlinks))
     allocate(grid_index_rl_forecast(2,n_roadlinks))
     allocate(dist_array_nc(dim_length_nc(x_index),dim_length_nc(y_index)))
     allocate(dist_array_nc2(dim_length_nc2(x_index2),dim_length_nc2(y_index2)))
-    !write(*,*) 'here2'
     
     !allocate (local_date_nc(num_date_index,end_dim_nc(time_index)))
     allocate(local_date_nc(num_date_index,dim_length_nc(time_index)))
@@ -221,7 +218,6 @@ subroutine NORTRIP_multiroad_create_meteodata
     start_time_index_nc=start_dim_nc(time_index)
     end_time_index_nc=end_dim_nc(time_index)
     
-    write(*,*) 'here1',time_index
 
     !write(*,*) start_time_index_nc,end_time_index_nc
     ! !NOTE: This is not optimal because of the round off errors. Should be relooked at
@@ -250,7 +246,6 @@ subroutine NORTRIP_multiroad_create_meteodata
     !     !call incrtm(int(-DIFUTC_H),local_date_nc(1,t),local_date_nc(2,t),local_date_nc(3,t),local_date_nc(4,t))
     !     !write(*,*) local_date_nc(:,t)
     ! enddo
-     write(*,*) 'here2',time_index
 
     write(unit_logfile,'(a32,6i6)') ' Start date meteo netcdf = ',date_nc(:,start_dim_nc(time_index))
     write(unit_logfile,'(a32,6i6)') ' End date meteo netcdf = ',date_nc(:,end_dim_nc(time_index))

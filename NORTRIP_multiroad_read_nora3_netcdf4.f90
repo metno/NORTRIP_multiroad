@@ -521,8 +521,6 @@
     if (.not.allocated(var2d_nc_temp)) allocate (var2d_nc_temp(2,dim_length_nc(x_index),dim_length_nc(y_index))) !Lat and lon
     if (.not.allocated(var1d_nc_in)) allocate (var1d_nc_in(2,max(dim_length_nc(x_index),dim_length_nc(y_index)))) !Lat and lon
 
-    !write(*,*) 'HERE1: ',dim_length_nc
-    !write(*,*) 'HERE2: ',dim_start_nc
     !Read in the lat and lon positions in the meteo file
     !do i=lat_index,lon_index
     !    status_nc = NF90_INQ_VARID (id_nc, trim(var_name_nc(i)), var_id_nc(i))
@@ -663,8 +661,7 @@
     if (.not.allocated(var2d_nc2_temp)) allocate (var2d_nc2_temp(2,dim_length_nc2(x_index2),dim_length_nc2(y_index2))) !Lat and lon
     if (.not.allocated(var1d_nc2_in)) allocate (var1d_nc2_in(2,max(dim_length_nc2(x_index2),dim_length_nc2(y_index2)))) !Lat and lon
 
-    !write(*,*) 'HERE1: ',dim_length_nc2
-    !write(*,*) 'HERE2: ',dim_start_nc2
+
     !Read in the lat and lon positions in the meteo file
     !do i=lat_index2,lon_index2
     !    status_nc = NF90_INQ_VARID (id_nc2, trim(var_name_nc2(i)), var_id_nc2(i))
