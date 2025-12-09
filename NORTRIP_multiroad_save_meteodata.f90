@@ -732,10 +732,6 @@ subroutine NORTRIP_multiroad_create_meteodata
                         if ( t .eq. obs_exist(datetime_match) ) then !Printing 
                             if ( any(index(meteo_obs_name,road_name(1:5)) > 0) ) then 
                                 not_shown_once = .true.
-                                write(*,'(A,A,A,I7)') "Replace modeled with observed meteorology from station ", trim(road_name(1:5)), " for road link with ID ",inputdata_int_rl(id_rl_index,i) 
-
-                            else
-                                write(*,'(A,I7,A,A,A)') "WARNING: No observational data found for road link ", inputdata_int_rl(id_rl_index,i), ". Using observational data from station ", road_name(1:5)//"0", " if available."
                             end if
                         end if
                                 

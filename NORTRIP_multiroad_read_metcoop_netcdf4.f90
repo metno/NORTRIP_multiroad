@@ -94,9 +94,6 @@ subroutine NORTRIP_read_metcoop_netcdf4
         write(unit_logfile,'(A)') ' Will try every hour for the past 25 hours.'
         !write(*,'(A,A)') ' ERROR: Meteo netcdf file does not exist. Stopping: ', trim(pathfilename_nc)
         
-        !If looking for older meteo data then allow all times to be read, not limited by number_of_time_steps
-        number_of_time_steps=0
-
         !Start search back 24 hours
         new_start_date_input=start_date_input
         found_file=.false.
@@ -111,6 +108,10 @@ subroutine NORTRIP_read_metcoop_netcdf4
             write(unit_logfile,'(A,A)') ' Trying: ', trim(pathfilename_nc)
             inquire(file=trim(pathfilename_nc),exist=exists)
             if (exists) then
+                !If looking for older meteo data then allow more timesteps to be read
+                if (number_of_time_steps .ne. 0) then 
+                    number_of_time_steps=number_of_time_steps + i
+                end if 
                 found_file=.true.
                 exit
             else 
@@ -323,7 +324,6 @@ subroutine NORTRIP_read_metcoop_netcdf4
     
     !Read through the variables in a loop
     do i=1,num_var_nc
-
         status_nc = NF90_INQ_VARID (id_nc, trim(var_name_nc(i)), var_id_nc(i))
 
         if (status_nc.eq.NF90_NOERR) then

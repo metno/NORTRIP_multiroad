@@ -92,6 +92,10 @@ subroutine NORTRIP_read_MET_Nordic_forecast_netcdf4
             write(unit_logfile,'(A,A)') ' Trying: ', trim(pathfilename_nc)
             inquire(file=trim(pathfilename_nc),exist=exists)
             if (exists) then
+                !If looking for older meteo data then allow more timesteps to be read
+                if (number_of_time_steps .ne. 0) then 
+                    number_of_time_steps=number_of_time_steps + i
+                end if 
                 found_file=.true.
                 exit
             else 
