@@ -279,9 +279,7 @@
     !Declare file and path names for netcdf files
     character(256) filename_nc_template
     character(256) infile_meteo_obs_netcdf_data_template
-    character(256) filename_alternative_nc_template
     character(256) filename_nc
-    character(256) filename_alternative_nc
     character(256) pathname_nc
     character(256) pathfilename_nc
     character(256) filename_nc2_template

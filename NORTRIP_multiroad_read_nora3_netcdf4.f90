@@ -1,7 +1,7 @@
     subroutine NORTRIP_read_nora3_netcdf4
     !Reads NORA3 data -  provided in individual hourly files with specific 6 hour intervals, from 4 to 9, read from 3 to 9
     !Needs to read in 4 files directories and 25 files for a single calendar day from 01-00
-    !Do not need tocheck for ensemble and do not need to chaeck for alternative meteo as these do not exist
+    !Do not need tocheck for ensemble as these do not exist
     !Based on the metcoop reading routine
     
     use NORTRIP_multiroad_index_definitions
@@ -30,7 +30,7 @@
     integer ii,jj,tt,kk
     integer new_start_date_input(num_date_index)
     logical found_file
-    character(256) pathname_nc_in,filename_nc_in,filename_alternative_nc_in
+    character(256) pathname_nc_in,filename_nc_in
     
     integer dim_id_nc_ensemble
     logical ensemble_dim_flag

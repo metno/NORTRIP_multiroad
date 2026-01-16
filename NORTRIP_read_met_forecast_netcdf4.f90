@@ -25,7 +25,7 @@ subroutine NORTRIP_read_MET_Nordic_forecast_netcdf4
     integer ii,jj,tt
     integer new_start_date_input(num_date_index)
     logical found_file
-    character(256) pathname_nc_in,filename_nc_in,filename_alternative_nc_in
+    character(256) pathname_nc_in,filename_nc_in
     
     integer dim_id_nc_ensemble
     logical ensemble_dim_flag
